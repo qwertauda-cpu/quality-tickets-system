@@ -84,5 +84,19 @@ async function loadAllTeams() {
     }
 }
 
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.mobile-menu-overlay');
+    
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+    }
+    
+    if (overlay) {
+        overlay.classList.toggle('active');
+    }
+}
+
 window.showPage = showPage;
+window.toggleMobileMenu = toggleMobileMenu;
 
