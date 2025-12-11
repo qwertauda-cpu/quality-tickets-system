@@ -1,0 +1,250 @@
+// Time Picker with 12-hour format (AM/PM)
+
+function createTimePicker(containerId, defaultValue = null, required = false) {
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    
+    // Clear existing content
+    container.innerHTML = '';
+    
+    // Create wrapper
+    const wrapper = document.createElement('div');
+    wrapper.className = 'time-picker-wrapper';
+    wrapper.style.display = 'grid';
+    wrapper.style.gridTemplateColumns = '1fr 1fr 1fr';
+    wrapper.style.gap = '10px';
+    wrapper.style.marginTop = '5px';
+    
+    // Get current time or use provided default
+    let hour = 12;
+    let minute = 0;
+    let ampm = 'AM';
+    
+    if (defaultValue) {
+        const date = new Date(defaultValue);
+        hour = date.getHours();
+        minute = date.getMinutes();
+        if (hour >= 12) {
+            ampm = 'PM';
+            if (hour > 12) hour -= 12;
+        } else {
+            ampm = 'AM';
+            if (hour === 0) hour = 12;
+        }
+    } else {
+        const now = new Date();
+        hour = now.getHours();
+        minute = now.getMinutes();
+        if (hour >= 12) {
+            ampm = 'PM';
+            if (hour > 12) hour -= 12;
+        } else {
+            ampm = 'AM';
+            if (hour === 0) hour = 12;
+        }
+    }
+    
+    // Hour picker (1-12)
+    const hourSelect = createTimeSelect('hour', generateHours12(), hour, required);
+    const minuteSelect = createTimeSelect('minute', generateMinutes(), minute, false);
+    const ampmSelect = createTimeSelect('ampm', [
+        { value: 'AM', label: 'AM' },
+        { value: 'PM', label: 'PM' }
+    ], ampm, false);
+    
+    wrapper.appendChild(hourSelect);
+    wrapper.appendChild(minuteSelect);
+    wrapper.appendChild(ampmSelect);
+    
+    container.appendChild(wrapper);
+    
+    // Hidden input to store the actual time value (24-hour format)
+    const hiddenInput = document.createElement('input');
+    hiddenInput.type = 'hidden';
+    hiddenInput.id = containerId + '_value';
+    hiddenInput.required = required;
+    container.appendChild(hiddenInput);
+    
+    // Function to update hidden input value
+    function updateValue() {
+        let h = parseInt(hourSelect.value);
+        const m = parseInt(minuteSelect.value);
+        const ap = ampmSelect.value;
+        
+        // Convert to 24-hour format
+        if (ap === 'PM' && h !== 12) {
+            h += 12;
+        } else if (ap === 'AM' && h === 12) {
+            h = 0;
+        }
+        
+        const hourStr = h.toString().padStart(2, '0');
+        const minuteStr = m.toString().padStart(2, '0');
+        hiddenInput.value = `${hourStr}:${minuteStr}`;
+    }
+    
+    // Add change listeners
+    [hourSelect, minuteSelect, ampmSelect].forEach(select => {
+        select.addEventListener('change', updateValue);
+    });
+    
+    // Set initial value
+    updateValue();
+    
+    return {
+        getValue: () => hiddenInput.value,
+        setValue: (value) => {
+            if (value) {
+                const [h, m] = value.split(':').map(Number);
+                let hour12 = h;
+                let ampmVal = 'AM';
+                
+                if (h >= 12) {
+                    ampmVal = 'PM';
+                    if (h > 12) hour12 = h - 12;
+                } else {
+                    ampmVal = 'AM';
+                    if (h === 0) hour12 = 12;
+                }
+                
+                hourSelect.value = hour12;
+                minuteSelect.value = m;
+                ampmSelect.value = ampmVal;
+                updateValue();
+            }
+        },
+        reset: () => {
+            const now = new Date();
+            let h = now.getHours();
+            const m = now.getMinutes();
+            let ampmVal = 'AM';
+            
+            if (h >= 12) {
+                ampmVal = 'PM';
+                if (h > 12) h -= 12;
+            } else {
+                ampmVal = 'AM';
+                if (h === 0) h = 12;
+            }
+            
+            hourSelect.value = h;
+            minuteSelect.value = m;
+            ampmSelect.value = ampmVal;
+            updateValue();
+        }
+    };
+}
+
+function createTimeSelect(name, options, defaultValue, required) {
+    const select = document.createElement('select');
+    select.id = name;
+    select.className = 'datetime-select';
+    select.required = required;
+    select.style.padding = '12px';
+    select.style.background = 'var(--bg-tertiary)';
+    select.style.border = '1px solid var(--border-color)';
+    select.style.borderRadius = '8px';
+    select.style.fontSize = '14px';
+    select.style.fontFamily = 'Cairo, sans-serif';
+    select.style.color = 'var(--text-primary)';
+    select.style.cursor = 'pointer';
+    select.style.transition = 'all 0.3s ease';
+    
+    select.addEventListener('focus', () => {
+        select.style.borderColor = 'var(--primary-color)';
+        select.style.boxShadow = '0 0 0 3px rgba(79, 70, 229, 0.1)';
+    });
+    
+    select.addEventListener('blur', () => {
+        select.style.borderColor = 'var(--border-color)';
+        select.style.boxShadow = 'none';
+    });
+    
+    options.forEach(option => {
+        const opt = document.createElement('option');
+        opt.value = option.value;
+        opt.textContent = option.label;
+        if (option.value == defaultValue) {
+            opt.selected = true;
+        }
+        select.appendChild(opt);
+    });
+    
+    return select;
+}
+
+function generateHours12() {
+    const hours = [];
+    for (let i = 1; i <= 12; i++) {
+        hours.push({ value: i, label: i.toString() });
+    }
+    return hours;
+}
+
+function generateMinutes() {
+    const minutes = [];
+    for (let i = 0; i < 60; i += 5) {
+        minutes.push({ value: i, label: i.toString().padStart(2, '0') });
+    }
+    return minutes;
+}
+
+// Initialize all time pickers on page load
+function initTimePickers() {
+    // Quality Staff Page
+    const timeReceivedTimeContainer = document.getElementById('time_received_time_container');
+    const timeFirstContactTimeContainer = document.getElementById('time_first_contact_time_container');
+    const timeCompletedTimeContainer = document.getElementById('time_completed_time_container');
+    
+    if (timeReceivedTimeContainer) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        window.timeReceivedTimePicker = createTimePicker('time_received_time_container', now.toISOString(), true);
+    }
+    
+    if (timeFirstContactTimeContainer) {
+        window.timeFirstContactTimePicker = createTimePicker('time_first_contact_time_container', null, false);
+    }
+    
+    if (timeCompletedTimeContainer) {
+        window.timeCompletedTimePicker = createTimePicker('time_completed_time_container', null, false);
+    }
+    
+    // Admin Dashboard Page
+    const adminTimeReceivedTimeContainer = document.getElementById('admin_time_received_time_container');
+    const adminTimeFirstContactTimeContainer = document.getElementById('admin_time_first_contact_time_container');
+    const adminTimeCompletedTimeContainer = document.getElementById('admin_time_completed_time_container');
+    
+    if (adminTimeReceivedTimeContainer) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        window.adminTimeReceivedTimePicker = createTimePicker('admin_time_received_time_container', now.toISOString(), true);
+    }
+    
+    if (adminTimeFirstContactTimeContainer) {
+        window.adminTimeFirstContactTimePicker = createTimePicker('admin_time_first_contact_time_container', null, false);
+    }
+    
+    if (adminTimeCompletedTimeContainer) {
+        window.adminTimeCompletedTimePicker = createTimePicker('admin_time_completed_time_container', null, false);
+    }
+}
+
+// Helper function to get time value from picker
+function getTimeValue(containerId) {
+    const hiddenInput = document.getElementById(containerId + '_value');
+    return hiddenInput ? hiddenInput.value : '';
+}
+
+// Helper function to combine date and time
+function combineDateTime(dateValue, timeValue) {
+    if (!dateValue || !timeValue) return null;
+    return `${dateValue}T${timeValue}`;
+}
+
+// Make functions available globally
+window.createTimePicker = createTimePicker;
+window.getTimeValue = getTimeValue;
+window.combineDateTime = combineDateTime;
+window.initTimePickers = initTimePickers;
+

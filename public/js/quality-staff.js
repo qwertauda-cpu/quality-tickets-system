@@ -27,6 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof initDateTimePickers === 'function') {
         initDateTimePickers();
     }
+    
+    // Initialize time pickers
+    if (typeof initTimePickers === 'function') {
+        initTimePickers();
+    }
 });
 
 async function loadTicketTypes() {
@@ -124,13 +129,26 @@ async function handleTicketSubmit(e) {
     
     if (!currentTicketId) {
         // Create new ticket
+        // Combine date and time
+        const dateReceived = getDateTimeValue('time_received_container');
+        const timeReceived = getTimeValue('time_received_time_container');
+        const timeReceivedFull = combineDateTime(dateReceived, timeReceived);
+        
+        const dateFirstContact = getDateTimeValue('time_first_contact_container');
+        const timeFirstContact = getTimeValue('time_first_contact_time_container');
+        const timeFirstContactFull = dateFirstContact && timeFirstContact ? combineDateTime(dateFirstContact, timeFirstContact) : null;
+        
+        const dateCompleted = getDateTimeValue('time_completed_container');
+        const timeCompleted = getTimeValue('time_completed_time_container');
+        const timeCompletedFull = dateCompleted && timeCompleted ? combineDateTime(dateCompleted, timeCompleted) : null;
+        
         const formData = {
             ticket_number: document.getElementById('ticket_number').value,
             ticket_type_id: parseInt(document.getElementById('ticket_type_id').value),
             team_id: parseInt(document.getElementById('team_id').value),
-            time_received: getDateTimeValue('time_received_container'),
-            time_first_contact: getDateTimeValue('time_first_contact_container') || null,
-            time_completed: getDateTimeValue('time_completed_container') || null,
+            time_received: timeReceivedFull,
+            time_first_contact: timeFirstContactFull,
+            time_completed: timeCompletedFull,
             subscriber_name: document.getElementById('subscriber_name').value || null,
             subscriber_phone: document.getElementById('subscriber_phone').value || null,
             subscriber_address: document.getElementById('subscriber_address').value || null,
@@ -364,6 +382,15 @@ function resetForm() {
     }
     if (window.timeCompletedPicker) {
         window.timeCompletedPicker.setValue('');
+    }
+    if (window.timeReceivedTimePicker) {
+        window.timeReceivedTimePicker.reset();
+    }
+    if (window.timeFirstContactTimePicker) {
+        window.timeFirstContactTimePicker.setValue('');
+    }
+    if (window.timeCompletedTimePicker) {
+        window.timeCompletedTimePicker.setValue('');
     }
 }
 

@@ -253,6 +253,11 @@ async function loadAddTicketPage() {
     if (typeof initDateTimePickers === 'function') {
         initDateTimePickers();
     }
+    
+    // Initialize time pickers
+    if (typeof initTimePickers === 'function') {
+        initTimePickers();
+    }
 }
 
 async function loadAdminTicketTypes() {
@@ -362,13 +367,26 @@ async function handleAdminTicketSubmit(e) {
         return;
     }
     
+    // Combine date and time
+    const dateReceived = getDateTimeValue('admin_time_received_container');
+    const timeReceived = getTimeValue('admin_time_received_time_container');
+    const timeReceivedFull = combineDateTime(dateReceived, timeReceived);
+    
+    const dateFirstContact = getDateTimeValue('admin_time_first_contact_container');
+    const timeFirstContact = getTimeValue('admin_time_first_contact_time_container');
+    const timeFirstContactFull = dateFirstContact && timeFirstContact ? combineDateTime(dateFirstContact, timeFirstContact) : null;
+    
+    const dateCompleted = getDateTimeValue('admin_time_completed_container');
+    const timeCompleted = getTimeValue('admin_time_completed_time_container');
+    const timeCompletedFull = dateCompleted && timeCompleted ? combineDateTime(dateCompleted, timeCompleted) : null;
+    
     const formData = {
         ticket_number: document.getElementById('admin_ticket_number').value,
         ticket_type_id: parseInt(document.getElementById('admin_ticket_type_id').value),
         team_id: parseInt(document.getElementById('admin_team_id').value),
-        time_received: getDateTimeValue('admin_time_received_container'),
-        time_first_contact: getDateTimeValue('admin_time_first_contact_container') || null,
-        time_completed: getDateTimeValue('admin_time_completed_container') || null,
+        time_received: timeReceivedFull,
+        time_first_contact: timeFirstContactFull,
+        time_completed: timeCompletedFull,
         subscriber_name: document.getElementById('admin_subscriber_name').value || null,
         subscriber_phone: document.getElementById('admin_subscriber_phone').value || null,
         subscriber_address: document.getElementById('admin_subscriber_address').value || null,
@@ -617,6 +635,15 @@ function resetAdminTicketForm() {
     }
     if (window.adminTimeCompletedPicker) {
         window.adminTimeCompletedPicker.setValue('');
+    }
+    if (window.adminTimeReceivedTimePicker) {
+        window.adminTimeReceivedTimePicker.reset();
+    }
+    if (window.adminTimeFirstContactTimePicker) {
+        window.adminTimeFirstContactTimePicker.setValue('');
+    }
+    if (window.adminTimeCompletedTimePicker) {
+        window.adminTimeCompletedTimePicker.setValue('');
     }
 }
 

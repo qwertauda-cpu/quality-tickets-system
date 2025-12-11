@@ -949,6 +949,14 @@ select {
     margin-top: 5px;
 }
 
+/* Time Picker Styles */
+.time-picker-wrapper {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 5px;
+}
+
 .datetime-select {
     padding: 12px;
     background: var(--bg-tertiary);
