@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الفريق - نظام إدارة التكتات</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>👥 لوحة الفريق</h2>
+                <p id="userName"></p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-page="my-scores"><i>📊</i> نقاطي</a></li>
+                <li><a href="#" data-page="all-teams"><i>🏆</i> ترتيب الفرق</a></li>
+                <li><a href="#" data-page="my-tickets"><i>🎫</i> تكتاتي</a></li>
+                <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1 id="pageTitle">نقاطي</h1>
+                <div class="user-info">
+                    <span id="currentUser"></span>
+                    <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
+                </div>
+            </div>
+
+            <div id="my-scores-page" class="page-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>النقاط اليوم</h3>
+                        <div class="value" id="todayScore">0</div>
+                    </div>
+                    <div class="stat-card secondary">
+                        <h3>النقاط الشهرية</h3>
+                        <div class="value" id="monthScore">0</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <h3>عدد التكتات</h3>
+                        <div class="value" id="ticketCount">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="all-teams-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>ترتيب جميع الفرق</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="allTeamsTable">
+                                <thead>
+                                    <tr>
+                                        <th>الترتيب</th>
+                                        <th>اسم الفريق</th>
+                                        <th>النقاط</th>
+                                        <th>عدد التكتات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="allTeamsTableBody">
+                                    <tr>
+                                        <td colspan="4" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/team-dashboard.js"></script>
+</body>
+</html>
+

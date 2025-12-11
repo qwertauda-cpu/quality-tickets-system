@@ -1,0 +1,731 @@
+/**
+ * Quality & Tickets Management System - Main Server
+ * نظام إدارة التكتات والجودة
+ */
+
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
+const multer = require('multer');
+const bcrypt = require('bcrypt');
+const moment = require('moment');
+const PDFDocument = require('pdfkit');
+const fs = require('fs');
+
+const db = require('./db-manager');
+const config = require('./config');
+const scoring = require('./scoring-logic');
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, '../public')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, '../uploads');
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, 'ticket-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ 
+    storage: storage,
+    limits: config.upload.limits
+});
+
+// ==================== Authentication Middleware ====================
+async function authenticate(req, res, next) {
+    try {
+        const token = req.headers.authorization || req.query.token;
+        if (!token) {
+            return res.status(401).json({ error: 'غير مصرح' });
+        }
+        
+        // Simple token-based auth (in production, use JWT)
+        const [user] = await db.query('SELECT * FROM users WHERE id = ? AND is_active = 1', [token]);
+        if (!user) {
+            return res.status(401).json({ error: 'غير مصرح' });
+        }
+        
+        req.user = user;
+        next();
+    } catch (error) {
+        res.status(500).json({ error: 'خطأ في المصادقة' });
+    }
+}
+
+// ==================== Login ====================
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        const user = await db.queryOne(
+            'SELECT * FROM users WHERE username = ? AND is_active = 1',
+            [username]
+        );
+        
+        if (!user) {
+            return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+        }
+        
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        if (!validPassword) {
+            return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+        }
+        
+        // Remove password from response
+        delete user.password_hash;
+        
+        res.json({
+            success: true,
+            user: user,
+            token: user.id.toString() // Simple token (use JWT in production)
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ error: 'خطأ في تسجيل الدخول' });
+    }
+});
+
+// ==================== Dashboard - Get Statistics ====================
+app.get('/api/dashboard', authenticate, async (req, res) => {
+    try {
+        const today = moment().format('YYYY-MM-DD');
+        const month = moment().format('YYYY-MM');
+        
+        // إحصائيات اليوم
+        const todayStats = await db.query(`
+            SELECT 
+                t.team_id,
+                tm.name as team_name,
+                COUNT(DISTINCT t.id) as total_tickets,
+                SUM(CASE WHEN t.status = 'completed' THEN 1 ELSE 0 END) as completed_tickets,
+                SUM(COALESCE(ps.total_positive, 0)) as positive_points,
+                SUM(COALESCE(ns.total_negative, 0)) as negative_points
+            FROM tickets t
+            JOIN teams tm ON t.team_id = tm.id
+            LEFT JOIN (
+                SELECT ticket_id, SUM(points) as total_positive
+                FROM positive_scores
+                GROUP BY ticket_id
+            ) ps ON t.id = ps.ticket_id
+            LEFT JOIN (
+                SELECT ticket_id, SUM(ABS(points)) as total_negative
+                FROM negative_scores
+                GROUP BY ticket_id
+            ) ns ON t.id = ns.ticket_id
+            WHERE DATE(t.created_at) = ?
+            GROUP BY t.team_id, tm.name
+        `, [today]);
+        
+        // ترتيب الفرق
+        const teamRankings = await db.query(`
+            SELECT 
+                t.id,
+                t.name,
+                t.shift,
+                COALESCE(SUM(ds.net_points), 0) as total_points,
+                COALESCE(SUM(ds.total_tickets), 0) as total_tickets
+            FROM teams t
+            LEFT JOIN daily_summaries ds ON t.id = ds.team_id
+            WHERE ds.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY t.id, t.name, t.shift
+            ORDER BY total_points DESC
+        `);
+        
+        res.json({
+            success: true,
+            todayStats,
+            teamRankings
+        });
+    } catch (error) {
+        console.error('Dashboard error:', error);
+        res.status(500).json({ error: 'خطأ في جلب البيانات' });
+    }
+});
+
+// ==================== Teams - Get All Teams ====================
+app.get('/api/teams', authenticate, async (req, res) => {
+    try {
+        const teams = await db.query(`
+            SELECT t.*, 
+                   COUNT(DISTINCT tm.user_id) as member_count
+            FROM teams t
+            LEFT JOIN team_members tm ON t.id = tm.team_id
+            WHERE t.is_active = 1
+            GROUP BY t.id
+            ORDER BY t.name
+        `);
+        
+        res.json({ success: true, teams });
+    } catch (error) {
+        console.error('Teams error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الفرق' });
+    }
+});
+
+// ==================== Ticket Types ====================
+app.get('/api/ticket-types', authenticate, async (req, res) => {
+    try {
+        const types = await db.query('SELECT * FROM ticket_types WHERE is_active = 1 ORDER BY name_ar');
+        res.json({ success: true, types });
+    } catch (error) {
+        console.error('Ticket types error:', error);
+        res.status(500).json({ error: 'خطأ في جلب أنواع التكتات' });
+    }
+});
+
+// ==================== Create Ticket (Manual Entry) ====================
+app.post('/api/tickets', authenticate, async (req, res) => {
+    try {
+        const {
+            ticket_number,
+            ticket_type_id,
+            team_id,
+            time_received,
+            time_first_contact,
+            time_completed,
+            subscriber_name,
+            subscriber_phone,
+            subscriber_address,
+            notes
+        } = req.body;
+        
+        // التحقق من وجود التكت بنفس الرقم
+        const existing = await db.queryOne(
+            'SELECT id FROM tickets WHERE ticket_number = ?',
+            [ticket_number]
+        );
+        
+        if (existing) {
+            return res.status(400).json({ error: 'رقم التكت موجود مسبقاً' });
+        }
+        
+        // حساب الوقت الفعلي
+        let actual_time_minutes = null;
+        if (time_received && time_completed) {
+            const t0 = moment(time_received);
+            const t3 = moment(time_completed);
+            actual_time_minutes = t3.diff(t0, 'minutes');
+        }
+        
+        // حساب Load Factor
+        const ticketDate = time_received ? moment(time_received).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+        const loadFactor = await scoring.calculateLoadFactor(team_id, ticketDate);
+        const adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
+        
+        // إدراج التكت
+        const result = await db.query(`
+            INSERT INTO tickets (
+                ticket_number, ticket_type_id, team_id, quality_staff_id,
+                time_received, time_first_contact, time_completed,
+                actual_time_minutes, adjusted_time_minutes, load_factor,
+                subscriber_name, subscriber_phone, subscriber_address, notes,
+                status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        `, [
+            ticket_number, ticket_type_id, team_id, req.user.id,
+            time_received || null, time_first_contact || null, time_completed || null,
+            actual_time_minutes, adjusted_time_minutes, loadFactor,
+            subscriber_name || null, subscriber_phone || null, subscriber_address || null, notes || null
+        ]);
+        
+        const ticketId = result.insertId;
+        
+        // حساب النقاط
+        await scoring.calculateTicketScores(ticketId);
+        
+        res.json({
+            success: true,
+            ticketId: ticketId,
+            message: 'تم إدخال التكت بنجاح'
+        });
+    } catch (error) {
+        console.error('Create ticket error:', error);
+        res.status(500).json({ error: 'خطأ في إدخال التكت' });
+    }
+});
+
+// ==================== Upload Photos ====================
+app.post('/api/tickets/:id/photos', authenticate, upload.array('photos', 10), async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        const { photo_type } = req.body;
+        
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ error: 'لم يتم رفع أي صور' });
+        }
+        
+        const photoRecords = [];
+        for (const file of req.files) {
+            const result = await db.query(`
+                INSERT INTO ticket_photos (ticket_id, photo_type, photo_path)
+                VALUES (?, ?, ?)
+            `, [ticketId, photo_type, `/uploads/${file.filename}`]);
+            
+            photoRecords.push({
+                id: result.insertId,
+                photo_type: photo_type,
+                photo_path: `/uploads/${file.filename}`
+            });
+        }
+        
+        // إعادة حساب النقاط بعد رفع الصور
+        await scoring.calculateTicketScores(ticketId);
+        
+        res.json({
+            success: true,
+            photos: photoRecords
+        });
+    } catch (error) {
+        console.error('Upload photos error:', error);
+        res.status(500).json({ error: 'خطأ في رفع الصور' });
+    }
+});
+
+// ==================== Quality Review ====================
+app.post('/api/tickets/:id/quality-review', authenticate, async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        const {
+            contact_status,
+            service_status,
+            team_rating,
+            explained_sinmana,
+            explained_platform,
+            explained_mytv_plus,
+            explained_shahid_plus,
+            whatsapp_group_interest,
+            subscription_amount,
+            needs_followup,
+            followup_reason,
+            review_notes
+        } = req.body;
+        
+        // التحقق من وجود تقييم سابق
+        const existing = await db.queryOne(
+            'SELECT id FROM quality_reviews WHERE ticket_id = ?',
+            [ticketId]
+        );
+        
+        if (existing) {
+            // تحديث التقييم
+            await db.query(`
+                UPDATE quality_reviews SET
+                    contact_status = ?,
+                    service_status = ?,
+                    team_rating = ?,
+                    explained_sinmana = ?,
+                    explained_platform = ?,
+                    explained_mytv_plus = ?,
+                    explained_shahid_plus = ?,
+                    whatsapp_group_interest = ?,
+                    subscription_amount = ?,
+                    needs_followup = ?,
+                    followup_reason = ?,
+                    review_notes = ?
+                WHERE ticket_id = ?
+            `, [
+                contact_status, service_status, team_rating,
+                explained_sinmana || 0, explained_platform || 0,
+                explained_mytv_plus || 0, explained_shahid_plus || 0,
+                whatsapp_group_interest || 0, subscription_amount || null,
+                needs_followup || 0, followup_reason || null, review_notes || null,
+                ticketId
+            ]);
+        } else {
+            // إدراج تقييم جديد
+            await db.query(`
+                INSERT INTO quality_reviews (
+                    ticket_id, quality_staff_id, contact_status, service_status,
+                    team_rating, explained_sinmana, explained_platform,
+                    explained_mytv_plus, explained_shahid_plus,
+                    whatsapp_group_interest, subscription_amount,
+                    needs_followup, followup_reason, review_notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                ticketId, req.user.id, contact_status, service_status, team_rating,
+                explained_sinmana || 0, explained_platform || 0,
+                explained_mytv_plus || 0, explained_shahid_plus || 0,
+                whatsapp_group_interest || 0, subscription_amount || null,
+                needs_followup || 0, followup_reason || null, review_notes || null
+            ]);
+        }
+        
+        // إعادة حساب النقاط
+        await scoring.calculateTicketScores(ticketId);
+        
+        // إذا كان يحتاج متابعة، إنشاء تقرير متابعة
+        if (needs_followup) {
+            const ticket = await db.queryOne(`
+                SELECT t.*, tt.name_ar as ticket_type_name
+                FROM tickets t
+                JOIN ticket_types tt ON t.ticket_type_id = tt.id
+                WHERE t.id = ?
+            `, [ticketId]);
+            
+            const template = await db.queryOne(`
+                SELECT * FROM message_templates WHERE template_type = 'followup' AND is_active = 1 LIMIT 1
+            `);
+            
+            let message = template ? template.template_text : '';
+            message = message
+                .replace('{ticket_number}', ticket.ticket_number)
+                .replace('{followup_reason}', followup_reason || '');
+            
+            await db.query(`
+                INSERT INTO followup_reports (ticket_id, quality_staff_id, followup_type, message_template, notes)
+                VALUES (?, ?, ?, ?, ?)
+            `, [ticketId, req.user.id, 'technical_issue', message, followup_reason]);
+        }
+        
+        res.json({
+            success: true,
+            message: 'تم حفظ تقييم الجودة بنجاح'
+        });
+    } catch (error) {
+        console.error('Quality review error:', error);
+        res.status(500).json({ error: 'خطأ في حفظ تقييم الجودة' });
+    }
+});
+
+// ==================== Get Ticket Details ====================
+app.get('/api/tickets/:id', authenticate, async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        
+        const ticket = await db.queryOne(`
+            SELECT t.*, 
+                   tt.name_ar as ticket_type_name,
+                   tm.name as team_name,
+                   u.full_name as quality_staff_name
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            JOIN teams tm ON t.team_id = tm.id
+            JOIN users u ON t.quality_staff_id = u.id
+            WHERE t.id = ?
+        `, [ticketId]);
+        
+        if (!ticket) {
+            return res.status(404).json({ error: 'التكت غير موجود' });
+        }
+        
+        // جلب الصور
+        const photos = await db.query('SELECT * FROM ticket_photos WHERE ticket_id = ?', [ticketId]);
+        
+        // جلب تقييم الجودة
+        const qualityReview = await db.queryOne('SELECT * FROM quality_reviews WHERE ticket_id = ?', [ticketId]);
+        
+        // جلب النقاط
+        const positiveScores = await db.query('SELECT * FROM positive_scores WHERE ticket_id = ?', [ticketId]);
+        const negativeScores = await db.query('SELECT * FROM negative_scores WHERE ticket_id = ?', [ticketId]);
+        
+        const totalPositive = positiveScores.reduce((sum, s) => sum + s.points, 0);
+        const totalNegative = negativeScores.reduce((sum, s) => sum + Math.abs(s.points), 0);
+        
+        res.json({
+            success: true,
+            ticket: {
+                ...ticket,
+                photos,
+                qualityReview,
+                scores: {
+                    positive: positiveScores,
+                    negative: negativeScores,
+                    totalPositive,
+                    totalNegative,
+                    netScore: totalPositive - totalNegative
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Get ticket error:', error);
+        res.status(500).json({ error: 'خطأ في جلب بيانات التكت' });
+    }
+});
+
+// ==================== Get Tickets List ====================
+app.get('/api/tickets', authenticate, async (req, res) => {
+    try {
+        const { team_id, status, date, page = 1, limit = 50 } = req.query;
+        
+        let whereClause = '1=1';
+        const params = [];
+        
+        if (team_id) {
+            whereClause += ' AND t.team_id = ?';
+            params.push(team_id);
+        }
+        
+        if (status) {
+            whereClause += ' AND t.status = ?';
+            params.push(status);
+        }
+        
+        if (date) {
+            whereClause += ' AND DATE(t.created_at) = ?';
+            params.push(date);
+        }
+        
+        const offset = (page - 1) * limit;
+        params.push(parseInt(limit), offset);
+        
+        const tickets = await db.query(`
+            SELECT t.*, 
+                   tt.name_ar as ticket_type_name,
+                   tm.name as team_name,
+                   u.full_name as quality_staff_name,
+                   (SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id) as positive_points,
+                   (SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id) as negative_points
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            JOIN teams tm ON t.team_id = tm.id
+            JOIN users u ON t.quality_staff_id = u.id
+            WHERE ${whereClause}
+            ORDER BY t.created_at DESC
+            LIMIT ? OFFSET ?
+        `, params);
+        
+        const total = await db.queryOne(`
+            SELECT COUNT(*) as count FROM tickets t WHERE ${whereClause}
+        `, params.slice(0, -2));
+        
+        res.json({
+            success: true,
+            tickets,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total: total.count,
+                pages: Math.ceil(total.count / limit)
+            }
+        });
+    } catch (error) {
+        console.error('Get tickets error:', error);
+        res.status(500).json({ error: 'خطأ في جلب التكتات' });
+    }
+});
+
+// ==================== Generate Message ====================
+app.get('/api/tickets/:id/generate-message', authenticate, async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        const { message_type } = req.query;
+        
+        const ticket = await db.queryOne(`
+            SELECT t.*, 
+                   tt.name_ar as ticket_type_name,
+                   tm.name as team_name,
+                   qr.*,
+                   u.full_name as quality_staff_name
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            JOIN teams tm ON t.team_id = tm.id
+            LEFT JOIN quality_reviews qr ON t.id = qr.ticket_id
+            JOIN users u ON t.quality_staff_id = u.id
+            WHERE t.id = ?
+        `, [ticketId]);
+        
+        if (!ticket) {
+            return res.status(404).json({ error: 'التكت غير موجود' });
+        }
+        
+        // تحديد نوع الرسالة
+        let templateType = message_type || 'connection';
+        if (ticket.status === 'postponed') {
+            templateType = 'postponed';
+        } else if (ticket.needs_followup) {
+            templateType = 'followup';
+        } else if (ticket.ticket_type_name.includes('صيانة') || ticket.ticket_type_name.includes('قطع')) {
+            templateType = 'maintenance';
+        }
+        
+        const template = await db.queryOne(`
+            SELECT * FROM message_templates WHERE template_type = ? AND is_active = 1 LIMIT 1
+        `, [templateType]);
+        
+        if (!template) {
+            return res.status(404).json({ error: 'قالب الرسالة غير موجود' });
+        }
+        
+        // استبدال المتغيرات
+        let message = template.template_text;
+        message = message.replace(/{actual_time}/g, ticket.actual_time_minutes || 'غير محدد');
+        message = message.replace(/{service_status}/g, ticket.service_status === 'excellent' ? 'ممتاز' : 
+                                                      ticket.service_status === 'good' ? 'جيد' : 'رديء');
+        message = message.replace(/{team_rating}/g, ticket.team_rating || 'غير محدد');
+        message = message.replace(/{ticket_number}/g, ticket.ticket_number);
+        message = message.replace(/{postponement_reason}/g, ticket.postponement_reason || 'غير محدد');
+        message = message.replace(/{followup_reason}/g, ticket.followup_reason || 'غير محدد');
+        message = message.replace(/{quality_staff_name}/g, ticket.quality_staff_name || '');
+        
+        res.json({
+            success: true,
+            message: message,
+            template_type: templateType
+        });
+    } catch (error) {
+        console.error('Generate message error:', error);
+        res.status(500).json({ error: 'خطأ في توليد الرسالة' });
+    }
+});
+
+// ==================== Generate Daily PDF Report ====================
+app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
+    try {
+        const { date } = req.query;
+        const reportDate = date || moment().format('YYYY-MM-DD');
+        
+        // جلب بيانات اليوم
+        const tickets = await db.query(`
+            SELECT t.*, 
+                   tt.name_ar as ticket_type_name,
+                   tm.name as team_name,
+                   (SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id) as positive_points,
+                   (SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id) as negative_points
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            JOIN teams tm ON t.team_id = tm.id
+            WHERE DATE(t.created_at) = ?
+            ORDER BY tm.name, t.created_at
+        `, [reportDate]);
+        
+        const teamStats = await db.query(`
+            SELECT 
+                tm.id,
+                tm.name,
+                COUNT(DISTINCT t.id) as total_tickets,
+                SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id)) as total_positive,
+                SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id)) as total_negative
+            FROM teams tm
+            LEFT JOIN tickets t ON tm.id = t.team_id AND DATE(t.created_at) = ?
+            WHERE tm.is_active = 1
+            GROUP BY tm.id, tm.name
+            ORDER BY total_positive - total_negative DESC
+        `, [reportDate]);
+        
+        // إنشاء PDF
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
+        const filename = `daily-report-${reportDate}.pdf`;
+        const filepath = path.join(__dirname, '../uploads', filename);
+        
+        doc.pipe(fs.createWriteStream(filepath));
+        
+        // العنوان
+        doc.fontSize(20).text('تقرير يومي - إدارة التكتات والجودة', { align: 'right' });
+        doc.moveDown();
+        doc.fontSize(14).text(`التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'right' });
+        doc.moveDown(2);
+        
+        // إحصائيات الفرق
+        doc.fontSize(16).text('إحصائيات الفرق', { align: 'right' });
+        doc.moveDown();
+        
+        teamStats.forEach((team, index) => {
+            const netScore = (team.total_positive || 0) - (team.total_negative || 0);
+            doc.fontSize(12)
+               .text(`${index + 1}. ${team.name}`, { align: 'right' })
+               .text(`   التكتات: ${team.total_tickets || 0}`, { align: 'right' })
+               .text(`   النقاط الإيجابية: ${team.total_positive || 0}`, { align: 'right' })
+               .text(`   النقاط السالبة: ${team.total_negative || 0}`, { align: 'right' })
+               .text(`   النقاط الصافية: ${netScore}`, { align: 'right' });
+            doc.moveDown();
+        });
+        
+        doc.moveDown();
+        doc.fontSize(16).text('تفاصيل التكتات', { align: 'right' });
+        doc.moveDown();
+        
+        // تفاصيل التكتات
+        tickets.forEach((ticket, index) => {
+            const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
+            doc.fontSize(10)
+               .text(`${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right' })
+               .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' })
+               .text(`   الفريق: ${ticket.team_name}`, { align: 'right' })
+               .text(`   النقاط: ${netScore}`, { align: 'right' });
+            doc.moveDown(0.5);
+        });
+        
+        doc.end();
+        
+        // انتظار انتهاء الكتابة
+        await new Promise((resolve) => {
+            doc.on('end', resolve);
+        });
+        
+        res.json({
+            success: true,
+            filename: filename,
+            url: `/uploads/${filename}`
+        });
+    } catch (error) {
+        console.error('PDF generation error:', error);
+        res.status(500).json({ error: 'خطأ في توليد التقرير' });
+    }
+});
+
+// ==================== Get Team Scores ====================
+app.get('/api/teams/:id/scores', authenticate, async (req, res) => {
+    try {
+        const teamId = req.params.id;
+        const { period = 'daily', date } = req.query;
+        
+        let scores;
+        if (period === 'daily') {
+            const targetDate = date || moment().format('YYYY-MM-DD');
+            scores = await db.query(`
+                SELECT 
+                    DATE(created_at) as date,
+                    COUNT(*) as ticket_count,
+                    SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = tickets.id)) as positive_points,
+                    SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = tickets.id)) as negative_points
+                FROM tickets
+                WHERE team_id = ? AND DATE(created_at) = ?
+                GROUP BY DATE(created_at)
+            `, [teamId, targetDate]);
+        } else if (period === 'monthly') {
+            const targetMonth = date || moment().format('YYYY-MM');
+            scores = await db.query(`
+                SELECT 
+                    DATE_FORMAT(created_at, '%Y-%m') as month,
+                    COUNT(*) as ticket_count,
+                    SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = tickets.id)) as positive_points,
+                    SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = tickets.id)) as negative_points
+                FROM tickets
+                WHERE team_id = ? AND DATE_FORMAT(created_at, '%Y-%m') = ?
+                GROUP BY DATE_FORMAT(created_at, '%Y-%m')
+            `, [teamId, targetMonth]);
+        }
+        
+        res.json({ success: true, scores });
+    } catch (error) {
+        console.error('Get team scores error:', error);
+        res.status(500).json({ error: 'خطأ في جلب النقاط' });
+    }
+});
+
+// ==================== Start Server ====================
+const PORT = config.server.port;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('');
+    console.log('==========================================');
+    console.log('🚀 Quality & Tickets Management System');
+    console.log('==========================================');
+    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`🌐 Access: http://localhost:${PORT}`);
+    console.log('');
+});
+

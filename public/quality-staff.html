@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>واجهة موظف الجودة - نظام إدارة التكتات</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📊 موظف الجودة</h2>
+                <p id="userName"></p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-page="new-ticket"><i>➕</i> إدخال تكت جديد</a></li>
+                <li><a href="#" data-page="tickets-list"><i>📋</i> قائمة التكتات</a></li>
+                <li><a href="#" data-page="followup"><i>🔔</i> المتابعة</a></li>
+                <li><a href="#" data-page="daily-report"><i>📄</i> التقرير اليومي</a></li>
+                <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
+            </ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="header">
+                <h1 id="pageTitle">إدخال تكت جديد</h1>
+                <div class="user-info">
+                    <span id="currentUser"></span>
+                    <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
+                </div>
+            </div>
+
+            <!-- New Ticket Form -->
+            <div id="new-ticket-page" class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>إدخال تكت جديد</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="ticketForm">
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="ticket_number">رقم التكت *</label>
+                                    <input type="text" id="ticket_number" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="ticket_type_id">نوع التكت *</label>
+                                    <select id="ticket_type_id" required>
+                                        <option value="">اختر النوع</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="team_id">الفريق *</label>
+                                    <select id="team_id" required>
+                                        <option value="">اختر الفريق</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="time_received">وقت استلام التكت (T0) *</label>
+                                    <input type="datetime-local" id="time_received" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="time_first_contact">وقت أول اتصال (T1)</label>
+                                    <input type="datetime-local" id="time_first_contact">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="time_completed">وقت رسالة التفعيل (T3)</label>
+                                    <input type="datetime-local" id="time_completed">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="subscriber_name">اسم المشترك</label>
+                                    <input type="text" id="subscriber_name">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="subscriber_phone">رقم المشترك</label>
+                                    <input type="text" id="subscriber_phone">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="subscriber_address">عنوان المشترك</label>
+                                <textarea id="subscriber_address" rows="2"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="notes">ملاحظات</label>
+                                <textarea id="notes" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary">حفظ التكت</button>
+                                <button type="button" class="btn btn-secondary" onclick="resetForm()">إعادة تعيين</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ticket Details Page (for adding photos and quality review) -->
+            <div id="ticket-details-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>تفاصيل التكت #<span id="detail-ticket-number"></span></h2>
+                        <button class="btn btn-secondary" onclick="showPage('new-ticket')">← رجوع</button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Photos Section -->
+                        <div style="margin-bottom: 30px;">
+                            <h3>رفع الصور</h3>
+                            <div class="form-group">
+                                <label>نوع الصورة</label>
+                                <select id="photo_type">
+                                    <option value="pole_before">فات العامود قبل</option>
+                                    <option value="pole_after">فات العامود بعد</option>
+                                    <option value="pppoe">PPPoE</option>
+                                    <option value="equipment_location">مكان الأجهزة</option>
+                                    <option value="subscriber_power">بور المشترك</option>
+                                    <option value="dhcp_status">وضع DHCP</option>
+                                    <option value="speed_test">سبيد تيست</option>
+                                    <option value="google_bank">بنك جوجل</option>
+                                    <option value="activation_message">رسالة التفعيل</option>
+                                    <option value="rx_power">RX Power</option>
+                                </select>
+                            </div>
+                            <div class="photo-upload-area" id="photoUploadArea">
+                                <p>اسحب الصور هنا أو اضغط للاختيار</p>
+                                <input type="file" id="photoInput" multiple accept="image/*" style="display: none;">
+                            </div>
+                            <div class="photo-grid" id="photoGrid"></div>
+                        </div>
+
+                        <!-- Quality Review Section -->
+                        <div style="margin-bottom: 30px;">
+                            <h3>تقييم الجودة</h3>
+                            <form id="qualityReviewForm">
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="contact_status">حالة الاتصال *</label>
+                                        <select id="contact_status" required>
+                                            <option value="answered">تم الرد</option>
+                                            <option value="no_answer">لم يرد</option>
+                                            <option value="closed">مغلق</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="service_status">حالة الخدمة *</label>
+                                        <select id="service_status" required>
+                                            <option value="excellent">ممتاز</option>
+                                            <option value="good">جيد</option>
+                                            <option value="poor">رديء</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="team_rating">تقييم أداء الفريق (1-5) *</label>
+                                        <input type="number" id="team_rating" min="1" max="5" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="subscription_amount">مبلغ الاشتراك</label>
+                                        <input type="number" id="subscription_amount" step="0.01">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>الخدمات المشروحة للمشترك:</label>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="explained_sinmana">
+                                        <label for="explained_sinmana">سينمانا</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="explained_platform">
+                                        <label for="explained_platform">منصة</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="explained_mytv_plus">
+                                        <label for="explained_mytv_plus">MyTV+</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="explained_shahid_plus">
+                                        <label for="explained_shahid_plus">شاهد بلس</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="whatsapp_group_interest">
+                                        <label for="whatsapp_group_interest">يرغب بالانضمام لكروب الواتساب</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="needs_followup">
+                                        <label for="needs_followup">يحتاج متابعة</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group" id="followupReasonGroup" style="display: none;">
+                                    <label for="followup_reason">سبب المتابعة</label>
+                                    <select id="followup_reason">
+                                        <option value="amount_mismatch">مبلغ غير متطابق</option>
+                                        <option value="technical_issue">مشكلة فنية</option>
+                                        <option value="violation">تجاوز</option>
+                                        <option value="complaint">شكوى</option>
+                                        <option value="poor_service">خدمة رديئة</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="review_notes">ملاحظات الجودة</label>
+                                    <textarea id="review_notes" rows="3"></textarea>
+                                </div>
+                                
+                                <div class="btn-group">
+                                    <button type="submit" class="btn btn-primary">حفظ التقييم</button>
+                                    <button type="button" class="btn btn-success" onclick="generateMessage()">توليد رسالة</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Generated Message -->
+                        <div id="messageSection" style="display: none;">
+                            <h3>الرسالة الجاهزة</h3>
+                            <div class="message-box">
+                                <textarea id="generatedMessage" readonly></textarea>
+                                <button class="btn btn-copy" onclick="copyMessage()">نسخ الرسالة</button>
+                            </div>
+                        </div>
+
+                        <!-- Scores Display -->
+                        <div id="scoresSection" style="margin-top: 30px;">
+                            <h3>النقاط</h3>
+                            <div class="score-display" id="scoreDisplay"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tickets List Page -->
+            <div id="tickets-list-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>قائمة التكتات</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="ticketsTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم التكت</th>
+                                        <th>النوع</th>
+                                        <th>الفريق</th>
+                                        <th>الحالة</th>
+                                        <th>الوقت الفعلي</th>
+                                        <th>النقاط</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/quality-staff.js"></script>
+</body>
+</html>
+
