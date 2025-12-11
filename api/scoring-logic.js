@@ -156,10 +156,12 @@ async function calculateTicketScores(ticketId) {
             totalNegative += 15;
         }
         
+        const netScore = totalPositive - totalNegative;
+        
         return {
             totalPositive,
             totalNegative,
-            netScore: totalPositive - totalNegative
+            netScore
         };
         
     } catch (error) {
@@ -299,10 +301,68 @@ async function calculateMonthlyBonus(teamId, year, month) {
     }
 }
 
+/**
+ * تحديث daily_summaries للفريق في تاريخ معين
+ */
+async function updateDailySummary(teamId, date) {
+    try {
+        // حساب النقاط الإجمالية للفريق في اليوم
+        const scores = await db.query(`
+            SELECT 
+                COUNT(DISTINCT t.id) as total_tickets,
+                COALESCE(SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id)), 0) as total_positive_points,
+                COALESCE(SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id)), 0) as total_negative_points
+            FROM tickets t
+            WHERE t.team_id = ? AND DATE(t.created_at) = ?
+        `, [teamId, date]);
+        
+        const stats = scores[0] || { total_tickets: 0, total_positive_points: 0, total_negative_points: 0 };
+        
+        // حساب البونص اليومي
+        const dailyBonus = await calculateDailyBonus(teamId, date);
+        
+        // البونص اليومي يُضاف كـ positive score منفصل
+        // لكن يجب التأكد من عدم تكراره في positive_scores
+        // لذلك نضيفه مباشرة في total_positive_points
+        const totalPositive = stats.total_positive_points + dailyBonus;
+        const netPoints = totalPositive - stats.total_negative_points;
+        
+        // تحديث أو إدراج daily_summary
+        await db.query(`
+            INSERT INTO daily_summaries (
+                team_id, date, total_tickets, 
+                total_positive_points, total_negative_points, net_points
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                total_tickets = VALUES(total_tickets),
+                total_positive_points = VALUES(total_positive_points),
+                total_negative_points = VALUES(total_negative_points),
+                net_points = VALUES(net_points),
+                updated_at = NOW()
+        `, [
+            teamId, date, stats.total_tickets,
+            totalPositive, stats.total_negative_points, netPoints
+        ]);
+        
+        return {
+            total_tickets: stats.total_tickets,
+            total_positive_points: totalPositive,
+            total_negative_points: stats.total_negative_points,
+            net_points: netPoints,
+            daily_bonus: dailyBonus
+        };
+        
+    } catch (error) {
+        console.error('Error updating daily summary:', error);
+        throw error;
+    }
+}
+
 module.exports = {
     calculateTicketScores,
     calculateLoadFactor,
     calculateDailyBonus,
-    calculateMonthlyBonus
+    calculateMonthlyBonus,
+    updateDailySummary
 };
 

@@ -314,6 +314,9 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         // حساب النقاط
         await scoring.calculateTicketScores(ticketId);
         
+        // تحديث daily_summary
+        await scoring.updateDailySummary(team_id, ticketDate);
+        
         res.json({
             success: true,
             ticketId: ticketId,
@@ -351,6 +354,12 @@ app.post('/api/tickets/:id/photos', authenticate, upload.array('photos', 10), as
         
         // إعادة حساب النقاط بعد رفع الصور
         await scoring.calculateTicketScores(ticketId);
+        
+        // تحديث daily_summary
+        const ticket = await db.queryOne('SELECT team_id, DATE(created_at) as ticket_date FROM tickets WHERE id = ?', [ticketId]);
+        if (ticket && ticket.team_id && ticket.ticket_date) {
+            await scoring.updateDailySummary(ticket.team_id, ticket.ticket_date);
+        }
         
         res.json({
             success: true,
