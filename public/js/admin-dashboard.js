@@ -1,9 +1,16 @@
 // Admin Dashboard JavaScript
 
-document.addEventListener('DOMContentLoaded', async () => {
+// Wait for scripts to load
+function initAdminDashboard() {
+    // Check if required functions are available
+    if (typeof isAuthenticated === 'undefined' || typeof getCurrentUser === 'undefined') {
+        setTimeout(initAdminDashboard, 100);
+        return;
+    }
+    
     // Wait for api to be available
     if (typeof window.api === 'undefined') {
-        console.error('API not loaded');
+        setTimeout(initAdminDashboard, 100);
         return;
     }
     
@@ -22,8 +29,82 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('userName').textContent = user.full_name;
     document.getElementById('currentUser').textContent = user.full_name;
     
-    await loadDashboard();
-});
+    // Setup navigation
+    setupNavigation();
+    
+    loadDashboard();
+}
+
+function setupNavigation() {
+    document.querySelectorAll('.sidebar-menu a[data-page]').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            showPage(page);
+        });
+    });
+}
+
+function showPage(pageName) {
+    // Hide all pages
+    document.querySelectorAll('.page-content').forEach(page => {
+        page.style.display = 'none';
+    });
+    
+    // Show selected page
+    const targetPage = document.getElementById(pageName + '-page');
+    if (targetPage) {
+        targetPage.style.display = 'block';
+    }
+    
+    // Update active menu item
+    document.querySelectorAll('.sidebar-menu a').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('data-page') === pageName) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Update page title
+    const titles = {
+        'dashboard': 'لوحة التحكم',
+        'teams': 'الفرق',
+        'tickets': 'التكتات',
+        'reports': 'التقارير'
+    };
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) {
+        titleEl.textContent = titles[pageName] || 'لوحة التحكم';
+    }
+    
+    // Load page data
+    if (pageName === 'dashboard') {
+        loadDashboard();
+    } else if (pageName === 'teams') {
+        loadTeams();
+    } else if (pageName === 'tickets') {
+        loadTickets();
+    } else if (pageName === 'reports') {
+        loadReports();
+    }
+}
+
+function loadTeams() {
+    // TODO: Implement teams page
+    console.log('Loading teams...');
+}
+
+function loadTickets() {
+    // TODO: Implement tickets page
+    console.log('Loading tickets...');
+}
+
+function loadReports() {
+    // TODO: Implement reports page
+    console.log('Loading reports...');
+}
+
+document.addEventListener('DOMContentLoaded', initAdminDashboard);
 
 async function loadDashboard() {
     try {
@@ -32,6 +113,10 @@ async function loadDashboard() {
             return;
         }
         const data = await window.api.getDashboard();
+        if (!data) {
+            console.error('No data returned from API');
+            return;
+        }
         if (data.success) {
             // Update stats
             const totalTickets = data.todayStats.reduce((sum, stat) => sum + (stat.total_tickets || 0), 0);

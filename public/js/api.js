@@ -1,7 +1,10 @@
 // API Helper Functions
 
 // Use existing API_BASE if defined, otherwise define it
-const API_BASE = window.API_BASE || '/api';
+if (typeof window.API_BASE === 'undefined') {
+    window.API_BASE = '/api';
+}
+const API_BASE = window.API_BASE;
 
 async function apiRequest(endpoint, options = {}) {
     const token = localStorage.getItem('token');
