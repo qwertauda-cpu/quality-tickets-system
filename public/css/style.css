@@ -940,3 +940,47 @@ select {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--border-hover);
 }
+
+/* DateTime Picker Styles */
+.datetime-picker-wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr) 1fr 1fr;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.datetime-select {
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Cairo', sans-serif;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.datetime-select:hover {
+    border-color: var(--border-hover);
+    background: var(--bg-secondary);
+}
+
+.datetime-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: var(--bg-secondary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.datetime-select option {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    padding: 10px;
+}
+
+@media (max-width: 768px) {
+    .datetime-picker-wrapper {
+        grid-template-columns: 1fr;
+    }
+}

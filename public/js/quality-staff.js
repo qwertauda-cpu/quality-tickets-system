@@ -23,10 +23,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Setup event listeners
     setupEventListeners();
     
-    // Set current time as default
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('time_received').value = now.toISOString().slice(0, 16);
+    // Initialize datetime pickers
+    if (typeof initDateTimePickers === 'function') {
+        initDateTimePickers();
+    }
 });
 
 async function loadTicketTypes() {
@@ -128,9 +128,9 @@ async function handleTicketSubmit(e) {
             ticket_number: document.getElementById('ticket_number').value,
             ticket_type_id: parseInt(document.getElementById('ticket_type_id').value),
             team_id: parseInt(document.getElementById('team_id').value),
-            time_received: document.getElementById('time_received').value,
-            time_first_contact: document.getElementById('time_first_contact').value || null,
-            time_completed: document.getElementById('time_completed').value || null,
+            time_received: getDateTimeValue('time_received_container'),
+            time_first_contact: getDateTimeValue('time_first_contact_container') || null,
+            time_completed: getDateTimeValue('time_completed_container') || null,
             subscriber_name: document.getElementById('subscriber_name').value || null,
             subscriber_phone: document.getElementById('subscriber_phone').value || null,
             subscriber_address: document.getElementById('subscriber_address').value || null,
@@ -356,9 +356,15 @@ function showPage(pageName) {
 function resetForm() {
     document.getElementById('ticketForm').reset();
     currentTicketId = null;
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('time_received').value = now.toISOString().slice(0, 16);
+    if (window.timeReceivedPicker) {
+        window.timeReceivedPicker.reset();
+    }
+    if (window.timeFirstContactPicker) {
+        window.timeFirstContactPicker.setValue('');
+    }
+    if (window.timeCompletedPicker) {
+        window.timeCompletedPicker.setValue('');
+    }
 }
 
 // Make functions available globally

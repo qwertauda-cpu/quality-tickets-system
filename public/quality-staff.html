@@ -62,18 +62,18 @@
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="time_received">وقت استلام التكت (T0) *</label>
-                                    <input type="datetime-local" id="time_received" required>
+                                    <label>وقت استلام التكت (T0) *</label>
+                                    <div id="time_received_container"></div>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="time_first_contact">وقت أول اتصال (T1)</label>
-                                    <input type="datetime-local" id="time_first_contact">
+                                    <label>وقت أول اتصال (T1)</label>
+                                    <div id="time_first_contact_container"></div>
                                 </div>
                                 
                                 <div class="form-group">
-                                    <label for="time_completed">وقت رسالة التفعيل (T3)</label>
-                                    <input type="datetime-local" id="time_completed">
+                                    <label>وقت رسالة التفعيل (T3)</label>
+                                    <div id="time_completed_container"></div>
                                 </div>
                                 
                                 <div class="form-group">
@@ -283,6 +283,7 @@
 
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
+    <script src="/js/datetime-picker.js"></script>
     <script src="/js/quality-staff.js"></script>
 </body>
 </html>

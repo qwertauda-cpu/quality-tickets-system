@@ -246,12 +246,9 @@ async function loadAddTicketPage() {
     await loadAdminTeams();
     setupAdminTicketForm();
     
-    // Set current time as default
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const timeInput = document.getElementById('admin_time_received');
-    if (timeInput) {
-        timeInput.value = now.toISOString().slice(0, 16);
+    // Initialize datetime pickers
+    if (typeof initDateTimePickers === 'function') {
+        initDateTimePickers();
     }
 }
 
@@ -366,9 +363,9 @@ async function handleAdminTicketSubmit(e) {
         ticket_number: document.getElementById('admin_ticket_number').value,
         ticket_type_id: parseInt(document.getElementById('admin_ticket_type_id').value),
         team_id: parseInt(document.getElementById('admin_team_id').value),
-        time_received: document.getElementById('admin_time_received').value,
-        time_first_contact: document.getElementById('admin_time_first_contact').value || null,
-        time_completed: document.getElementById('admin_time_completed').value || null,
+        time_received: getDateTimeValue('admin_time_received_container'),
+        time_first_contact: getDateTimeValue('admin_time_first_contact_container') || null,
+        time_completed: getDateTimeValue('admin_time_completed_container') || null,
         subscriber_name: document.getElementById('admin_subscriber_name').value || null,
         subscriber_phone: document.getElementById('admin_subscriber_phone').value || null,
         subscriber_address: document.getElementById('admin_subscriber_address').value || null,
@@ -609,11 +606,14 @@ function resetAdminTicketForm() {
         messageSection.style.display = 'none';
     }
     
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    const timeInput = document.getElementById('admin_time_received');
-    if (timeInput) {
-        timeInput.value = now.toISOString().slice(0, 16);
+    if (window.adminTimeReceivedPicker) {
+        window.adminTimeReceivedPicker.reset();
+    }
+    if (window.adminTimeFirstContactPicker) {
+        window.adminTimeFirstContactPicker.setValue('');
+    }
+    if (window.adminTimeCompletedPicker) {
+        window.adminTimeCompletedPicker.setValue('');
     }
 }
 
