@@ -83,6 +83,7 @@ body {
     max-width: 420px;
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
 }
 
 .login-box {
@@ -93,6 +94,8 @@ body {
     border: 1px solid var(--border-color);
     backdrop-filter: blur(10px);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .login-box:hover {
@@ -141,6 +144,9 @@ body {
     color: var(--text-primary);
     font-family: 'Cairo', sans-serif;
     transition: all 0.3s ease;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 .login-form input:focus {
@@ -902,12 +908,63 @@ table tbody tr:last-child td {
     }
     
     /* Login Page */
+    .login-page {
+        padding: 15px;
+        align-items: flex-start;
+        padding-top: 40px;
+    }
+    
+    .login-container {
+        max-width: 100%;
+        width: 100%;
+    }
+    
     .login-box {
-        padding: 30px 20px;
+        padding: 25px 20px;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .login-header {
+        margin-bottom: 25px;
     }
     
     .login-header h1 {
-        font-size: 22px;
+        font-size: 20px;
+        margin-bottom: 8px;
+        line-height: 1.4;
+    }
+    
+    .login-header p {
+        font-size: 12px;
+    }
+    
+    .login-form .form-group {
+        margin-bottom: 18px;
+    }
+    
+    .login-form label {
+        font-size: 13px;
+        margin-bottom: 8px;
+    }
+    
+    .login-form input {
+        padding: 14px 14px;
+        font-size: 16px; /* Prevent zoom on iOS */
+        border-radius: 8px;
+    }
+    
+    .login-footer {
+        margin-top: 25px;
+        padding-top: 20px;
+        font-size: 11px;
+    }
+    
+    .btn-block {
+        padding: 14px;
+        font-size: 16px;
+        border-radius: 8px;
     }
     
     /* Photo Upload */
@@ -1032,6 +1089,33 @@ table tbody tr:last-child td {
     .btn {
         padding: 10px 16px;
         font-size: 13px;
+    }
+    
+    /* Login Page - Extra Small */
+    .login-page {
+        padding: 10px;
+        padding-top: 30px;
+    }
+    
+    .login-box {
+        padding: 20px 15px;
+    }
+    
+    .login-header h1 {
+        font-size: 18px;
+    }
+    
+    .login-header p {
+        font-size: 11px;
+    }
+    
+    .login-form input {
+        padding: 12px 14px;
+        font-size: 16px;
+    }
+    
+    .btn-block {
+        padding: 12px;
     }
 }
 
