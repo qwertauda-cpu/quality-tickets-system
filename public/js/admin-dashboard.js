@@ -177,7 +177,7 @@ async function loadTickets() {
                         <td><span class="badge ${statusBadge}">${statusText}</span></td>
                         <td>${formatTimeDuration(ticket.actual_time_minutes)}</td>
                         <td>${netScore}</td>
-                        <td>${new Date(ticket.created_at).toLocaleDateString('ar-SA')}</td>
+                        <td>${formatDate(ticket.created_at)}</td>
                     `;
                     tbody.appendChild(row);
                 });
@@ -679,7 +679,7 @@ async function loadUsers() {
                         <td>${user.team_name || '-'}</td>
                         <td>${roleText}</td>
                         <td><span class="badge ${user.is_active ? 'badge-success' : 'badge-danger'}">${user.is_active ? 'نشط' : 'غير نشط'}</span></td>
-                        <td>${new Date(user.created_at).toLocaleDateString('ar-SA')}</td>
+                        <td>${formatDate(user.created_at)}</td>
                         <td>
                             <button class="btn btn-secondary" onclick="editUser(${user.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">تعديل</button>
                             ${user.role !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${user.id})" style="padding: 6px 12px; font-size: 12px;">حذف</button>` : ''}
