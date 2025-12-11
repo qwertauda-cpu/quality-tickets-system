@@ -944,7 +944,7 @@ select {
 /* DateTime Picker Styles */
 .datetime-picker-wrapper {
     display: grid;
-    grid-template-columns: repeat(3, 1fr) 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     margin-top: 5px;
 }

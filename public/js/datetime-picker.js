@@ -1,4 +1,4 @@
-// Enhanced DateTime Picker with Dropdowns
+// Simple Date Picker with 3 Dropdowns (Year, Month, Day)
 
 function createDateTimePicker(containerId, defaultValue = null, required = false) {
     const container = document.getElementById(containerId);
@@ -11,21 +11,17 @@ function createDateTimePicker(containerId, defaultValue = null, required = false
     const wrapper = document.createElement('div');
     wrapper.className = 'datetime-picker-wrapper';
     wrapper.style.display = 'grid';
-    wrapper.style.gridTemplateColumns = 'repeat(3, 1fr) 1fr 1fr';
+    wrapper.style.gridTemplateColumns = 'repeat(3, 1fr)';
     wrapper.style.gap = '10px';
     wrapper.style.marginTop = '5px';
     
-    // Get current date/time or use provided default
+    // Get current date or use provided default
     const now = defaultValue ? new Date(defaultValue) : new Date();
     
-    // Date pickers
+    // Date pickers only (Year, Month, Day)
     const yearSelect = createSelect('year', generateYears(), now.getFullYear(), required);
     const monthSelect = createSelect('month', generateMonths(), now.getMonth() + 1, required);
     const daySelect = createSelect('day', generateDays(now.getFullYear(), now.getMonth() + 1), now.getDate(), required);
-    
-    // Time pickers
-    const hourSelect = createSelect('hour', generateHours(), now.getHours(), false);
-    const minuteSelect = createSelect('minute', generateMinutes(), now.getMinutes(), false);
     
     // Update days when year or month changes
     yearSelect.addEventListener('change', () => updateDays(yearSelect, monthSelect, daySelect));
@@ -34,12 +30,10 @@ function createDateTimePicker(containerId, defaultValue = null, required = false
     wrapper.appendChild(yearSelect);
     wrapper.appendChild(monthSelect);
     wrapper.appendChild(daySelect);
-    wrapper.appendChild(hourSelect);
-    wrapper.appendChild(minuteSelect);
     
     container.appendChild(wrapper);
     
-    // Hidden input to store the actual datetime value
+    // Hidden input to store the actual datetime value (with current time)
     const hiddenInput = document.createElement('input');
     hiddenInput.type = 'hidden';
     hiddenInput.id = containerId + '_value';
@@ -51,10 +45,12 @@ function createDateTimePicker(containerId, defaultValue = null, required = false
         const year = yearSelect.value;
         const month = monthSelect.value.padStart(2, '0');
         const day = daySelect.value.padStart(2, '0');
-        const hour = hourSelect.value.padStart(2, '0');
-        const minute = minuteSelect.value.padStart(2, '0');
         
         if (year && month && day) {
+            // Use current time for the datetime
+            const now = new Date();
+            const hour = now.getHours().toString().padStart(2, '0');
+            const minute = now.getMinutes().toString().padStart(2, '0');
             const datetimeString = `${year}-${month}-${day}T${hour}:${minute}`;
             hiddenInput.value = datetimeString;
         } else {
@@ -63,7 +59,7 @@ function createDateTimePicker(containerId, defaultValue = null, required = false
     }
     
     // Add change listeners
-    [yearSelect, monthSelect, daySelect, hourSelect, minuteSelect].forEach(select => {
+    [yearSelect, monthSelect, daySelect].forEach(select => {
         select.addEventListener('change', updateValue);
     });
     
@@ -79,8 +75,6 @@ function createDateTimePicker(containerId, defaultValue = null, required = false
                 monthSelect.value = date.getMonth() + 1;
                 updateDays(yearSelect, monthSelect, daySelect);
                 daySelect.value = date.getDate();
-                hourSelect.value = date.getHours();
-                minuteSelect.value = date.getMinutes();
                 updateValue();
             }
         },
@@ -90,8 +84,6 @@ function createDateTimePicker(containerId, defaultValue = null, required = false
             monthSelect.value = now.getMonth() + 1;
             updateDays(yearSelect, monthSelect, daySelect);
             daySelect.value = now.getDate();
-            hourSelect.value = now.getHours();
-            minuteSelect.value = now.getMinutes();
             updateValue();
         }
     };
@@ -146,20 +138,11 @@ function generateYears() {
 }
 
 function generateMonths() {
-    const months = [
-        { value: 1, label: 'يناير' },
-        { value: 2, label: 'فبراير' },
-        { value: 3, label: 'مارس' },
-        { value: 4, label: 'أبريل' },
-        { value: 5, label: 'مايو' },
-        { value: 6, label: 'يونيو' },
-        { value: 7, label: 'يوليو' },
-        { value: 8, label: 'أغسطس' },
-        { value: 9, label: 'سبتمبر' },
-        { value: 10, label: 'أكتوبر' },
-        { value: 11, label: 'نوفمبر' },
-        { value: 12, label: 'ديسمبر' }
-    ];
+    const months = [];
+    // Months as numbers only (1-12)
+    for (let i = 1; i <= 12; i++) {
+        months.push({ value: i, label: i.toString() });
+    }
     return months;
 }
 
@@ -170,22 +153,6 @@ function generateDays(year, month) {
         days.push({ value: i, label: i.toString() });
     }
     return days;
-}
-
-function generateHours() {
-    const hours = [];
-    for (let i = 0; i < 24; i++) {
-        hours.push({ value: i, label: i.toString().padStart(2, '0') });
-    }
-    return hours;
-}
-
-function generateMinutes() {
-    const minutes = [];
-    for (let i = 0; i < 60; i += 5) {
-        minutes.push({ value: i, label: i.toString().padStart(2, '0') });
-    }
-    return minutes;
 }
 
 function updateDays(yearSelect, monthSelect, daySelect) {
@@ -257,4 +224,3 @@ function getDateTimeValue(containerId) {
 window.createDateTimePicker = createDateTimePicker;
 window.getDateTimeValue = getDateTimeValue;
 window.initDateTimePickers = initDateTimePickers;
-
