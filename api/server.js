@@ -443,6 +443,12 @@ app.post('/api/tickets/:id/quality-review', authenticate, async (req, res) => {
         // إعادة حساب النقاط
         await scoring.calculateTicketScores(ticketId);
         
+        // تحديث daily_summary
+        const ticketForSummary = await db.queryOne('SELECT team_id, DATE(created_at) as ticket_date FROM tickets WHERE id = ?', [ticketId]);
+        if (ticketForSummary && ticketForSummary.team_id && ticketForSummary.ticket_date) {
+            await scoring.updateDailySummary(ticketForSummary.team_id, ticketForSummary.ticket_date);
+        }
+        
         // إذا كان يحتاج متابعة، إنشاء تقرير متابعة
         if (needs_followup) {
             const ticket = await db.queryOne(`
