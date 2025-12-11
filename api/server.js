@@ -529,6 +529,25 @@ app.get('/api/tickets/:id', authenticate, async (req, res) => {
         const totalPositive = positiveScores.reduce((sum, s) => sum + s.points, 0);
         const totalNegative = negativeScores.reduce((sum, s) => sum + Math.abs(s.points), 0);
         
+        // حساب تفاصيل النقاط حسب النظام الجديد
+        const basePoints = positiveScores.filter(s => s.score_type === 'ticket_type').reduce((sum, s) => sum + s.points, 0);
+        const speedScore = positiveScores.filter(s => s.score_type === 'speed').reduce((sum, s) => sum + s.points, 0);
+        const qualityScore = positiveScores.filter(s => s.score_type === 'quality').reduce((sum, s) => sum + s.points, 0);
+        const behaviorScore = positiveScores.filter(s => s.score_type === 'behavior').reduce((sum, s) => sum + s.points, 0) 
+                            - negativeScores.filter(s => s.penalty_type === 'bad_behavior').reduce((sum, s) => sum + Math.abs(s.points), 0);
+        const upsellScore = positiveScores.filter(s => s.score_type === 'upsell').reduce((sum, s) => sum + s.points, 0);
+        
+        // حساب adjusted time و SLA status
+        let adjustedTime = ticket.adjusted_time_minutes || ticket.actual_time_minutes;
+        let slaStatus = 'late';
+        if (adjustedTime !== null) {
+            if (adjustedTime <= ticket.sla_min) {
+                slaStatus = 'excellent';
+            } else if (adjustedTime <= ticket.sla_max) {
+                slaStatus = 'acceptable';
+            }
+        }
+        
         res.json({
             success: true,
             ticket: {
@@ -540,7 +559,19 @@ app.get('/api/tickets/:id', authenticate, async (req, res) => {
                     negative: negativeScores,
                     totalPositive,
                     totalNegative,
-                    netScore: totalPositive - totalNegative
+                    netScore: totalPositive - totalNegative,
+                    // تفاصيل النقاط حسب النظام الجديد
+                    breakdown: {
+                        basePoints,
+                        speedScore,
+                        qualityScore,
+                        behaviorScore,
+                        upsellScore,
+                        penalties: totalNegative,
+                        totalScore: totalPositive - totalNegative,
+                        adjustedTime,
+                        slaStatus
+                    }
                 }
             }
         });

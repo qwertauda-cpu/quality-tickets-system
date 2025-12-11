@@ -45,12 +45,12 @@ async function calculateTicketScores(ticketId) {
         
         // ==================== 2. حساب الوقت المعدل (Adjusted Time) ====================
         if (ticket.actual_time_minutes !== null) {
-            // استخدام adjusted_time_minutes إذا كان موجوداً، وإلا actual_time_minutes
-            adjustedTime = ticket.adjusted_time_minutes || ticket.actual_time_minutes;
-            
-            // إذا كان load_factor > 1، نستخدم adjusted_time
+            // إذا كان load_factor > 1، نحسب adjusted_time
             if (ticket.load_factor && ticket.load_factor > 1) {
                 adjustedTime = Math.round(ticket.actual_time_minutes / ticket.load_factor);
+            } else {
+                // استخدام adjusted_time_minutes إذا كان موجوداً، وإلا actual_time_minutes
+                adjustedTime = ticket.adjusted_time_minutes || ticket.actual_time_minutes;
             }
         }
         
