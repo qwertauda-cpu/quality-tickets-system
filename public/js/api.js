@@ -4,7 +4,6 @@
 if (typeof window.API_BASE === 'undefined') {
     window.API_BASE = '/api';
 }
-const API_BASE = window.API_BASE;
 
 async function apiRequest(endpoint, options = {}) {
     const token = localStorage.getItem('token');
@@ -26,7 +25,7 @@ async function apiRequest(endpoint, options = {}) {
     };
     
     try {
-        const response = await fetch(`${API_BASE}${endpoint}`, finalOptions);
+        const response = await fetch(`${window.API_BASE}${endpoint}`, finalOptions);
         const data = await response.json();
         
         if (response.status === 401) {
@@ -73,7 +72,7 @@ const api = {
     // Photos
     uploadPhotos: (ticketId, formData) => {
         const token = localStorage.getItem('token');
-        return fetch(`${API_BASE}/tickets/${ticketId}/photos`, {
+        return fetch(`${window.API_BASE}/tickets/${ticketId}/photos`, {
             method: 'POST',
             headers: {
                 'Authorization': token || ''
