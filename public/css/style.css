@@ -848,14 +848,7 @@ table tbody tr:last-child td {
         padding: 0;
     }
     
-    /* Header */
-    .header {
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
-        padding: 18px;
-        margin-bottom: 20px;
-    }
+    /* Header - Remove duplicate, use the one above */
     
     .header h1 {
         font-size: 20px;
