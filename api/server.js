@@ -721,6 +721,7 @@ app.get('/api/teams/:id/scores', authenticate, async (req, res) => {
 // Get all users
 app.get('/api/users', authenticate, async (req, res) => {
     try {
+        console.log('GET /api/users - User role:', req.user?.role);
         if (req.user.role !== 'admin') {
             return res.status(403).json({ error: 'غير مصرح' });
         }
@@ -733,10 +734,11 @@ app.get('/api/users', authenticate, async (req, res) => {
             ORDER BY u.created_at DESC
         `);
         
+        console.log('Users found:', users.length);
         res.json({ success: true, users });
     } catch (error) {
         console.error('Get users error:', error);
-        res.status(500).json({ error: 'خطأ في جلب المستخدمين' });
+        res.status(500).json({ error: 'خطأ في جلب المستخدمين', details: error.message });
     }
 });
 
