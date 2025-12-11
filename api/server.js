@@ -139,8 +139,8 @@ app.get('/api/dashboard', authenticate, async (req, res) => {
                 COALESCE(SUM(ds.net_points), 0) as total_points,
                 COALESCE(SUM(ds.total_tickets), 0) as total_tickets
             FROM teams t
-            LEFT JOIN daily_summaries ds ON t.id = ds.team_id
-            WHERE ds.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            LEFT JOIN daily_summaries ds ON t.id = ds.team_id AND ds.date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            WHERE t.is_active = 1
             GROUP BY t.id, t.name, t.shift
             ORDER BY total_points DESC
         `);
@@ -959,11 +959,12 @@ app.get('/api/team-rankings', authenticate, async (req, res) => {
         if (period === 'daily') {
             dateCondition = `AND DATE(ds.date) = '${date}'`;
         } else if (period === 'weekly') {
-            dateCondition = `AND ds.date >= DATE_SUB('${date}', INTERVAL 7 DAY)`;
+            dateCondition = `AND ds.date >= DATE_SUB('${date}', INTERVAL 7 DAY) AND ds.date <= '${date}'`;
         } else if (period === 'monthly') {
             dateCondition = `AND DATE_FORMAT(ds.date, '%Y-%m') = DATE_FORMAT('${date}', '%Y-%m')`;
         }
         
+        // Move date condition to LEFT JOIN to ensure all teams appear even with 0 points
         const rankings = await db.query(`
             SELECT 
                 t.id,
@@ -974,8 +975,8 @@ app.get('/api/team-rankings', authenticate, async (req, res) => {
                 COALESCE(SUM(ds.total_positive_points), 0) as positive_points,
                 COALESCE(SUM(ds.total_negative_points), 0) as negative_points
             FROM teams t
-            LEFT JOIN daily_summaries ds ON t.id = ds.team_id
-            WHERE t.is_active = 1 ${dateCondition}
+            LEFT JOIN daily_summaries ds ON t.id = ds.team_id ${dateCondition}
+            WHERE t.is_active = 1
             GROUP BY t.id, t.name, t.shift
             ORDER BY total_points DESC
         `);
