@@ -829,6 +829,29 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Mobile Menu Toggle
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.mobile-menu-overlay');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+        if (overlay) {
+            overlay.classList.toggle('active');
+        }
+    }
+}
+
+// Close mobile menu when clicking on a menu item
+function setupMobileMenuClose() {
+    document.querySelectorAll('.sidebar-menu a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                toggleMobileMenu();
+            }
+        });
+    });
+}
+
 // Make functions available globally
 window.removeAdminPhoto = removeAdminPhoto;
 window.generateAdminMessage = generateAdminMessage;
@@ -838,8 +861,12 @@ window.showAddUserForm = showAddUserForm;
 window.editUser = editUser;
 window.deleteUser = deleteUser;
 window.closeUserModal = closeUserModal;
+window.toggleMobileMenu = toggleMobileMenu;
 
-document.addEventListener('DOMContentLoaded', initAdminDashboard);
+document.addEventListener('DOMContentLoaded', () => {
+    initAdminDashboard();
+    setupMobileMenuClose();
+});
 
 async function loadDashboard() {
     try {

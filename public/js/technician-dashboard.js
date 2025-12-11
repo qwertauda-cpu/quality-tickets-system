@@ -207,5 +207,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-document.addEventListener('DOMContentLoaded', initTechnicianDashboard);
+// Mobile Menu Toggle
+function toggleMobileMenu() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.querySelector('.mobile-menu-overlay');
+    if (sidebar) {
+        sidebar.classList.toggle('open');
+        if (overlay) {
+            overlay.classList.toggle('active');
+        }
+    }
+}
+
+// Close mobile menu when clicking on a menu item
+function setupMobileMenuClose() {
+    document.querySelectorAll('.sidebar-menu a').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                toggleMobileMenu();
+            }
+        });
+    });
+}
+
+window.toggleMobileMenu = toggleMobileMenu;
+
+document.addEventListener('DOMContentLoaded', () => {
+    initTechnicianDashboard();
+    setupMobileMenuClose();
+});
 
