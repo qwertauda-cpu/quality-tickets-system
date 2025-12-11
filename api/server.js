@@ -674,13 +674,15 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 tm.id,
                 tm.name,
                 COUNT(DISTINCT t.id) as total_tickets,
-                SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id)) as total_positive,
-                SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id)) as total_negative
+                COALESCE(SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id)), 0) as total_positive,
+                COALESCE(SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id)), 0) as total_negative,
+                COALESCE(SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id)), 0) - 
+                COALESCE(SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id)), 0) as net_points
             FROM teams tm
             LEFT JOIN tickets t ON tm.id = t.team_id AND DATE(t.created_at) = ?
             WHERE tm.is_active = 1
             GROUP BY tm.id, tm.name
-            ORDER BY total_positive - total_negative DESC
+            ORDER BY net_points DESC
         `, [reportDate]);
         
         // إنشاء PDF
