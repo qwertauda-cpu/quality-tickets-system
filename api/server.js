@@ -717,6 +717,258 @@ app.get('/api/teams/:id/scores', authenticate, async (req, res) => {
     }
 });
 
+// ==================== Users Management (Admin Only) ====================
+// Get all users
+app.get('/api/users', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const users = await db.query(`
+            SELECT u.id, u.username, u.full_name, u.role, u.team_id, u.is_active, u.created_at,
+                   t.name as team_name
+            FROM users u
+            LEFT JOIN teams t ON u.team_id = t.id
+            ORDER BY u.created_at DESC
+        `);
+        
+        res.json({ success: true, users });
+    } catch (error) {
+        console.error('Get users error:', error);
+        res.status(500).json({ error: 'خطأ في جلب المستخدمين' });
+    }
+});
+
+// Create new user (technician)
+app.post('/api/users', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const { username, password, full_name, team_id } = req.body;
+        
+        if (!username || !password || !full_name || !team_id) {
+            return res.status(400).json({ error: 'جميع الحقول مطلوبة' });
+        }
+        
+        // Check if username exists
+        const existingUser = await db.queryOne('SELECT id FROM users WHERE username = ?', [username]);
+        if (existingUser) {
+            return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
+        }
+        
+        // Hash password
+        const passwordHash = await bcrypt.hash(password, 10);
+        
+        // Create user
+        const result = await db.query(`
+            INSERT INTO users (username, password_hash, full_name, role, team_id)
+            VALUES (?, ?, ?, 'technician', ?)
+        `, [username, passwordHash, full_name, team_id]);
+        
+        const userId = result.insertId;
+        
+        // Add to team_members
+        await db.query(`
+            INSERT INTO team_members (team_id, user_id)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE team_id = VALUES(team_id)
+        `, [team_id, userId]);
+        
+        res.json({ success: true, userId, message: 'تم إنشاء الحساب بنجاح' });
+    } catch (error) {
+        console.error('Create user error:', error);
+        res.status(500).json({ error: 'خطأ في إنشاء الحساب' });
+    }
+});
+
+// Update user
+app.put('/api/users/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const userId = req.params.id;
+        const { username, password, full_name, team_id, is_active } = req.body;
+        
+        // Don't allow updating admin users
+        const user = await db.queryOne('SELECT role FROM users WHERE id = ?', [userId]);
+        if (user && user.role === 'admin' && userId != req.user.id) {
+            return res.status(403).json({ error: 'لا يمكن تعديل حساب المدير' });
+        }
+        
+        let updateQuery = 'UPDATE users SET full_name = ?, team_id = ?';
+        let updateParams = [full_name, team_id];
+        
+        if (username) {
+            // Check if username exists for other users
+            const existingUser = await db.queryOne('SELECT id FROM users WHERE username = ? AND id != ?', [username, userId]);
+            if (existingUser) {
+                return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
+            }
+            updateQuery += ', username = ?';
+            updateParams.push(username);
+        }
+        
+        if (password) {
+            const passwordHash = await bcrypt.hash(password, 10);
+            updateQuery += ', password_hash = ?';
+            updateParams.push(passwordHash);
+        }
+        
+        if (is_active !== undefined) {
+            updateQuery += ', is_active = ?';
+            updateParams.push(is_active ? 1 : 0);
+        }
+        
+        updateQuery += ' WHERE id = ?';
+        updateParams.push(userId);
+        
+        await db.query(updateQuery, updateParams);
+        
+        // Update team_members
+        if (team_id) {
+            await db.query(`
+                INSERT INTO team_members (team_id, user_id)
+                VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE team_id = VALUES(team_id)
+            `, [team_id, userId]);
+        }
+        
+        res.json({ success: true, message: 'تم تحديث الحساب بنجاح' });
+    } catch (error) {
+        console.error('Update user error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث الحساب' });
+    }
+});
+
+// Delete user
+app.delete('/api/users/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const userId = req.params.id;
+        
+        // Don't allow deleting admin users or self
+        const user = await db.queryOne('SELECT role FROM users WHERE id = ?', [userId]);
+        if (!user) {
+            return res.status(404).json({ error: 'المستخدم غير موجود' });
+        }
+        
+        if (user.role === 'admin') {
+            return res.status(403).json({ error: 'لا يمكن حذف حساب المدير' });
+        }
+        
+        if (userId == req.user.id) {
+            return res.status(403).json({ error: 'لا يمكن حذف حسابك الخاص' });
+        }
+        
+        // Soft delete (set is_active = 0)
+        await db.query('UPDATE users SET is_active = 0 WHERE id = ?', [userId]);
+        
+        res.json({ success: true, message: 'تم حذف الحساب بنجاح' });
+    } catch (error) {
+        console.error('Delete user error:', error);
+        res.status(500).json({ error: 'خطأ في حذف الحساب' });
+    }
+});
+
+// Get team rankings for technicians (transparent view)
+app.get('/api/team-rankings', authenticate, async (req, res) => {
+    try {
+        const period = req.query.period || 'daily'; // daily, weekly, monthly
+        const date = req.query.date || moment().format('YYYY-MM-DD');
+        
+        let dateCondition = '';
+        if (period === 'daily') {
+            dateCondition = `AND DATE(ds.date) = '${date}'`;
+        } else if (period === 'weekly') {
+            dateCondition = `AND ds.date >= DATE_SUB('${date}', INTERVAL 7 DAY)`;
+        } else if (period === 'monthly') {
+            dateCondition = `AND DATE_FORMAT(ds.date, '%Y-%m') = DATE_FORMAT('${date}', '%Y-%m')`;
+        }
+        
+        const rankings = await db.query(`
+            SELECT 
+                t.id,
+                t.name,
+                t.shift,
+                COALESCE(SUM(ds.net_points), 0) as total_points,
+                COALESCE(SUM(ds.total_tickets), 0) as total_tickets,
+                COALESCE(SUM(ds.positive_points), 0) as positive_points,
+                COALESCE(SUM(ds.negative_points), 0) as negative_points
+            FROM teams t
+            LEFT JOIN daily_summaries ds ON t.id = ds.team_id
+            WHERE t.is_active = 1 ${dateCondition}
+            GROUP BY t.id, t.name, t.shift
+            ORDER BY total_points DESC
+        `);
+        
+        res.json({ success: true, rankings, period, date });
+    } catch (error) {
+        console.error('Get team rankings error:', error);
+        res.status(500).json({ error: 'خطأ في جلب التصنيف' });
+    }
+});
+
+// Get technician's team details
+app.get('/api/my-team', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'technician' && req.user.role !== 'team_leader') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const teamId = req.user.team_id;
+        if (!teamId) {
+            return res.json({ success: true, team: null, message: 'لم يتم تعيينك في فريق' });
+        }
+        
+        const team = await db.queryOne(`
+            SELECT t.*, 
+                   COUNT(DISTINCT tm.user_id) as member_count
+            FROM teams t
+            LEFT JOIN team_members tm ON t.id = tm.team_id
+            WHERE t.id = ?
+            GROUP BY t.id
+        `, [teamId]);
+        
+        // Get team members
+        const members = await db.query(`
+            SELECT u.id, u.full_name, u.role
+            FROM users u
+            JOIN team_members tm ON u.id = tm.user_id
+            WHERE tm.team_id = ? AND u.is_active = 1
+        `, [teamId]);
+        
+        // Get team scores
+        const today = moment().format('YYYY-MM-DD');
+        const teamScores = await db.queryOne(`
+            SELECT 
+                COALESCE(SUM(net_points), 0) as today_points,
+                COALESCE(SUM(total_tickets), 0) as today_tickets,
+                COALESCE(SUM(positive_points), 0) as today_positive,
+                COALESCE(SUM(negative_points), 0) as today_negative
+            FROM daily_summaries
+            WHERE team_id = ? AND date = ?
+        `, [teamId, today]);
+        
+        res.json({
+            success: true,
+            team,
+            members,
+            scores: teamScores || { today_points: 0, today_tickets: 0, today_positive: 0, today_negative: 0 }
+        });
+    } catch (error) {
+        console.error('Get my team error:', error);
+        res.status(500).json({ error: 'خطأ في جلب بيانات الفريق' });
+    }
+});
+
 // ==================== Start Server ====================
 const PORT = config.server.port;
 app.listen(PORT, '0.0.0.0', () => {

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة العامل - نظام إدارة التكتات</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>👷 لوحة العامل</h2>
+                <p id="userName"></p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-page="dashboard"><i>📊</i> لوحة التحكم</a></li>
+                <li><a href="#" data-page="rankings"><i>🏆</i> التصنيف</a></li>
+                <li><a href="#" data-page="my-team"><i>👥</i> فريقي</a></li>
+                <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1 id="pageTitle">لوحة التحكم</h1>
+                <div class="user-info">
+                    <span id="currentUser"></span>
+                    <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
+                </div>
+            </div>
+
+            <!-- Dashboard Page -->
+            <div id="dashboard-page" class="page-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>نقاط فريقي اليوم</h3>
+                        <div class="value" id="myTeamPoints">0</div>
+                    </div>
+                    <div class="stat-card secondary">
+                        <h3>عدد التكتات اليوم</h3>
+                        <div class="value" id="myTeamTickets">0</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <h3>النقاط الموجبة</h3>
+                        <div class="value" id="myTeamPositive">0</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <h3>النقاط السالبة</h3>
+                        <div class="value" id="myTeamNegative">0</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2>معلومات الفريق</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="teamInfo">
+                            <p class="loading">جاري التحميل...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rankings Page -->
+            <div id="rankings-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>تصنيف الفرق</h2>
+                        <div>
+                            <select id="rankingsPeriod" style="margin-left: 10px;">
+                                <option value="daily">يومي</option>
+                                <option value="weekly">أسبوعي</option>
+                                <option value="monthly">شهري</option>
+                            </select>
+                            <input type="date" id="rankingsDate" style="margin-left: 10px;">
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="rankingsTable">
+                                <thead>
+                                    <tr>
+                                        <th>الترتيب</th>
+                                        <th>اسم الفريق</th>
+                                        <th>الوردية</th>
+                                        <th>النقاط الإجمالية</th>
+                                        <th>عدد التكتات</th>
+                                        <th>النقاط الموجبة</th>
+                                        <th>النقاط السالبة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rankingsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Team Page -->
+            <div id="my-team-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>أعضاء الفريق</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="teamMembers">
+                            <p class="loading">جاري التحميل...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/technician-dashboard.js"></script>
+</body>
+</html>
+

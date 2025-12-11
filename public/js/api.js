@@ -100,7 +100,29 @@ const api = {
     },
     
     // Ticket Types
-    getTicketTypes: () => apiRequest('/ticket-types')
+    getTicketTypes: () => apiRequest('/ticket-types'),
+    
+    // Users Management (Admin only)
+    getUsers: () => apiRequest('/users'),
+    createUser: (data) => apiRequest('/users', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    updateUser: (id, data) => apiRequest(`/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    deleteUser: (id) => apiRequest(`/users/${id}`, {
+        method: 'DELETE'
+    }),
+    
+    // Team Rankings (for technicians)
+    getTeamRankings: (period = 'daily', date = null) => {
+        const params = new URLSearchParams({ period });
+        if (date) params.append('date', date);
+        return apiRequest(`/team-rankings?${params}`);
+    },
+    getMyTeam: () => apiRequest('/my-team')
 };
 
 // Make API available globally

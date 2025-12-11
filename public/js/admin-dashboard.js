@@ -69,6 +69,7 @@ function showPage(pageName) {
     const titles = {
         'dashboard': 'لوحة التحكم',
         'add-ticket': 'إضافة تكت',
+        'users': 'إدارة المستخدمين',
         'teams': 'الفرق',
         'tickets': 'التكتات',
         'reports': 'التقارير'
@@ -83,6 +84,8 @@ function showPage(pageName) {
         loadDashboard();
     } else if (pageName === 'add-ticket') {
         loadAddTicketPage();
+    } else if (pageName === 'users') {
+        loadUsers();
     } else if (pageName === 'teams') {
         loadTeams();
     } else if (pageName === 'tickets') {
@@ -617,11 +620,194 @@ function resetAdminTicketForm() {
     }
 }
 
+// ==================== Users Management ====================
+async function loadUsers() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getUsers();
+        if (data && data.success) {
+            const tbody = document.getElementById('usersTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.users && data.users.length > 0) {
+                data.users.forEach(user => {
+                    const row = document.createElement('tr');
+                    const roleText = {
+                        'admin': 'مدير',
+                        'quality_staff': 'موظف جودة',
+                        'team_leader': 'قائد فريق',
+                        'technician': 'عامل'
+                    }[user.role] || user.role;
+                    
+                    row.innerHTML = `
+                        <td>${user.username}</td>
+                        <td>${user.full_name}</td>
+                        <td>${user.team_name || '-'}</td>
+                        <td>${roleText}</td>
+                        <td><span class="badge ${user.is_active ? 'badge-success' : 'badge-danger'}">${user.is_active ? 'نشط' : 'غير نشط'}</span></td>
+                        <td>${new Date(user.created_at).toLocaleDateString('ar-SA')}</td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="editUser(${user.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">تعديل</button>
+                            ${user.role !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${user.id})" style="padding: 6px 12px; font-size: 12px;">حذف</button>` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا يوجد مستخدمين</td></tr>';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل البيانات</td></tr>';
+        }
+    }
+}
+
+function showAddUserForm() {
+    document.getElementById('userModalTitle').textContent = 'إضافة عامل جديد';
+    document.getElementById('userForm').reset();
+    document.getElementById('edit_user_id').value = '';
+    document.getElementById('user_password').required = true;
+    document.getElementById('user_password_label').innerHTML = 'كلمة المرور *';
+    document.getElementById('user_is_active').checked = true;
+    
+    // Load teams
+    loadTeamsForUserForm();
+    
+    document.getElementById('userModal').style.display = 'flex';
+}
+
+async function loadTeamsForUserForm() {
+    try {
+        const data = await window.api.getTeams();
+        const select = document.getElementById('user_team_id');
+        if (select && data.success) {
+            select.innerHTML = '<option value="">اختر الفريق</option>';
+            data.teams.forEach(team => {
+                const option = document.createElement('option');
+                option.value = team.id;
+                option.textContent = team.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading teams:', error);
+    }
+}
+
+async function editUser(userId) {
+    try {
+        const data = await window.api.getUsers();
+        if (data && data.success) {
+            const user = data.users.find(u => u.id == userId);
+            if (user) {
+                document.getElementById('userModalTitle').textContent = 'تعديل المستخدم';
+                document.getElementById('edit_user_id').value = user.id;
+                document.getElementById('user_username').value = user.username;
+                document.getElementById('user_password').value = '';
+                document.getElementById('user_password').required = false;
+                document.getElementById('user_password_label').innerHTML = 'كلمة المرور (اتركه فارغاً إذا لم ترد تغييره)';
+                document.getElementById('user_full_name').value = user.full_name;
+                document.getElementById('user_is_active').checked = user.is_active == 1;
+                
+                await loadTeamsForUserForm();
+                if (user.team_id) {
+                    document.getElementById('user_team_id').value = user.team_id;
+                }
+                
+                document.getElementById('userModal').style.display = 'flex';
+            }
+        }
+    } catch (error) {
+        alert('خطأ في تحميل بيانات المستخدم: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+function closeUserModal() {
+    document.getElementById('userModal').style.display = 'none';
+}
+
+async function deleteUser(userId) {
+    if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
+        return;
+    }
+    
+    try {
+        const data = await window.api.deleteUser(userId);
+        if (data && data.success) {
+            alert('تم حذف المستخدم بنجاح');
+            loadUsers();
+        } else {
+            alert('خطأ في حذف المستخدم: ' + (data.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        alert('خطأ في حذف المستخدم: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// Setup user form submission
+document.addEventListener('DOMContentLoaded', () => {
+    const userForm = document.getElementById('userForm');
+    if (userForm) {
+        userForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = document.getElementById('edit_user_id').value;
+            const formData = {
+                username: document.getElementById('user_username').value,
+                full_name: document.getElementById('user_full_name').value,
+                team_id: parseInt(document.getElementById('user_team_id').value),
+                is_active: document.getElementById('user_is_active').checked ? 1 : 0
+            };
+            
+            const password = document.getElementById('user_password').value;
+            if (password) {
+                formData.password = password;
+            }
+            
+            try {
+                let data;
+                if (userId) {
+                    data = await window.api.updateUser(userId, formData);
+                } else {
+                    if (!password) {
+                        alert('كلمة المرور مطلوبة للمستخدمين الجدد');
+                        return;
+                    }
+                    formData.password = password;
+                    data = await window.api.createUser(formData);
+                }
+                
+                if (data && data.success) {
+                    alert(userId ? 'تم تحديث المستخدم بنجاح' : 'تم إنشاء المستخدم بنجاح');
+                    closeUserModal();
+                    loadUsers();
+                } else {
+                    alert('خطأ: ' + (data.error || 'خطأ غير معروف'));
+                }
+            } catch (error) {
+                alert('خطأ: ' + (error.message || 'خطأ غير معروف'));
+            }
+        });
+    }
+});
+
 // Make functions available globally
 window.removeAdminPhoto = removeAdminPhoto;
 window.generateAdminMessage = generateAdminMessage;
 window.copyAdminMessage = copyAdminMessage;
 window.resetAdminTicketForm = resetAdminTicketForm;
+window.showAddUserForm = showAddUserForm;
+window.editUser = editUser;
+window.deleteUser = deleteUser;
+window.closeUserModal = closeUserModal;
 
 document.addEventListener('DOMContentLoaded', initAdminDashboard);
 
