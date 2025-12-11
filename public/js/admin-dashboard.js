@@ -167,6 +167,9 @@ async function loadTickets() {
                     }[ticket.status] || ticket.status;
                     
                     const row = document.createElement('tr');
+                    if (ticket.status === 'postponed') {
+                        row.classList.add('postponed');
+                    }
                     row.innerHTML = `
                         <td>${ticket.ticket_number}</td>
                         <td>${ticket.ticket_type_name || ''}</td>

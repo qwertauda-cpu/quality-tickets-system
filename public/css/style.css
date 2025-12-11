@@ -489,6 +489,15 @@ table tbody tr:hover {
     background: var(--bg-tertiary);
 }
 
+table tbody tr.postponed {
+    background: rgba(239, 68, 68, 0.15);
+    border-right: 3px solid rgba(239, 68, 68, 0.5);
+}
+
+table tbody tr.postponed:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
 table tbody tr:last-child td {
     border-bottom: none;
 }

@@ -369,6 +369,72 @@ function showPage(pageName) {
         'daily-report': 'التقرير اليومي'
     };
     document.getElementById('pageTitle').textContent = titles[pageName] || '';
+    
+    // Load page data
+    if (pageName === 'tickets-list') {
+        loadTicketsList();
+    }
+}
+
+async function loadTicketsList() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getTickets();
+        if (data && data.success) {
+            const tbody = document.getElementById('ticketsTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.tickets && data.tickets.length > 0) {
+                data.tickets.forEach(ticket => {
+                    const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
+                    const statusBadge = {
+                        'pending': 'badge-warning',
+                        'in_progress': 'badge-info',
+                        'completed': 'badge-success',
+                        'postponed': 'badge-danger',
+                        'closed': 'badge-danger'
+                    }[ticket.status] || 'badge-info';
+                    
+                    const statusText = {
+                        'pending': 'معلقة',
+                        'in_progress': 'قيد التنفيذ',
+                        'completed': 'مكتملة',
+                        'postponed': 'مؤجلة',
+                        'closed': 'مغلقة'
+                    }[ticket.status] || ticket.status;
+                    
+                    const row = document.createElement('tr');
+                    if (ticket.status === 'postponed') {
+                        row.classList.add('postponed');
+                    }
+                    row.innerHTML = `
+                        <td>${ticket.ticket_number}</td>
+                        <td>${ticket.ticket_type_name || ''}</td>
+                        <td>${ticket.team_name || ''}</td>
+                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
+                        <td>${ticket.actual_time_minutes ? ticket.actual_time_minutes + ' دقيقة' : '-'}</td>
+                        <td>${netScore}</td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="showTicketDetails(${ticket.id})" style="padding: 6px 12px; font-size: 12px;">عرض</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات</td></tr>';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading tickets:', error);
+        const tbody = document.getElementById('ticketsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل البيانات</td></tr>';
+        }
+    }
 }
 
 function resetForm() {
