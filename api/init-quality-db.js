@@ -145,7 +145,9 @@ async function initDatabase() {
                 INDEX idx_ticket_type (ticket_type_id),
                 INDEX idx_team (team_id),
                 INDEX idx_status (status),
-                INDEX idx_created_at (created_at)
+                INDEX idx_created_at (created_at),
+                INDEX idx_time_received (time_received),
+                INDEX idx_quality_staff (quality_staff_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('✅ تم إنشاء جدول: tickets');
