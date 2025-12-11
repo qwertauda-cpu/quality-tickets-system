@@ -769,10 +769,12 @@ table tbody tr:last-child td {
     z-index: 999;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .mobile-menu-overlay.active {
     opacity: 1;
+    pointer-events: auto;
 }
 
 /* Responsive */
@@ -786,6 +788,11 @@ table tbody tr:last-child td {
     
     .mobile-menu-overlay {
         display: block;
+        pointer-events: none;
+    }
+    
+    .mobile-menu-overlay.active {
+        pointer-events: auto;
     }
     
     .sidebar {
