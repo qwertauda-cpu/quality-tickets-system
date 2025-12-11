@@ -22,7 +22,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '../public')));
+// Note: Static files are served after API routes to avoid conflicts
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Configure multer for file uploads
@@ -970,6 +970,9 @@ app.get('/api/my-team', authenticate, async (req, res) => {
         res.status(500).json({ error: 'خطأ في جلب بيانات الفريق' });
     }
 });
+
+// Serve static files AFTER API routes to avoid conflicts
+app.use(express.static(path.join(__dirname, '../public')));
 
 // ==================== Start Server ====================
 const PORT = config.server.port;
