@@ -743,55 +743,78 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             ORDER BY net_points DESC
         `, [reportDate]);
         
+        // التأكد من وجود مجلد uploads
+        const uploadsDir = path.join(__dirname, '../uploads');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+        
         // إنشاء PDF
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
         const filename = `daily-report-${reportDate}.pdf`;
-        const filepath = path.join(__dirname, '../uploads', filename);
+        const filepath = path.join(uploadsDir, filename);
         
-        doc.pipe(fs.createWriteStream(filepath));
-        
-        // العنوان
-        doc.fontSize(20).text('تقرير يومي - إدارة التكتات والجودة', { align: 'right' });
-        doc.moveDown();
-        doc.fontSize(14).text(`التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'right' });
-        doc.moveDown(2);
-        
-        // إحصائيات الفرق
-        doc.fontSize(16).text('إحصائيات الفرق', { align: 'right' });
-        doc.moveDown();
-        
-        teamStats.forEach((team, index) => {
-            const netScore = (team.total_positive || 0) - (team.total_negative || 0);
-            doc.fontSize(12)
-               .text(`${index + 1}. ${team.name}`, { align: 'right' })
-               .text(`   التكتات: ${team.total_tickets || 0}`, { align: 'right' })
-               .text(`   النقاط الإيجابية: ${team.total_positive || 0}`, { align: 'right' })
-               .text(`   النقاط السالبة: ${team.total_negative || 0}`, { align: 'right' })
-               .text(`   النقاط الصافية: ${netScore}`, { align: 'right' });
+        // إنشاء Promise لانتظار انتهاء الكتابة
+        const pdfPromise = new Promise((resolve, reject) => {
+            const doc = new PDFDocument({ margin: 50, size: 'A4' });
+            const stream = fs.createWriteStream(filepath);
+            
+            doc.pipe(stream);
+            
+            // العنوان
+            doc.fontSize(20).text('تقرير يومي - إدارة التكتات والجودة', { align: 'right' });
             doc.moveDown();
+            doc.fontSize(14).text(`التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'right' });
+            doc.moveDown(2);
+            
+            // إحصائيات الفرق
+            doc.fontSize(16).text('إحصائيات الفرق', { align: 'right' });
+            doc.moveDown();
+            
+            teamStats.forEach((team, index) => {
+                const netScore = (team.total_positive || 0) - (team.total_negative || 0);
+                doc.fontSize(12)
+                   .text(`${index + 1}. ${team.name}`, { align: 'right' })
+                   .text(`   التكتات: ${team.total_tickets || 0}`, { align: 'right' })
+                   .text(`   النقاط الإيجابية: ${team.total_positive || 0}`, { align: 'right' })
+                   .text(`   النقاط السالبة: ${team.total_negative || 0}`, { align: 'right' })
+                   .text(`   النقاط الصافية: ${netScore}`, { align: 'right' });
+                doc.moveDown();
+            });
+            
+            doc.moveDown();
+            doc.fontSize(16).text('تفاصيل التكتات', { align: 'right' });
+            doc.moveDown();
+            
+            // تفاصيل التكتات
+            tickets.forEach((ticket, index) => {
+                const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
+                doc.fontSize(10)
+                   .text(`${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right' })
+                   .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' })
+                   .text(`   الفريق: ${ticket.team_name}`, { align: 'right' })
+                   .text(`   النقاط: ${netScore}`, { align: 'right' });
+                doc.moveDown(0.5);
+            });
+            
+            // معالجة الأحداث
+            stream.on('finish', () => {
+                resolve();
+            });
+            
+            stream.on('error', (err) => {
+                reject(err);
+            });
+            
+            doc.end();
         });
-        
-        doc.moveDown();
-        doc.fontSize(16).text('تفاصيل التكتات', { align: 'right' });
-        doc.moveDown();
-        
-        // تفاصيل التكتات
-        tickets.forEach((ticket, index) => {
-            const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
-            doc.fontSize(10)
-               .text(`${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right' })
-               .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' })
-               .text(`   الفريق: ${ticket.team_name}`, { align: 'right' })
-               .text(`   النقاط: ${netScore}`, { align: 'right' });
-            doc.moveDown(0.5);
-        });
-        
-        doc.end();
         
         // انتظار انتهاء الكتابة
-        await new Promise((resolve) => {
-            doc.on('end', resolve);
-        });
+        await pdfPromise;
+        
+        // التحقق من وجود الملف
+        if (!fs.existsSync(filepath)) {
+            throw new Error('فشل في إنشاء ملف PDF');
+        }
         
         res.json({
             success: true,
