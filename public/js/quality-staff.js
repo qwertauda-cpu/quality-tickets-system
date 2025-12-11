@@ -31,7 +31,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadTicketTypes() {
     try {
-        const data = await api.getTicketTypes();
+        if (!window.api) {
+            console.error('API not loaded');
+            return;
+        }
+        const data = await window.api.getTicketTypes();
         if (data.success) {
             ticketTypes = data.types;
             const select = document.getElementById('ticket_type_id');
@@ -49,7 +53,11 @@ async function loadTicketTypes() {
 
 async function loadTeams() {
     try {
-        const data = await api.getTeams();
+        if (!window.api) {
+            console.error('API not loaded');
+            return;
+        }
+        const data = await window.api.getTeams();
         if (data.success) {
             teams = data.teams;
             const select = document.getElementById('team_id');
@@ -130,7 +138,11 @@ async function handleTicketSubmit(e) {
         };
         
         try {
-            const data = await api.createTicket(formData);
+            if (!window.api) {
+                alert('API not loaded');
+                return;
+            }
+            const data = await window.api.createTicket(formData);
             if (data.success) {
                 currentTicketId = data.ticketId;
                 alert('تم إدخال التكت بنجاح! يمكنك الآن إضافة الصور وتقييم الجودة.');
@@ -147,7 +159,7 @@ async function showTicketDetails(ticketId) {
     showPage('ticket-details');
     
     try {
-        const data = await api.getTicket(ticketId);
+        const data = await window.api.getTicket(ticketId);
         if (data.success) {
             const ticket = data.ticket;
             document.getElementById('detail-ticket-number').textContent = ticket.ticket_number;
@@ -204,7 +216,7 @@ async function handlePhotoUpload(files) {
     });
     
     try {
-        const data = await api.uploadPhotos(currentTicketId, formData);
+        const data = await window.api.uploadPhotos(currentTicketId, formData);
         if (data.success) {
             alert('تم رفع الصور بنجاح');
             // Reload ticket to get updated photos
@@ -239,7 +251,7 @@ async function handleQualityReviewSubmit(e) {
     };
     
     try {
-        const data = await api.submitQualityReview(currentTicketId, formData);
+        const data = await window.api.submitQualityReview(currentTicketId, formData);
         if (data.success) {
             alert('تم حفظ تقييم الجودة بنجاح');
             // Reload ticket
@@ -276,7 +288,7 @@ async function generateMessage() {
     }
     
     try {
-        const data = await api.generateMessage(currentTicketId);
+        const data = await window.api.generateMessage(currentTicketId);
         if (data.success) {
             document.getElementById('generatedMessage').value = data.message;
             document.getElementById('messageSection').style.display = 'block';

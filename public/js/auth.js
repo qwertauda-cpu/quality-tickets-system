@@ -1,6 +1,9 @@
 // Authentication JavaScript
 
-const API_BASE = '/api';
+// Define API_BASE on window if not already defined
+if (typeof window.API_BASE === 'undefined') {
+    window.API_BASE = '/api';
+}
 
 // Only add event listener if login form exists
 const loginForm = document.getElementById('loginForm');
@@ -15,7 +18,7 @@ if (loginForm) {
     errorDiv.style.display = 'none';
     
     try {
-        const response = await fetch(`${API_BASE}/login`, {
+        const response = await fetch(`${window.API_BASE}/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -81,5 +84,4 @@ window.getAuthToken = getAuthToken;
 window.getCurrentUser = getCurrentUser;
 window.isAuthenticated = isAuthenticated;
 window.logout = logout;
-window.API_BASE = API_BASE;
 
