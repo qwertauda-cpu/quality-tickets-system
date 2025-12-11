@@ -68,6 +68,7 @@ function showPage(pageName) {
     // Update page title
     const titles = {
         'dashboard': 'لوحة التحكم',
+        'add-ticket': 'إضافة تكت',
         'teams': 'الفرق',
         'tickets': 'التكتات',
         'reports': 'التقارير'
@@ -80,6 +81,8 @@ function showPage(pageName) {
     // Load page data
     if (pageName === 'dashboard') {
         loadDashboard();
+    } else if (pageName === 'add-ticket') {
+        loadAddTicketPage();
     } else if (pageName === 'teams') {
         loadTeams();
     } else if (pageName === 'tickets') {
@@ -231,6 +234,394 @@ document.addEventListener('DOMContentLoaded', () => {
         ticketsStatusFilter.addEventListener('change', loadTickets);
     }
 });
+
+// Admin Ticket Management Variables
+let adminCurrentTicketId = null;
+let adminTicketTypes = [];
+let adminTeams = [];
+
+// Load Add Ticket Page
+async function loadAddTicketPage() {
+    await loadAdminTicketTypes();
+    await loadAdminTeams();
+    setupAdminTicketForm();
+    
+    // Set current time as default
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const timeInput = document.getElementById('admin_time_received');
+    if (timeInput) {
+        timeInput.value = now.toISOString().slice(0, 16);
+    }
+}
+
+async function loadAdminTicketTypes() {
+    try {
+        if (!window.api) {
+            console.error('API not loaded');
+            return;
+        }
+        const data = await window.api.getTicketTypes();
+        if (data.success) {
+            adminTicketTypes = data.types;
+            const select = document.getElementById('admin_ticket_type_id');
+            if (select) {
+                select.innerHTML = '<option value="">اختر النوع</option>';
+                data.types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name_ar;
+                    select.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading ticket types:', error);
+    }
+}
+
+async function loadAdminTeams() {
+    try {
+        if (!window.api) {
+            console.error('API not loaded');
+            return;
+        }
+        const data = await window.api.getTeams();
+        if (data.success) {
+            adminTeams = data.teams;
+            const select = document.getElementById('admin_team_id');
+            if (select) {
+                select.innerHTML = '<option value="">اختر الفريق</option>';
+                data.teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.id;
+                    option.textContent = team.name;
+                    select.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading teams:', error);
+    }
+}
+
+function setupAdminTicketForm() {
+    // Ticket form submission
+    const ticketForm = document.getElementById('adminTicketForm');
+    if (ticketForm) {
+        ticketForm.addEventListener('submit', handleAdminTicketSubmit);
+    }
+    
+    // Quality review form
+    const qualityForm = document.getElementById('adminQualityReviewForm');
+    if (qualityForm) {
+        qualityForm.addEventListener('submit', handleAdminQualityReviewSubmit);
+    }
+    
+    // Followup checkbox
+    const followupCheckbox = document.getElementById('admin_needs_followup');
+    if (followupCheckbox) {
+        followupCheckbox.addEventListener('change', (e) => {
+            const reasonGroup = document.getElementById('adminFollowupReasonGroup');
+            if (reasonGroup) {
+                reasonGroup.style.display = e.target.checked ? 'block' : 'none';
+            }
+        });
+    }
+    
+    // Photo upload
+    const photoUploadArea = document.getElementById('adminPhotoUploadArea');
+    const photoInput = document.getElementById('adminPhotoInput');
+    
+    if (photoUploadArea && photoInput) {
+        photoUploadArea.addEventListener('click', () => photoInput.click());
+        photoUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            photoUploadArea.classList.add('dragover');
+        });
+        photoUploadArea.addEventListener('dragleave', () => {
+            photoUploadArea.classList.remove('dragover');
+        });
+        photoUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            photoUploadArea.classList.remove('dragover');
+            handleAdminPhotoUpload(e.dataTransfer.files);
+        });
+        
+        photoInput.addEventListener('change', (e) => {
+            handleAdminPhotoUpload(e.target.files);
+        });
+    }
+}
+
+async function handleAdminTicketSubmit(e) {
+    e.preventDefault();
+    
+    if (adminCurrentTicketId) {
+        alert('يوجد تكت مفتوح بالفعل. يرجى إكماله أو إعادة تعيين النموذج.');
+        return;
+    }
+    
+    const formData = {
+        ticket_number: document.getElementById('admin_ticket_number').value,
+        ticket_type_id: parseInt(document.getElementById('admin_ticket_type_id').value),
+        team_id: parseInt(document.getElementById('admin_team_id').value),
+        time_received: document.getElementById('admin_time_received').value,
+        time_first_contact: document.getElementById('admin_time_first_contact').value || null,
+        time_completed: document.getElementById('admin_time_completed').value || null,
+        subscriber_name: document.getElementById('admin_subscriber_name').value || null,
+        subscriber_phone: document.getElementById('admin_subscriber_phone').value || null,
+        subscriber_address: document.getElementById('admin_subscriber_address').value || null,
+        notes: document.getElementById('admin_notes').value || null
+    };
+    
+    try {
+        if (!window.api) {
+            alert('API not loaded');
+            return;
+        }
+        const data = await window.api.createTicket(formData);
+        if (data.success) {
+            adminCurrentTicketId = data.ticketId;
+            alert('تم إدخال التكت بنجاح! يمكنك الآن إضافة الصور وتقييم الجودة.');
+            showAdminTicketDetails(data.ticketId);
+        }
+    } catch (error) {
+        alert('خطأ في إدخال التكت: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+async function showAdminTicketDetails(ticketId) {
+    adminCurrentTicketId = ticketId;
+    const detailsSection = document.getElementById('admin-ticket-details-section');
+    if (detailsSection) {
+        detailsSection.style.display = 'block';
+    }
+    
+    try {
+        const data = await window.api.getTicket(ticketId);
+        if (data.success) {
+            const ticket = data.ticket;
+            const ticketNumberEl = document.getElementById('admin-detail-ticket-number');
+            if (ticketNumberEl) {
+                ticketNumberEl.textContent = ticket.ticket_number;
+            }
+            
+            // Load photos
+            loadAdminPhotos(ticket.photos || []);
+            
+            // Load quality review if exists
+            if (ticket.qualityReview) {
+                loadAdminQualityReview(ticket.qualityReview);
+            }
+            
+            // Load scores
+            if (ticket.scores) {
+                displayAdminScores(ticket.scores);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading ticket details:', error);
+    }
+}
+
+function loadAdminPhotos(photos) {
+    const photoGrid = document.getElementById('adminPhotoGrid');
+    if (!photoGrid) return;
+    
+    photoGrid.innerHTML = '';
+    
+    photos.forEach(photo => {
+        const photoItem = document.createElement('div');
+        photoItem.className = 'photo-item';
+        photoItem.innerHTML = `
+            <img src="${photo.photo_path}" alt="${photo.photo_type}">
+            <button class="remove-photo" onclick="removeAdminPhoto(${photo.id})">×</button>
+        `;
+        photoGrid.appendChild(photoItem);
+    });
+}
+
+async function handleAdminPhotoUpload(files) {
+    if (!adminCurrentTicketId) {
+        alert('يجب إدخال التكت أولاً');
+        return;
+    }
+    
+    const photoType = document.getElementById('admin_photo_type')?.value;
+    if (!photoType) {
+        alert('يرجى اختيار نوع الصورة');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('photo_type', photoType);
+    Array.from(files).forEach(file => {
+        formData.append('photos', file);
+    });
+    
+    try {
+        const data = await window.api.uploadPhotos(adminCurrentTicketId, formData);
+        if (data.success) {
+            alert('تم رفع الصور بنجاح');
+            // Reload ticket to get updated photos
+            showAdminTicketDetails(adminCurrentTicketId);
+        }
+    } catch (error) {
+        alert('خطأ في رفع الصور: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+async function removeAdminPhoto(photoId) {
+    if (!confirm('هل أنت متأكد من حذف هذه الصورة؟')) {
+        return;
+    }
+    
+    try {
+        // Note: You may need to add a delete photo endpoint to the API
+        alert('ميزة حذف الصور قيد التطوير');
+        // await window.api.deletePhoto(photoId);
+        // showAdminTicketDetails(adminCurrentTicketId);
+    } catch (error) {
+        alert('خطأ في حذف الصورة: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+async function handleAdminQualityReviewSubmit(e) {
+    e.preventDefault();
+    
+    if (!adminCurrentTicketId) {
+        alert('يجب إدخال التكت أولاً');
+        return;
+    }
+    
+    const formData = {
+        contact_status: document.getElementById('admin_contact_status').value,
+        service_status: document.getElementById('admin_service_status').value,
+        team_rating: parseInt(document.getElementById('admin_team_rating').value),
+        explained_sinmana: document.getElementById('admin_explained_sinmana').checked ? 1 : 0,
+        explained_platform: document.getElementById('admin_explained_platform').checked ? 1 : 0,
+        explained_mytv_plus: document.getElementById('admin_explained_mytv_plus').checked ? 1 : 0,
+        explained_shahid_plus: document.getElementById('admin_explained_shahid_plus').checked ? 1 : 0,
+        whatsapp_group_interest: document.getElementById('admin_whatsapp_group_interest').checked ? 1 : 0,
+        subscription_amount: document.getElementById('admin_subscription_amount').value || null,
+        needs_followup: document.getElementById('admin_needs_followup').checked ? 1 : 0,
+        followup_reason: document.getElementById('admin_followup_reason').value || null,
+        review_notes: document.getElementById('admin_review_notes').value || null
+    };
+    
+    try {
+        const data = await window.api.submitQualityReview(adminCurrentTicketId, formData);
+        if (data.success) {
+            alert('تم حفظ تقييم الجودة بنجاح');
+            // Reload ticket
+            showAdminTicketDetails(adminCurrentTicketId);
+        }
+    } catch (error) {
+        alert('خطأ في حفظ التقييم: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+function loadAdminQualityReview(review) {
+    document.getElementById('admin_contact_status').value = review.contact_status;
+    document.getElementById('admin_service_status').value = review.service_status;
+    document.getElementById('admin_team_rating').value = review.team_rating;
+    document.getElementById('admin_explained_sinmana').checked = review.explained_sinmana === 1;
+    document.getElementById('admin_explained_platform').checked = review.explained_platform === 1;
+    document.getElementById('admin_explained_mytv_plus').checked = review.explained_mytv_plus === 1;
+    document.getElementById('admin_explained_shahid_plus').checked = review.explained_shahid_plus === 1;
+    document.getElementById('admin_whatsapp_group_interest').checked = review.whatsapp_group_interest === 1;
+    document.getElementById('admin_subscription_amount').value = review.subscription_amount || '';
+    document.getElementById('admin_needs_followup').checked = review.needs_followup === 1;
+    document.getElementById('admin_followup_reason').value = review.followup_reason || '';
+    document.getElementById('admin_review_notes').value = review.review_notes || '';
+    
+    if (review.needs_followup === 1) {
+        document.getElementById('adminFollowupReasonGroup').style.display = 'block';
+    }
+}
+
+async function generateAdminMessage() {
+    if (!adminCurrentTicketId) {
+        alert('يجب إدخال التكت أولاً');
+        return;
+    }
+    
+    try {
+        const data = await window.api.generateMessage(adminCurrentTicketId);
+        if (data.success) {
+            const messageTextarea = document.getElementById('adminGeneratedMessage');
+            const messageSection = document.getElementById('adminMessageSection');
+            if (messageTextarea) {
+                messageTextarea.value = data.message;
+            }
+            if (messageSection) {
+                messageSection.style.display = 'block';
+            }
+        }
+    } catch (error) {
+        alert('خطأ في توليد الرسالة: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+function copyAdminMessage() {
+    const messageText = document.getElementById('adminGeneratedMessage');
+    if (messageText) {
+        messageText.select();
+        document.execCommand('copy');
+        alert('تم نسخ الرسالة!');
+    }
+}
+
+function displayAdminScores(scores) {
+    const scoreDisplay = document.getElementById('adminScoreDisplay');
+    if (!scoreDisplay) return;
+    
+    scoreDisplay.innerHTML = `
+        <div class="score-item positive">
+            <div class="label">النقاط الموجبة</div>
+            <div class="value">+${scores.totalPositive || 0}</div>
+        </div>
+        <div class="score-item negative">
+            <div class="label">النقاط السالبة</div>
+            <div class="value">-${scores.totalNegative || 0}</div>
+        </div>
+        <div class="score-item net">
+            <div class="label">النقاط الصافية</div>
+            <div class="value">${scores.netScore || 0}</div>
+        </div>
+    `;
+}
+
+function resetAdminTicketForm() {
+    document.getElementById('adminTicketForm').reset();
+    adminCurrentTicketId = null;
+    const detailsSection = document.getElementById('admin-ticket-details-section');
+    if (detailsSection) {
+        detailsSection.style.display = 'none';
+    }
+    const photoGrid = document.getElementById('adminPhotoGrid');
+    if (photoGrid) {
+        photoGrid.innerHTML = '';
+    }
+    const messageSection = document.getElementById('adminMessageSection');
+    if (messageSection) {
+        messageSection.style.display = 'none';
+    }
+    
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    const timeInput = document.getElementById('admin_time_received');
+    if (timeInput) {
+        timeInput.value = now.toISOString().slice(0, 16);
+    }
+}
+
+// Make functions available globally
+window.removeAdminPhoto = removeAdminPhoto;
+window.generateAdminMessage = generateAdminMessage;
+window.copyAdminMessage = copyAdminMessage;
+window.resetAdminTicketForm = resetAdminTicketForm;
 
 document.addEventListener('DOMContentLoaded', initAdminDashboard);
 
