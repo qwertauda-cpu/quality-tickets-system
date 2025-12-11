@@ -137,9 +137,9 @@ async function initDatabase() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 
-                FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id),
-                FOREIGN KEY (team_id) REFERENCES teams(id),
-                FOREIGN KEY (quality_staff_id) REFERENCES users(id),
+                FOREIGN KEY (ticket_type_id) REFERENCES ticket_types(id) ON DELETE RESTRICT,
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE RESTRICT,
+                FOREIGN KEY (quality_staff_id) REFERENCES users(id) ON DELETE RESTRICT,
                 
                 INDEX idx_ticket_number (ticket_number),
                 INDEX idx_ticket_type (ticket_type_id),
@@ -260,9 +260,10 @@ async function initDatabase() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 resolved_at TIMESTAMP NULL,
                 FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-                FOREIGN KEY (quality_staff_id) REFERENCES users(id),
+                FOREIGN KEY (quality_staff_id) REFERENCES users(id) ON DELETE RESTRICT,
                 INDEX idx_ticket_id (ticket_id),
-                INDEX idx_status (status)
+                INDEX idx_status (status),
+                INDEX idx_created_at (created_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('✅ تم إنشاء جدول: followup_reports');
@@ -282,10 +283,12 @@ async function initDatabase() {
                 maintenance_count INT DEFAULT 0,
                 daily_bonus_points INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (team_id) REFERENCES teams(id),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_daily_team (date, team_id),
                 INDEX idx_date (date),
-                INDEX idx_team_id (team_id)
+                INDEX idx_team_id (team_id),
+                INDEX idx_net_points (net_points)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('✅ تم إنشاء جدول: daily_summaries');
@@ -304,10 +307,12 @@ async function initDatabase() {
                 working_days INT DEFAULT 0,
                 monthly_bonus_points INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (team_id) REFERENCES teams(id),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
                 UNIQUE KEY unique_monthly_team (year, month, team_id),
                 INDEX idx_year_month (year, month),
-                INDEX idx_team_id (team_id)
+                INDEX idx_team_id (team_id),
+                INDEX idx_net_points (net_points)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('✅ تم إنشاء جدول: monthly_summaries');
