@@ -2,7 +2,10 @@
 
 const API_BASE = '/api';
 
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
+// Only add event listener if login form exists
+const loginForm = document.getElementById('loginForm');
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const username = document.getElementById('username').value;
@@ -47,7 +50,8 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         errorDiv.textContent = 'حدث خطأ أثناء الاتصال بالخادم';
         errorDiv.style.display = 'block';
     }
-});
+    });
+}
 
 // Helper function to get auth token
 function getAuthToken() {

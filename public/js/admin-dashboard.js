@@ -1,13 +1,19 @@
 // Admin Dashboard JavaScript
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Wait for api to be available
+    if (typeof window.api === 'undefined') {
+        console.error('API not loaded');
+        return;
+    }
+    
     if (!isAuthenticated()) {
         window.location.href = '/index.html';
         return;
     }
     
     const user = getCurrentUser();
-    if (user.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
         alert('غير مصرح لك بالوصول إلى هذه الصفحة');
         window.location.href = '/quality-staff.html';
         return;
@@ -21,7 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadDashboard() {
     try {
-        const data = await api.getDashboard();
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        const data = await window.api.getDashboard();
         if (data.success) {
             // Update stats
             const totalTickets = data.todayStats.reduce((sum, stat) => sum + (stat.total_tickets || 0), 0);
