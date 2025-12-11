@@ -199,11 +199,12 @@ async function initDatabase() {
                 reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-                FOREIGN KEY (quality_staff_id) REFERENCES users(id),
+                FOREIGN KEY (quality_staff_id) REFERENCES users(id) ON DELETE RESTRICT,
                 
                 UNIQUE KEY unique_ticket_review (ticket_id),
                 INDEX idx_quality_staff (quality_staff_id),
-                INDEX idx_needs_followup (needs_followup)
+                INDEX idx_needs_followup (needs_followup),
+                INDEX idx_reviewed_at (reviewed_at)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('✅ تم إنشاء جدول: quality_reviews');
