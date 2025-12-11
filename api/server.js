@@ -379,6 +379,7 @@ app.post('/api/tickets/:id/quality-review', authenticate, async (req, res) => {
             contact_status,
             service_status,
             team_rating,
+            behavior_rating,
             explained_sinmana,
             explained_platform,
             explained_mytv_plus,
@@ -387,7 +388,10 @@ app.post('/api/tickets/:id/quality-review', authenticate, async (req, res) => {
             subscription_amount,
             needs_followup,
             followup_reason,
-            review_notes
+            review_notes,
+            upsell_router,
+            upsell_onu,
+            upsell_ups
         } = req.body;
         
         // التحقق من وجود تقييم سابق
@@ -403,6 +407,7 @@ app.post('/api/tickets/:id/quality-review', authenticate, async (req, res) => {
                     contact_status = ?,
                     service_status = ?,
                     team_rating = ?,
+                    behavior_rating = ?,
                     explained_sinmana = ?,
                     explained_platform = ?,
                     explained_mytv_plus = ?,
@@ -411,14 +416,18 @@ app.post('/api/tickets/:id/quality-review', authenticate, async (req, res) => {
                     subscription_amount = ?,
                     needs_followup = ?,
                     followup_reason = ?,
-                    review_notes = ?
+                    review_notes = ?,
+                    upsell_router = ?,
+                    upsell_onu = ?,
+                    upsell_ups = ?
                 WHERE ticket_id = ?
             `, [
-                contact_status, service_status, team_rating,
+                contact_status, service_status, team_rating, behavior_rating || null,
                 explained_sinmana || 0, explained_platform || 0,
                 explained_mytv_plus || 0, explained_shahid_plus || 0,
                 whatsapp_group_interest || 0, subscription_amount || null,
                 needs_followup || 0, followup_reason || null, review_notes || null,
+                upsell_router || 0, upsell_onu || 0, upsell_ups || 0,
                 ticketId
             ]);
         } else {
@@ -426,17 +435,20 @@ app.post('/api/tickets/:id/quality-review', authenticate, async (req, res) => {
             await db.query(`
                 INSERT INTO quality_reviews (
                     ticket_id, quality_staff_id, contact_status, service_status,
-                    team_rating, explained_sinmana, explained_platform,
+                    team_rating, behavior_rating, explained_sinmana, explained_platform,
                     explained_mytv_plus, explained_shahid_plus,
                     whatsapp_group_interest, subscription_amount,
-                    needs_followup, followup_reason, review_notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    needs_followup, followup_reason, review_notes,
+                    upsell_router, upsell_onu, upsell_ups
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 ticketId, req.user.id, contact_status, service_status, team_rating,
+                behavior_rating || null,
                 explained_sinmana || 0, explained_platform || 0,
                 explained_mytv_plus || 0, explained_shahid_plus || 0,
                 whatsapp_group_interest || 0, subscription_amount || null,
-                needs_followup || 0, followup_reason || null, review_notes || null
+                needs_followup || 0, followup_reason || null, review_notes || null,
+                upsell_router || 0, upsell_onu || 0, upsell_ups || 0
             ]);
         }
         

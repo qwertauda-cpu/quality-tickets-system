@@ -1,11 +1,11 @@
 /**
- * منطق حساب النقاط - Scoring Logic
+ * منطق حساب النقاط - Scoring Logic (النظام الجديد)
  */
 
 const db = require('./db-manager');
 
 /**
- * حساب النقاط الإجمالية للتكت
+ * حساب النقاط الإجمالية للتكت (النظام الجديد)
  */
 async function calculateTicketScores(ticketId) {
     try {
@@ -25,44 +25,57 @@ async function calculateTicketScores(ticketId) {
         await db.query('DELETE FROM positive_scores WHERE ticket_id = ?', [ticketId]);
         await db.query('DELETE FROM negative_scores WHERE ticket_id = ?', [ticketId]);
         
-        let totalPositive = 0;
-        let totalNegative = 0;
+        let basePoints = 0;
+        let speedScore = 0;
+        let qualityScore = 0;
+        let behaviorScore = 0;
+        let upsellScore = 0;
+        let penalties = 0;
+        let adjustedTime = null;
+        let slaStatus = 'late';
         
-        // ==================== 1. نقاط نوع التكت ====================
+        // ==================== 1. نقاط نوع التكت (Base Points) ====================
         if (ticket.base_points > 0) {
+            basePoints = ticket.base_points;
             await db.query(`
                 INSERT INTO positive_scores (ticket_id, score_type, points, description)
                 VALUES (?, 'ticket_type', ?, ?)
-            `, [ticketId, ticket.base_points, `نقاط نوع التكت: ${ticket.base_points}`]);
-            totalPositive += ticket.base_points;
+            `, [ticketId, basePoints, `نقاط نوع التكت: ${basePoints}`]);
         }
         
-        // ==================== 2. نقاط السرعة حسب SLA ====================
+        // ==================== 2. حساب الوقت المعدل (Adjusted Time) ====================
         if (ticket.actual_time_minutes !== null) {
-            let speedPoints = 0;
-            let speedStatus = '';
+            // استخدام adjusted_time_minutes إذا كان موجوداً، وإلا actual_time_minutes
+            adjustedTime = ticket.adjusted_time_minutes || ticket.actual_time_minutes;
             
-            if (ticket.actual_time_minutes <= ticket.sla_min) {
-                speedPoints = 10;
-                speedStatus = 'ممتاز';
-            } else if (ticket.actual_time_minutes <= ticket.sla_max) {
-                speedPoints = 5;
-                speedStatus = 'مقبول';
+            // إذا كان load_factor > 1، نستخدم adjusted_time
+            if (ticket.load_factor && ticket.load_factor > 1) {
+                adjustedTime = Math.round(ticket.actual_time_minutes / ticket.load_factor);
+            }
+        }
+        
+        // ==================== 3. نقاط السرعة حسب SLA (Speed Score) ====================
+        if (adjustedTime !== null) {
+            if (adjustedTime <= ticket.sla_min) {
+                speedScore = 10;
+                slaStatus = 'excellent';
+            } else if (adjustedTime <= ticket.sla_max) {
+                speedScore = 5;
+                slaStatus = 'acceptable';
             } else {
-                speedPoints = 0;
-                speedStatus = 'متأخر';
+                speedScore = 0;
+                slaStatus = 'late';
             }
             
-            if (speedPoints > 0) {
+            if (speedScore > 0) {
                 await db.query(`
                     INSERT INTO positive_scores (ticket_id, score_type, points, description)
                     VALUES (?, 'speed', ?, ?)
-                `, [ticketId, speedPoints, `نقاط السرعة (${speedStatus}): ${speedPoints}`]);
-                totalPositive += speedPoints;
+                `, [ticketId, speedScore, `نقاط السرعة (${slaStatus === 'excellent' ? 'ممتاز' : 'مقبول'}): ${speedScore}`]);
             }
         }
         
-        // ==================== 3. نقاط الجودة (الصور) ====================
+        // ==================== 4. نقاط الجودة (Quality Score) - النظام الجديد ====================
         const requiredPhotos = [
             'pole_before', 'pole_after', 'pppoe', 'equipment_location',
             'subscriber_power', 'dhcp_status', 'speed_test', 'google_bank',
@@ -75,90 +88,137 @@ async function calculateTicketScores(ticketId) {
         
         const existingTypes = existingPhotos.map(p => p.photo_type);
         const missingPhotos = requiredPhotos.filter(type => !existingTypes.includes(type));
+        const requiredImages = requiredPhotos.length;
+        const imagesAttached = existingPhotos.length;
         
-        // نقص الصور (-2 لكل صورة)
-        if (missingPhotos.length > 0) {
-            const penaltyPoints = missingPhotos.length * 2;
-            await db.query(`
-                INSERT INTO negative_scores (ticket_id, penalty_type, points, description)
-                VALUES (?, 'missing_photo', ?, ?)
-            `, [ticketId, -penaltyPoints, `نقص ${missingPhotos.length} صورة: -${penaltyPoints} نقطة`]);
-            totalNegative += penaltyPoints;
+        // الصيغة الجديدة: qualityScore = 10 - (missingImages * 2)
+        qualityScore = 10 - (missingPhotos.length * 2);
+        if (qualityScore < 0) {
+            qualityScore = 0;
         }
         
-        // التكت كامل بالصور (+10)
-        if (missingPhotos.length === 0 && existingPhotos.length >= 8) {
+        if (qualityScore > 0) {
             await db.query(`
                 INSERT INTO positive_scores (ticket_id, score_type, points, description)
-                VALUES (?, 'quality', 10, 'التكت كامل بالصور: +10')
-            `, [ticketId]);
-            totalPositive += 10;
+                VALUES (?, 'quality', ?, ?)
+            `, [ticketId, qualityScore, `نقاط الجودة: ${qualityScore} (${imagesAttached}/${requiredImages} صورة)`]);
         }
         
-        // ==================== 4. نقاط السلوك والجودة ====================
+        // ==================== 5. نقاط السلوك (Behavior Score) - النظام الجديد ====================
         const qualityReview = await db.queryOne(`
             SELECT * FROM quality_reviews WHERE ticket_id = ?
         `, [ticketId]);
         
         if (qualityReview) {
-            // نقاط السلوك
-            if (qualityReview.team_rating >= 4) {
-                await db.query(`
-                    INSERT INTO positive_scores (ticket_id, score_type, points, description)
-                    VALUES (?, 'behavior', 10, 'سلوك ممتاز: +10')
-                `, [ticketId]);
-                totalPositive += 10;
-            } else if (qualityReview.team_rating >= 3) {
-                await db.query(`
-                    INSERT INTO positive_scores (ticket_id, score_type, points, description)
-                    VALUES (?, 'behavior', 5, 'سلوك جيد: +5')
-                `, [ticketId]);
-                totalPositive += 5;
+            // استخدام behavior_rating إذا كان موجوداً (النظام الجديد)
+            // وإلا استخدام team_rating (النظام القديم للتوافق)
+            let behaviorRating = qualityReview.behavior_rating;
+            
+            if (!behaviorRating) {
+                // تحويل team_rating إلى behavior_rating للتوافق
+                if (qualityReview.team_rating >= 4) {
+                    behaviorRating = 'excellent';
+                } else if (qualityReview.team_rating >= 3) {
+                    behaviorRating = 'good';
+                } else if (qualityReview.team_rating >= 2) {
+                    behaviorRating = 'normal';
+                } else {
+                    behaviorRating = 'bad';
+                }
             }
             
-            // نقاط البيع (Upsell) - سيتم إضافتها لاحقاً من واجهة موظف الجودة
+            // حساب نقاط السلوك حسب النظام الجديد
+            if (behaviorRating === 'excellent') {
+                behaviorScore = 10;
+            } else if (behaviorRating === 'good') {
+                behaviorScore = 5;
+            } else if (behaviorRating === 'normal') {
+                behaviorScore = 0;
+            } else if (behaviorRating === 'bad') {
+                behaviorScore = -10;
+            }
+            
+            if (behaviorScore > 0) {
+                await db.query(`
+                    INSERT INTO positive_scores (ticket_id, score_type, points, description)
+                    VALUES (?, 'behavior', ?, ?)
+                `, [ticketId, behaviorScore, `سلوك ${behaviorRating === 'excellent' ? 'ممتاز' : 'جيد'}: +${behaviorScore}`]);
+            } else if (behaviorScore < 0) {
+                await db.query(`
+                    INSERT INTO negative_scores (ticket_id, penalty_type, points, description)
+                    VALUES (?, 'bad_behavior', ?, ?)
+                `, [ticketId, behaviorScore, `سلوك سيء: ${behaviorScore}`]);
+                penalties += Math.abs(behaviorScore);
+            }
         }
         
-        // ==================== 5. معالجة التأجيل ====================
+        // ==================== 6. نقاط البيع (Upsell Score) - النظام الجديد ====================
+        if (qualityReview) {
+            if (qualityReview.upsell_router) {
+                upsellScore += 10;
+            }
+            if (qualityReview.upsell_onu) {
+                upsellScore += 10;
+            }
+            if (qualityReview.upsell_ups) {
+                upsellScore += 10;
+            }
+            
+            if (upsellScore > 0) {
+                await db.query(`
+                    INSERT INTO positive_scores (ticket_id, score_type, points, description)
+                    VALUES (?, 'upsell', ?, ?)
+                `, [ticketId, upsellScore, `نقاط البيع: +${upsellScore}`]);
+            }
+        }
+        
+        // ==================== 7. العقوبات (Penalties) ====================
+        // التأجيل
         if (ticket.status === 'postponed') {
             let penaltyPoints = 0;
             if (ticket.postponement_days === 1) {
                 penaltyPoints = 5;
-                await db.query(`
-                    INSERT INTO negative_scores (ticket_id, penalty_type, points, description)
-                    VALUES (?, 'postponed', ?, 'مؤجل يوم واحد: -5')
-                `, [ticketId, -penaltyPoints]);
             } else if (ticket.postponement_days > 1) {
                 penaltyPoints = 10;
-                await db.query(`
-                    INSERT INTO negative_scores (ticket_id, penalty_type, points, description)
-                    VALUES (?, 'postponed', ?, 'مؤجل أكثر من يوم: -10')
-                `, [ticketId, -penaltyPoints]);
             }
             
             if (!ticket.postponement_reason || ticket.postponement_reason.trim() === '') {
-                await db.query(`
-                    INSERT INTO negative_scores (ticket_id, penalty_type, points, description)
-                    VALUES (?, 'postponed', -15, 'تأجيل بدون سبب: -15')
-                `, [ticketId]);
                 penaltyPoints += 15;
             }
             
-            totalNegative += penaltyPoints;
+            if (penaltyPoints > 0) {
+                await db.query(`
+                    INSERT INTO negative_scores (ticket_id, penalty_type, points, description)
+                    VALUES (?, 'postponed', ?, ?)
+                `, [ticketId, -penaltyPoints, `تأجيل: -${penaltyPoints}`]);
+                penalties += penaltyPoints;
+            }
         }
         
-        // ==================== 6. معالجة الإغلاق/التحويل بدون إكمال ====================
+        // الإغلاق بدون إكمال
         if (ticket.status === 'closed' && ticket.actual_time_minutes === null) {
             await db.query(`
                 INSERT INTO negative_scores (ticket_id, penalty_type, points, description)
                 VALUES (?, 'closed_incomplete', -15, 'إغلاق بدون إكمال: -15')
             `, [ticketId]);
-            totalNegative += 15;
+            penalties += 15;
         }
         
+        // ==================== 8. حساب النقاط الإجمالية ====================
+        const totalPositive = basePoints + speedScore + qualityScore + (behaviorScore > 0 ? behaviorScore : 0) + upsellScore;
+        const totalNegative = penalties + (behaviorScore < 0 ? Math.abs(behaviorScore) : 0);
         const netScore = totalPositive - totalNegative;
         
         return {
+            totalScore: netScore,
+            basePoints,
+            speedScore,
+            qualityScore,
+            behaviorScore,
+            upsellScore,
+            penalties,
+            adjustedTime,
+            slaStatus,
             totalPositive,
             totalNegative,
             netScore
@@ -320,10 +380,6 @@ async function updateDailySummary(teamId, date) {
         
         // حساب البونص اليومي
         const dailyBonus = await calculateDailyBonus(teamId, date);
-        
-        // البونص اليومي يُضاف كـ positive score منفصل
-        // لكن يجب التأكد من عدم تكراره في positive_scores
-        // لذلك نضيفه مباشرة في total_positive_points
         const totalPositive = stats.total_positive_points + dailyBonus;
         const netPoints = totalPositive - stats.total_negative_points;
         
@@ -365,4 +421,3 @@ module.exports = {
     calculateMonthlyBonus,
     updateDailySummary
 };
-

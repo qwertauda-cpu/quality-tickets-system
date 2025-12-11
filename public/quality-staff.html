@@ -173,8 +173,34 @@
                                     </div>
                                     
                                     <div class="form-group">
+                                        <label for="behavior_rating">تقييم السلوك *</label>
+                                        <select id="behavior_rating" required>
+                                            <option value="excellent">ممتاز (+10)</option>
+                                            <option value="good">جيد (+5)</option>
+                                            <option value="normal">طبيعي (0)</option>
+                                            <option value="bad">سيء (-10)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group">
                                         <label for="subscription_amount">مبلغ الاشتراك</label>
                                         <input type="number" id="subscription_amount" step="0.01">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>نقاط البيع (Upsell):</label>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="upsell_router">
+                                        <label for="upsell_router">بيع راوتر (+10)</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="upsell_onu">
+                                        <label for="upsell_onu">بيع ONU (+10)</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="upsell_ups">
+                                        <label for="upsell_ups">بيع UPS (+10)</label>
                                     </div>
                                 </div>
                                 

@@ -195,6 +195,14 @@ async function initDatabase() {
                 needs_followup TINYINT(1) DEFAULT 0,
                 followup_reason TEXT NULL,
                 
+                -- نقاط البيع (Upsell)
+                upsell_router TINYINT(1) DEFAULT 0 COMMENT 'بيع راوتر',
+                upsell_onu TINYINT(1) DEFAULT 0 COMMENT 'بيع ONU',
+                upsell_ups TINYINT(1) DEFAULT 0 COMMENT 'بيع UPS',
+                
+                -- تقييم السلوك (للنظام الجديد)
+                behavior_rating ENUM('excellent', 'good', 'normal', 'bad') NULL COMMENT 'تقييم السلوك',
+                
                 review_notes TEXT NULL,
                 reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 

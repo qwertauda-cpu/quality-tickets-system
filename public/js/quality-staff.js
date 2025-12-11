@@ -257,6 +257,7 @@ async function handleQualityReviewSubmit(e) {
         contact_status: document.getElementById('contact_status').value,
         service_status: document.getElementById('service_status').value,
         team_rating: parseInt(document.getElementById('team_rating').value),
+        behavior_rating: document.getElementById('behavior_rating').value,
         explained_sinmana: document.getElementById('explained_sinmana').checked ? 1 : 0,
         explained_platform: document.getElementById('explained_platform').checked ? 1 : 0,
         explained_mytv_plus: document.getElementById('explained_mytv_plus').checked ? 1 : 0,
@@ -265,7 +266,10 @@ async function handleQualityReviewSubmit(e) {
         subscription_amount: document.getElementById('subscription_amount').value || null,
         needs_followup: document.getElementById('needs_followup').checked ? 1 : 0,
         followup_reason: document.getElementById('followup_reason').value || null,
-        review_notes: document.getElementById('review_notes').value || null
+        review_notes: document.getElementById('review_notes').value || null,
+        upsell_router: document.getElementById('upsell_router').checked ? 1 : 0,
+        upsell_onu: document.getElementById('upsell_onu').checked ? 1 : 0,
+        upsell_ups: document.getElementById('upsell_ups').checked ? 1 : 0
     };
     
     try {
@@ -284,6 +288,9 @@ function loadQualityReview(review) {
     document.getElementById('contact_status').value = review.contact_status;
     document.getElementById('service_status').value = review.service_status;
     document.getElementById('team_rating').value = review.team_rating;
+    if (review.behavior_rating) {
+        document.getElementById('behavior_rating').value = review.behavior_rating;
+    }
     document.getElementById('explained_sinmana').checked = review.explained_sinmana === 1;
     document.getElementById('explained_platform').checked = review.explained_platform === 1;
     document.getElementById('explained_mytv_plus').checked = review.explained_mytv_plus === 1;
@@ -293,6 +300,17 @@ function loadQualityReview(review) {
     document.getElementById('needs_followup').checked = review.needs_followup === 1;
     document.getElementById('followup_reason').value = review.followup_reason || '';
     document.getElementById('review_notes').value = review.review_notes || '';
+    
+    // Upsell fields
+    if (review.upsell_router !== undefined) {
+        document.getElementById('upsell_router').checked = review.upsell_router === 1;
+    }
+    if (review.upsell_onu !== undefined) {
+        document.getElementById('upsell_onu').checked = review.upsell_onu === 1;
+    }
+    if (review.upsell_ups !== undefined) {
+        document.getElementById('upsell_ups').checked = review.upsell_ups === 1;
+    }
     
     if (review.needs_followup === 1) {
         document.getElementById('followupReasonGroup').style.display = 'block';
