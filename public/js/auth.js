@@ -40,9 +40,9 @@ if (loginForm) {
             } else if (role === 'quality_staff') {
                 window.location.href = '/quality-staff.html';
             } else if (role === 'team_leader' || role === 'technician') {
-                window.location.href = '/team-dashboard.html';
+                window.location.href = '/technician-dashboard.html';
             } else {
-                window.location.href = '/dashboard.html';
+                window.location.href = '/index.html';
             }
         } else {
             errorDiv.textContent = data.error || 'خطأ في تسجيل الدخول';
