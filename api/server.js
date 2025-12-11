@@ -218,16 +218,31 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         let cleanedTimeFirstContact = time_first_contact;
         let cleanedTimeCompleted = time_completed;
         
-        // إصلاح تنسيق التاريخ إذا كان يحتوي على T مكررة
-        if (cleanedTimeReceived) {
-            cleanedTimeReceived = cleanedTimeReceived.replace(/T(\d{2}:\d{2})T/g, 'T$1');
+        // إصلاح تنسيق التاريخ
+        function cleanDateTime(dt) {
+            if (!dt) return null;
+            
+            // إزالة أي T مكررة
+            dt = dt.replace(/T+/g, 'T');
+            
+            // إصلاح التنسيق: يجب أن يكون YYYY-MM-DDTHH:MM
+            // إذا كان التنسيق خاطئاً، نحاول إصلاحه
+            const match = dt.match(/^(\d{4}-\d{2}-\d{2})T?(\d{2}):?(\d{2})/);
+            if (match) {
+                return `${match[1]}T${match[2]}:${match[3]}`;
+            }
+            
+            // إذا كان التنسيق صحيحاً، نعيده كما هو
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dt)) {
+                return dt;
+            }
+            
+            return null;
         }
-        if (cleanedTimeFirstContact) {
-            cleanedTimeFirstContact = cleanedTimeFirstContact.replace(/T(\d{2}:\d{2})T/g, 'T$1');
-        }
-        if (cleanedTimeCompleted) {
-            cleanedTimeCompleted = cleanedTimeCompleted.replace(/T(\d{2}:\d{2})T/g, 'T$1');
-        }
+        
+        cleanedTimeReceived = cleanDateTime(cleanedTimeReceived);
+        cleanedTimeFirstContact = cleanDateTime(cleanedTimeFirstContact);
+        cleanedTimeCompleted = cleanDateTime(cleanedTimeCompleted);
         
         // حساب الوقت الفعلي
         let actual_time_minutes = null;

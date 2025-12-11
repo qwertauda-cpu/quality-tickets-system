@@ -243,8 +243,21 @@ function combineDateTime(dateValue, timeValue) {
     // Remove any existing time part from dateValue (format: YYYY-MM-DD or YYYY-MM-DDTHH:MM)
     const dateOnly = dateValue.split('T')[0];
     
+    // Ensure timeValue is in correct format (HH:MM)
+    let timeOnly = timeValue;
+    if (timeValue.includes('T')) {
+        // If timeValue contains T, extract the time part
+        timeOnly = timeValue.split('T')[1] || timeValue.split('T')[0];
+    }
+    
+    // Validate time format (should be HH:MM)
+    if (!/^\d{2}:\d{2}$/.test(timeOnly)) {
+        console.error('Invalid time format:', timeOnly);
+        return null;
+    }
+    
     // Combine date and time
-    return `${dateOnly}T${timeValue}`;
+    return `${dateOnly}T${timeOnly}`;
 }
 
 // Make functions available globally
