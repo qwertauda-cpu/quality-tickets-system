@@ -902,8 +902,8 @@ app.get('/api/team-rankings', authenticate, async (req, res) => {
                 t.shift,
                 COALESCE(SUM(ds.net_points), 0) as total_points,
                 COALESCE(SUM(ds.total_tickets), 0) as total_tickets,
-                COALESCE(SUM(ds.positive_points), 0) as positive_points,
-                COALESCE(SUM(ds.negative_points), 0) as negative_points
+                COALESCE(SUM(ds.total_positive_points), 0) as positive_points,
+                COALESCE(SUM(ds.total_negative_points), 0) as negative_points
             FROM teams t
             LEFT JOIN daily_summaries ds ON t.id = ds.team_id
             WHERE t.is_active = 1 ${dateCondition}
@@ -953,8 +953,8 @@ app.get('/api/my-team', authenticate, async (req, res) => {
             SELECT 
                 COALESCE(SUM(net_points), 0) as today_points,
                 COALESCE(SUM(total_tickets), 0) as today_tickets,
-                COALESCE(SUM(positive_points), 0) as today_positive,
-                COALESCE(SUM(negative_points), 0) as today_negative
+                COALESCE(SUM(total_positive_points), 0) as today_positive,
+                COALESCE(SUM(total_negative_points), 0) as today_negative
             FROM daily_summaries
             WHERE team_id = ? AND date = ?
         `, [teamId, today]);
