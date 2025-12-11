@@ -175,7 +175,7 @@ async function loadTickets() {
                         <td>${ticket.ticket_type_name || ''}</td>
                         <td>${ticket.team_name || ''}</td>
                         <td><span class="badge ${statusBadge}">${statusText}</span></td>
-                        <td>${ticket.actual_time_minutes ? ticket.actual_time_minutes + ' دقيقة' : '-'}</td>
+                        <td>${formatTimeDuration(ticket.actual_time_minutes)}</td>
                         <td>${netScore}</td>
                         <td>${new Date(ticket.created_at).toLocaleDateString('ar-SA')}</td>
                     `;
