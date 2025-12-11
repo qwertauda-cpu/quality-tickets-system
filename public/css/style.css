@@ -917,24 +917,32 @@ table tbody tr:last-child td {
     .table-container {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        margin: 0 -15px;
-        padding: 0 15px;
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
     
     table {
-        min-width: 600px;
         font-size: 13px;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        table-layout: fixed;
     }
     
     table th,
     table td {
         padding: 10px 8px;
         font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-wrap: break-word;
     }
     
     table th {
         font-size: 11px;
-        white-space: nowrap;
     }
     
     /* Cards */
