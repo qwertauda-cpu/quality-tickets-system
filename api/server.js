@@ -718,11 +718,18 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             SELECT t.*, 
                    tt.name_ar as ticket_type_name,
                    tm.name as team_name,
+                   u.full_name as quality_staff_name,
                    (SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id) as positive_points,
-                   (SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id) as negative_points
+                   (SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id) as negative_points,
+                   qr.needs_followup,
+                   qr.followup_reason,
+                   qr.contact_status,
+                   qr.service_status
             FROM tickets t
             JOIN ticket_types tt ON t.ticket_type_id = tt.id
             JOIN teams tm ON t.team_id = tm.id
+            JOIN users u ON t.quality_staff_id = u.id
+            LEFT JOIN quality_reviews qr ON t.id = qr.ticket_id
             WHERE DATE(t.created_at) = ?
             ORDER BY tm.name, t.created_at
         `, [reportDate]);
@@ -743,6 +750,17 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             ORDER BY net_points DESC
         `, [reportDate]);
         
+        // جلب حالات المتابعة
+        const followupTickets = tickets.filter(t => t.needs_followup === 1);
+        
+        // حساب إحصائيات اليوم
+        const totalTickets = tickets.length;
+        const completedTickets = tickets.filter(t => t.status === 'completed').length;
+        const postponedTickets = tickets.filter(t => t.status === 'postponed').length;
+        const totalPositivePoints = tickets.reduce((sum, t) => sum + (t.positive_points || 0), 0);
+        const totalNegativePoints = tickets.reduce((sum, t) => sum + (t.negative_points || 0), 0);
+        const totalNetPoints = totalPositivePoints - totalNegativePoints;
+        
         // التأكد من وجود مجلد uploads
         const uploadsDir = path.join(__dirname, '../uploads');
         if (!fs.existsSync(uploadsDir)) {
@@ -760,41 +778,157 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             
             doc.pipe(stream);
             
-            // العنوان
-            doc.fontSize(20).text('تقرير يومي - إدارة التكتات والجودة', { align: 'right' });
+            // العنوان الرئيسي
+            doc.fontSize(24).font('Helvetica-Bold').text('تقرير يومي - إدارة التكتات والجودة', { align: 'center' });
             doc.moveDown();
-            doc.fontSize(14).text(`التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'right' });
+            doc.fontSize(16).font('Helvetica').text(`التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'center' });
             doc.moveDown(2);
             
-            // إحصائيات الفرق
-            doc.fontSize(16).text('إحصائيات الفرق', { align: 'right' });
+            // خط فاصل
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+            doc.moveDown();
+            
+            // ========== ملخص اليوم ==========
+            doc.fontSize(18).font('Helvetica-Bold').text('ملخص اليوم', { align: 'right' });
+            doc.moveDown();
+            doc.fontSize(12).font('Helvetica');
+            doc.text(`إجمالي التكتات: ${totalTickets}`, { align: 'right' });
+            doc.text(`التكتات المكتملة: ${completedTickets}`, { align: 'right' });
+            doc.text(`التكتات المؤجلة: ${postponedTickets}`, { align: 'right' });
+            doc.text(`إجمالي النقاط الإيجابية: ${totalPositivePoints}`, { align: 'right' });
+            doc.text(`إجمالي النقاط السالبة: ${totalNegativePoints}`, { align: 'right' });
+            doc.font('Helvetica-Bold').text(`النقاط الصافية الإجمالية: ${totalNetPoints}`, { align: 'right' });
+            doc.font('Helvetica');
+            doc.moveDown(2);
+            
+            // ========== ترتيب الفرق ==========
+            doc.fontSize(18).font('Helvetica-Bold').text('ترتيب الفرق', { align: 'right' });
             doc.moveDown();
             
             teamStats.forEach((team, index) => {
                 const netScore = (team.total_positive || 0) - (team.total_negative || 0);
-                doc.fontSize(12)
-                   .text(`${index + 1}. ${team.name}`, { align: 'right' })
-                   .text(`   التكتات: ${team.total_tickets || 0}`, { align: 'right' })
+                const rank = index + 1;
+                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                
+                doc.fontSize(14).font('Helvetica-Bold')
+                   .text(`${medal} المرتبة ${rank}: ${team.name}`, { align: 'right' });
+                doc.fontSize(11).font('Helvetica')
+                   .text(`   عدد التكتات: ${team.total_tickets || 0}`, { align: 'right' })
                    .text(`   النقاط الإيجابية: ${team.total_positive || 0}`, { align: 'right' })
                    .text(`   النقاط السالبة: ${team.total_negative || 0}`, { align: 'right' })
+                   .font('Helvetica-Bold')
                    .text(`   النقاط الصافية: ${netScore}`, { align: 'right' });
+                doc.font('Helvetica');
                 doc.moveDown();
             });
             
             doc.moveDown();
-            doc.fontSize(16).text('تفاصيل التكتات', { align: 'right' });
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
             doc.moveDown();
             
-            // تفاصيل التكتات
-            tickets.forEach((ticket, index) => {
-                const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
-                doc.fontSize(10)
-                   .text(`${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right' })
-                   .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' })
-                   .text(`   الفريق: ${ticket.team_name}`, { align: 'right' })
-                   .text(`   النقاط: ${netScore}`, { align: 'right' });
-                doc.moveDown(0.5);
+            // ========== تفاصيل التكتات ==========
+            doc.fontSize(18).font('Helvetica-Bold').text('تفاصيل التكتات', { align: 'right' });
+            doc.moveDown();
+            
+            // تجميع التكتات حسب الفريق
+            const ticketsByTeam = {};
+            tickets.forEach(ticket => {
+                if (!ticketsByTeam[ticket.team_name]) {
+                    ticketsByTeam[ticket.team_name] = [];
+                }
+                ticketsByTeam[ticket.team_name].push(ticket);
             });
+            
+            Object.keys(ticketsByTeam).forEach(teamName => {
+                doc.fontSize(14).font('Helvetica-Bold').text(`فريق: ${teamName}`, { align: 'right' });
+                doc.moveDown(0.5);
+                
+                ticketsByTeam[teamName].forEach((ticket, index) => {
+                    const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
+                    const statusText = ticket.status === 'completed' ? '✅ مكتمل' : 
+                                      ticket.status === 'postponed' ? '⏸️ مؤجل' : 
+                                      ticket.status === 'in_progress' ? '🔄 قيد التنفيذ' : '⏳ معلق';
+                    const followupText = ticket.needs_followup === 1 ? ' ⚠️ يحتاج متابعة' : '';
+                    
+                    doc.fontSize(10).font('Helvetica')
+                       .text(`${index + 1}. التكت رقم: ${ticket.ticket_number} ${statusText}${followupText}`, { align: 'right' })
+                       .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' })
+                       .text(`   النقاط الإيجابية: ${ticket.positive_points || 0}`, { align: 'right' })
+                       .text(`   النقاط السالبة: ${ticket.negative_points || 0}`, { align: 'right' })
+                       .font('Helvetica-Bold')
+                       .text(`   النقاط الصافية: ${netScore}`, { align: 'right' });
+                    
+                    if (ticket.actual_time_minutes) {
+                        const hours = Math.floor(ticket.actual_time_minutes / 60);
+                        const minutes = ticket.actual_time_minutes % 60;
+                        doc.font('Helvetica').text(`   الوقت الفعلي: ${hours} ساعة و ${minutes} دقيقة`, { align: 'right' });
+                    }
+                    
+                    if (ticket.needs_followup === 1 && ticket.followup_reason) {
+                        doc.font('Helvetica').text(`   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
+                    }
+                    
+                    doc.font('Helvetica');
+                    doc.moveDown(0.3);
+                });
+                
+                doc.moveDown();
+            });
+            
+            doc.moveDown();
+            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+            doc.moveDown();
+            
+            // ========== حالات المتابعة ==========
+            if (followupTickets.length > 0) {
+                doc.fontSize(18).font('Helvetica-Bold').text('حالات المتابعة', { align: 'right' });
+                doc.moveDown();
+                
+                followupTickets.forEach((ticket, index) => {
+                    doc.fontSize(11).font('Helvetica-Bold')
+                       .text(`${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right' });
+                    doc.fontSize(10).font('Helvetica')
+                       .text(`   الفريق: ${ticket.team_name}`, { align: 'right' })
+                       .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' });
+                    
+                    if (ticket.followup_reason) {
+                        doc.text(`   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
+                    }
+                    
+                    if (ticket.contact_status) {
+                        const contactStatusText = ticket.contact_status === 'answered' ? 'تم الرد' : 
+                                                  ticket.contact_status === 'no_answer' ? 'لم يرد' : 'مغلق';
+                        doc.text(`   حالة الاتصال: ${contactStatusText}`, { align: 'right' });
+                    }
+                    
+                    if (ticket.service_status) {
+                        const serviceStatusText = ticket.service_status === 'excellent' ? 'ممتاز' : 
+                                                  ticket.service_status === 'good' ? 'جيد' : 'رديء';
+                        doc.text(`   حالة الخدمة: ${serviceStatusText}`, { align: 'right' });
+                    }
+                    
+                    doc.moveDown();
+                });
+                
+                doc.moveDown();
+                doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+                doc.moveDown();
+            }
+            
+            // ========== توقيع موظف الجودة ==========
+            doc.moveDown(3);
+            doc.fontSize(12).font('Helvetica').text('توقيع موظف الجودة:', { align: 'right' });
+            doc.moveDown(2);
+            doc.moveTo(400, doc.y).lineTo(545, doc.y).stroke();
+            doc.moveDown(0.5);
+            doc.fontSize(10).text('الاسم والتوقيع', { align: 'right', continued: false });
+            
+            // ========== تذييل الصفحة ==========
+            const pageHeight = doc.page.height;
+            const pageWidth = doc.page.width;
+            doc.fontSize(8).font('Helvetica')
+               .text(`تم إنشاء التقرير في: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, 50, pageHeight - 50, { align: 'left' })
+               .text(`الصفحة ${doc.bufferedPageRange().start + 1}`, pageWidth - 50, pageHeight - 50, { align: 'right' });
             
             // معالجة الأحداث
             stream.on('finish', () => {
