@@ -89,20 +89,148 @@ function showPage(pageName) {
     }
 }
 
-function loadTeams() {
-    // TODO: Implement teams page
-    console.log('Loading teams...');
+async function loadTeams() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        const data = await window.api.getTeams();
+        if (data && data.success) {
+            const tbody = document.getElementById('teamsTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.teams && data.teams.length > 0) {
+                data.teams.forEach(team => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${team.name}</td>
+                        <td>${team.shift === 'morning' ? 'صباحي' : 'مسائي'}</td>
+                        <td>${team.member_count || 0}</td>
+                        <td>${team.max_connection_limit || 7}</td>
+                        <td>${team.max_maintenance_limit || 15}</td>
+                        <td><span class="badge ${team.is_active ? 'badge-success' : 'badge-danger'}">${team.is_active ? 'نشط' : 'غير نشط'}</span></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading">لا توجد فرق</td></tr>';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading teams:', error);
+    }
 }
 
-function loadTickets() {
-    // TODO: Implement tickets page
-    console.log('Loading tickets...');
+async function loadTickets() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const date = document.getElementById('ticketsDateFilter')?.value || '';
+        const status = document.getElementById('ticketsStatusFilter')?.value || '';
+        
+        const params = {};
+        if (date) params.date = date;
+        if (status) params.status = status;
+        
+        const data = await window.api.getTickets(params);
+        if (data && data.success) {
+            const tbody = document.getElementById('ticketsTableBody');
+            tbody.innerHTML = '';
+            
+            if (data.tickets && data.tickets.length > 0) {
+                data.tickets.forEach(ticket => {
+                    const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
+                    const statusBadge = {
+                        'pending': 'badge-warning',
+                        'in_progress': 'badge-info',
+                        'completed': 'badge-success',
+                        'postponed': 'badge-danger',
+                        'closed': 'badge-danger'
+                    }[ticket.status] || 'badge-info';
+                    
+                    const statusText = {
+                        'pending': 'معلقة',
+                        'in_progress': 'قيد التنفيذ',
+                        'completed': 'مكتملة',
+                        'postponed': 'مؤجلة',
+                        'closed': 'مغلقة'
+                    }[ticket.status] || ticket.status;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${ticket.ticket_number}</td>
+                        <td>${ticket.ticket_type_name || ''}</td>
+                        <td>${ticket.team_name || ''}</td>
+                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
+                        <td>${ticket.actual_time_minutes ? ticket.actual_time_minutes + ' دقيقة' : '-'}</td>
+                        <td>${netScore}</td>
+                        <td>${new Date(ticket.created_at).toLocaleDateString('ar-SA')}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات</td></tr>';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading tickets:', error);
+    }
 }
 
 function loadReports() {
-    // TODO: Implement reports page
-    console.log('Loading reports...');
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    const dateInput = document.getElementById('reportDate');
+    if (dateInput && !dateInput.value) {
+        dateInput.value = today;
+    }
 }
+
+async function generateDailyReport() {
+    try {
+        if (!window.api) {
+            alert('API not available');
+            return;
+        }
+        
+        const date = document.getElementById('reportDate')?.value || new Date().toISOString().split('T')[0];
+        const resultDiv = document.getElementById('reportResult');
+        
+        resultDiv.innerHTML = '<p>جاري توليد التقرير...</p>';
+        
+        const data = await window.api.generateDailyPDF(date);
+        if (data && data.success) {
+            resultDiv.innerHTML = `
+                <div class="message-box">
+                    <p>✅ تم توليد التقرير بنجاح</p>
+                    <p><a href="${data.url}" target="_blank" class="btn btn-primary">تحميل التقرير</a></p>
+                </div>
+            `;
+        } else {
+            resultDiv.innerHTML = '<p class="error-message">❌ فشل في توليد التقرير</p>';
+        }
+    } catch (error) {
+        console.error('Error generating report:', error);
+        document.getElementById('reportResult').innerHTML = '<p class="error-message">❌ حدث خطأ في توليد التقرير</p>';
+    }
+}
+
+// Setup filters
+document.addEventListener('DOMContentLoaded', () => {
+    const ticketsDateFilter = document.getElementById('ticketsDateFilter');
+    const ticketsStatusFilter = document.getElementById('ticketsStatusFilter');
+    
+    if (ticketsDateFilter) {
+        ticketsDateFilter.addEventListener('change', loadTickets);
+    }
+    if (ticketsStatusFilter) {
+        ticketsStatusFilter.addEventListener('change', loadTickets);
+    }
+});
 
 document.addEventListener('DOMContentLoaded', initAdminDashboard);
 

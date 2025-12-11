@@ -32,40 +32,6 @@
             </div>
 
             <div id="dashboard-page" class="page-content">
-            </div>
-
-            <div id="teams-page" class="page-content" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>الفرق</h2>
-                    </div>
-                    <div class="card-body">
-                        <p>صفحة الفرق - قريباً</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="tickets-page" class="page-content" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>التكتات</h2>
-                    </div>
-                    <div class="card-body">
-                        <p>صفحة التكتات - قريباً</p>
-                    </div>
-                </div>
-            </div>
-
-            <div id="reports-page" class="page-content" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>التقارير</h2>
-                    </div>
-                    <div class="card-body">
-                        <p>صفحة التقارير - قريباً</p>
-                    </div>
-                </div>
-            </div>
                 <div class="stats-grid" id="statsGrid">
                     <div class="stat-card">
                         <h3>إجمالي التكتات اليوم</h3>
@@ -104,6 +70,90 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="teams-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>الفرق</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="teamsTable">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الفريق</th>
+                                        <th>الوردية</th>
+                                        <th>عدد الأعضاء</th>
+                                        <th>حد الربط</th>
+                                        <th>حد الصيانة</th>
+                                        <th>الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="teamsTableBody">
+                                    <tr>
+                                        <td colspan="6" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tickets-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>التكتات</h2>
+                        <div>
+                            <input type="date" id="ticketsDateFilter" style="margin-left: 10px;">
+                            <select id="ticketsStatusFilter" style="margin-left: 10px;">
+                                <option value="">جميع الحالات</option>
+                                <option value="pending">معلقة</option>
+                                <option value="in_progress">قيد التنفيذ</option>
+                                <option value="completed">مكتملة</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="ticketsTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم التكت</th>
+                                        <th>النوع</th>
+                                        <th>الفريق</th>
+                                        <th>الحالة</th>
+                                        <th>الوقت الفعلي</th>
+                                        <th>النقاط</th>
+                                        <th>التاريخ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="reports-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>التقارير</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label for="reportDate">اختر التاريخ:</label>
+                            <input type="date" id="reportDate" value="">
+                            <button class="btn btn-primary" onclick="generateDailyReport()" style="margin-right: 10px;">توليد تقرير PDF</button>
+                        </div>
+                        <div id="reportResult" style="margin-top: 20px;"></div>
                     </div>
                 </div>
             </div>
