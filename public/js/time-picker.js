@@ -239,7 +239,12 @@ function getTimeValue(containerId) {
 // Helper function to combine date and time
 function combineDateTime(dateValue, timeValue) {
     if (!dateValue || !timeValue) return null;
-    return `${dateValue}T${timeValue}`;
+    
+    // Remove any existing time part from dateValue (format: YYYY-MM-DD or YYYY-MM-DDTHH:MM)
+    const dateOnly = dateValue.split('T')[0];
+    
+    // Combine date and time
+    return `${dateOnly}T${timeValue}`;
 }
 
 // Make functions available globally

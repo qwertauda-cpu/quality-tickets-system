@@ -213,43 +213,67 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'رقم التكت موجود مسبقاً' });
         }
         
+        // تنظيف وتنسيق التواريخ
+        let cleanedTimeReceived = time_received;
+        let cleanedTimeFirstContact = time_first_contact;
+        let cleanedTimeCompleted = time_completed;
+        
+        // إصلاح تنسيق التاريخ إذا كان يحتوي على T مكررة
+        if (cleanedTimeReceived) {
+            cleanedTimeReceived = cleanedTimeReceived.replace(/T(\d{2}:\d{2})T/g, 'T$1');
+        }
+        if (cleanedTimeFirstContact) {
+            cleanedTimeFirstContact = cleanedTimeFirstContact.replace(/T(\d{2}:\d{2})T/g, 'T$1');
+        }
+        if (cleanedTimeCompleted) {
+            cleanedTimeCompleted = cleanedTimeCompleted.replace(/T(\d{2}:\d{2})T/g, 'T$1');
+        }
+        
         // حساب الوقت الفعلي
         let actual_time_minutes = null;
-        if (time_received && time_completed) {
-            const t0 = moment(time_received);
-            const t3 = moment(time_completed);
-            actual_time_minutes = t3.diff(t0, 'minutes');
+        if (cleanedTimeReceived && cleanedTimeCompleted) {
+            const t0 = moment(cleanedTimeReceived);
+            const t3 = moment(cleanedTimeCompleted);
+            if (t0.isValid() && t3.isValid()) {
+                actual_time_minutes = t3.diff(t0, 'minutes');
+            }
         }
         
         // التحقق من التأجيل: إذا كان T1 أو T3 بعد يوم كامل من T0
         let ticketStatus = 'pending';
-        if (time_received) {
-            const t0 = moment(time_received);
-            const t0Date = t0.format('YYYY-MM-DD');
-            
-            // التحقق من T1
-            if (time_first_contact) {
-                const t1 = moment(time_first_contact);
-                const t1Date = t1.format('YYYY-MM-DD');
-                const daysDiff = moment(t1Date).diff(moment(t0Date), 'days');
-                if (daysDiff >= 1) {
-                    ticketStatus = 'postponed';
+        if (cleanedTimeReceived) {
+            const t0 = moment(cleanedTimeReceived);
+            if (t0.isValid()) {
+                const t0Date = t0.format('YYYY-MM-DD');
+                
+                // التحقق من T1
+                if (cleanedTimeFirstContact) {
+                    const t1 = moment(cleanedTimeFirstContact);
+                    if (t1.isValid()) {
+                        const t1Date = t1.format('YYYY-MM-DD');
+                        const daysDiff = moment(t1Date).diff(moment(t0Date), 'days');
+                        if (daysDiff >= 1) {
+                            ticketStatus = 'postponed';
+                        }
+                    }
                 }
-            }
-            
-            // التحقق من T3
-            if (time_completed) {
-                const t3 = moment(time_completed);
-                const t3Date = t3.format('YYYY-MM-DD');
-                const daysDiff = moment(t3Date).diff(moment(t0Date), 'days');
-                if (daysDiff >= 1) {
-                    ticketStatus = 'postponed';
+                
+                // التحقق من T3
+                if (cleanedTimeCompleted) {
+                    const t3 = moment(cleanedTimeCompleted);
+                    if (t3.isValid()) {
+                        const t3Date = t3.format('YYYY-MM-DD');
+                        const daysDiff = moment(t3Date).diff(moment(t0Date), 'days');
+                        if (daysDiff >= 1) {
+                            ticketStatus = 'postponed';
+                        }
+                    }
                 }
             }
         }
         
         // حساب Load Factor
-        const ticketDate = time_received ? moment(time_received).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+        const ticketDate = cleanedTimeReceived ? moment(cleanedTimeReceived).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
         const loadFactor = await scoring.calculateLoadFactor(team_id, ticketDate);
         const adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
         
@@ -264,7 +288,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             ticket_number, ticket_type_id, team_id, req.user.id,
-            time_received || null, time_first_contact || null, time_completed || null,
+            cleanedTimeReceived || null, cleanedTimeFirstContact || null, cleanedTimeCompleted || null,
             actual_time_minutes, adjusted_time_minutes, loadFactor,
             subscriber_name || null, subscriber_phone || null, subscriber_address || null, notes || null,
             ticketStatus
