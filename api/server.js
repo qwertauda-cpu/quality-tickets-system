@@ -325,6 +325,55 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         
         const ticketId = result.insertId;
         
+        // توزيع التكت إذا كان من كول سنتر
+        if (req.user.role === 'call_center' && req.body.assignment_type) {
+            const { assignment_type, assigned_to } = req.body;
+            
+            let assignedToAgent = null;
+            let assignedToTeam = null;
+            
+            if (assignment_type === 'agent' && assigned_to) {
+                assignedToAgent = assigned_to;
+            } else if (assignment_type === 'team') {
+                assignedToTeam = team_id;
+            }
+            
+            // إنشاء assignment
+            await db.query(`
+                INSERT INTO ticket_assignments (
+                    ticket_id, assigned_by, assigned_to, assigned_to_team,
+                    assignment_type, status
+                ) VALUES (?, ?, ?, ?, ?, 'pending')
+            `, [ticketId, req.user.id, assignedToAgent, assignedToTeam, assignment_type]);
+            
+            // إرسال إشعارات للمندوبين
+            if (assignment_type === 'general') {
+                // إشعار لجميع المندوبين
+                await db.query(`
+                    INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+                    SELECT NULL, 'ticket_assigned', 'تذكرة جديدة', 
+                           CONCAT('تم إنشاء تذكرة جديدة رقم: ', ?), ?
+                    WHERE EXISTS (SELECT 1 FROM users WHERE role = 'agent' AND is_active = 1)
+                `, [ticket_number, ticketId]);
+            } else if (assignment_type === 'agent' && assignedToAgent) {
+                // إشعار للمندوب المحدد
+                await db.query(`
+                    INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+                    VALUES (?, 'ticket_assigned', 'تذكرة جديدة', 
+                           CONCAT('تم تخصيص تذكرة جديدة لك رقم: ', ?), ?)
+                `, [assignedToAgent, ticket_number, ticketId]);
+            } else if (assignment_type === 'team' && assignedToTeam) {
+                // إشعار لجميع مندوبي الفريق
+                await db.query(`
+                    INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+                    SELECT u.id, 'ticket_assigned', 'تذكرة جديدة للفريق', 
+                           CONCAT('تم إنشاء تذكرة جديدة لفريقك رقم: ', ?), ?
+                    FROM users u
+                    WHERE u.role = 'agent' AND u.team_id = ? AND u.is_active = 1
+                `, [ticket_number, ticketId, assignedToTeam]);
+            }
+        }
+        
         // حساب النقاط
         await scoring.calculateTicketScores(ticketId);
         
@@ -339,6 +388,142 @@ app.post('/api/tickets', authenticate, async (req, res) => {
     } catch (error) {
         console.error('Create ticket error:', error);
         res.status(500).json({ error: 'خطأ في إدخال التكت' });
+    }
+});
+
+// ==================== Get Assigned Tickets ====================
+app.get('/api/tickets/assigned', authenticate, async (req, res) => {
+    try {
+        const { status, assigned_to_me } = req.query;
+        let query = `
+            SELECT t.*, 
+                   tt.name_ar as ticket_type_name,
+                   tm.name as team_name,
+                   ta.status as assignment_status,
+                   ta.assignment_type,
+                   ta.accepted_at
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            JOIN teams tm ON t.team_id = tm.id
+            LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id
+            WHERE 1=1
+        `;
+        const params = [];
+        
+        if (assigned_to_me === 'true' && req.user.role === 'agent') {
+            query += ` AND (
+                (ta.assigned_to = ? AND ta.status IN ('pending', 'accepted', 'in_progress'))
+                OR (ta.assignment_type = 'general' AND ta.status = 'pending')
+                OR (ta.assigned_to_team = (SELECT team_id FROM users WHERE id = ?) AND ta.assignment_type = 'team' AND ta.status = 'pending')
+            )`;
+            params.push(req.user.id, req.user.id);
+        }
+        
+        if (status) {
+            query += ` AND (t.status = ? OR ta.status = ?)`;
+            params.push(status, status);
+        }
+        
+        query += ` ORDER BY t.created_at DESC`;
+        
+        const tickets = await db.query(query, params);
+        
+        res.json({
+            success: true,
+            tickets: tickets
+        });
+    } catch (error) {
+        console.error('Get assigned tickets error:', error);
+        res.status(500).json({ error: 'خطأ في جلب التكتات' });
+    }
+});
+
+// ==================== Update Ticket Assignment ====================
+app.put('/api/tickets/:id/assignment', authenticate, async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        const { status, notes } = req.body;
+        
+        if (!status) {
+            return res.status(400).json({ error: 'حالة التوزيع مطلوبة' });
+        }
+        
+        // التحقق من أن المستخدم هو المندوب المخصص له
+        const assignment = await db.queryOne(`
+            SELECT ta.*, t.ticket_number
+            FROM ticket_assignments ta
+            JOIN tickets t ON ta.ticket_id = t.id
+            WHERE ta.ticket_id = ? AND ta.assigned_to = ?
+        `, [ticketId, req.user.id]);
+        
+        if (!assignment && req.user.role === 'agent') {
+            // التحقق من التوزيع العام
+            const generalAssignment = await db.queryOne(`
+                SELECT ta.*, t.ticket_number
+                FROM ticket_assignments ta
+                JOIN tickets t ON ta.ticket_id = t.id
+                WHERE ta.ticket_id = ? AND ta.assignment_type = 'general' AND ta.status = 'pending'
+            `, [ticketId]);
+            
+            if (!generalAssignment) {
+                return res.status(403).json({ error: 'غير مصرح لك بتحديث هذه التذكرة' });
+            }
+        }
+        
+        // تحديث حالة التوزيع
+        await db.query(`
+            UPDATE ticket_assignments 
+            SET status = ?, 
+                notes = ?,
+                accepted_at = CASE WHEN ? = 'accepted' THEN NOW() ELSE accepted_at END,
+                updated_at = NOW()
+            WHERE ticket_id = ? AND (assigned_to = ? OR assignment_type = 'general')
+        `, [status, notes || null, status, ticketId, req.user.id]);
+        
+        // تحديث حالة التكت
+        if (status === 'accepted') {
+            await db.query(`
+                UPDATE tickets 
+                SET assignment_status = 'accepted',
+                    agent_id = ?,
+                    time_accepted = NOW(),
+                    status = 'in_progress'
+                WHERE id = ?
+            `, [req.user.id, ticketId]);
+            
+            // إرسال إشعار للكول سنتر والمدير
+            await db.query(`
+                INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+                SELECT id, 'ticket_accepted', 'تم قبول التذكرة', 
+                       CONCAT('تم قبول التذكرة رقم: ', ?), ?
+                FROM users
+                WHERE role IN ('call_center', 'admin') AND is_active = 1
+            `, [assignment?.ticket_number || 'N/A', ticketId]);
+        } else if (status === 'completed') {
+            await db.query(`
+                UPDATE tickets 
+                SET status = 'completed',
+                    assignment_status = 'completed'
+                WHERE id = ?
+            `, [ticketId]);
+            
+            // إرسال إشعار للكول سنتر والمدير
+            await db.query(`
+                INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+                SELECT id, 'ticket_completed', 'تم إكمال التذكرة', 
+                       CONCAT('تم إكمال التذكرة رقم: ', ?), ?
+                FROM users
+                WHERE role IN ('call_center', 'admin') AND is_active = 1
+            `, [assignment?.ticket_number || 'N/A', ticketId]);
+        }
+        
+        res.json({
+            success: true,
+            message: 'تم تحديث حالة التوزيع بنجاح'
+        });
+    } catch (error) {
+        console.error('Update assignment error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث حالة التوزيع' });
     }
 });
 

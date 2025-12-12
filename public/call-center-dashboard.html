@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>لوحة الكول سنتر - نظام إدارة التكتات</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    <div class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>📞 لوحة الكول سنتر</h2>
+                <p id="userName"></p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التكتات</a></li>
+                <li><a href="#" data-page="new-ticket"><i>➕</i> تذكرة جديدة</a></li>
+                <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1 id="pageTitle">التكتات</h1>
+                <div class="user-info">
+                    <div class="notifications-bell" id="notificationsBell" onclick="showNotifications()" style="position: relative; cursor: pointer; margin-left: 15px; font-size: 20px;">
+                        🔔
+                        <span class="notification-badge" id="notificationBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; display: flex; align-items: center; justify-content: center;">0</span>
+                    </div>
+                    <span id="currentUser"></span>
+                    <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
+                </div>
+            </div>
+            
+            <!-- Notifications Overlay -->
+            <div id="notificationsOverlay" class="notifications-overlay" onclick="closeNotifications()"></div>
+            
+            <!-- Notifications Dropdown -->
+            <div id="notificationsDropdown" class="notifications-dropdown">
+                <div class="notifications-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h3 style="margin: 0;">🔔 الإشعارات</h3>
+                        <span id="notificationsCount" class="notification-count-badge">0</span>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="markAllNotificationsRead()" class="btn btn-sm btn-secondary">تعليم الكل كمقروء</button>
+                        <button onclick="closeNotifications()" class="btn-close-notifications" title="إغلاق">✕</button>
+                    </div>
+                </div>
+                <div id="notificationsList" class="notifications-list"></div>
+                <div class="notifications-footer">
+                    <button onclick="closeNotifications()" class="btn btn-sm btn-primary" style="width: 100%;">إغلاق</button>
+                </div>
+            </div>
+
+            <!-- Tickets Page -->
+            <div id="tickets-page" class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>التكتات</h2>
+                        <label>
+                            <input type="checkbox" id="autoRefreshTickets" checked> تحديث تلقائي (30 ثانية)
+                        </label>
+                    </div>
+                    <div class="card-body">
+                        <div class="filters-bar" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>الحالة:</label>
+                                <select id="ticketsStatusFilter" onchange="loadTickets()">
+                                    <option value="">جميع الحالات</option>
+                                    <option value="pending">معلقة</option>
+                                    <option value="accepted">مقبولة</option>
+                                    <option value="in_progress">قيد التنفيذ</option>
+                                    <option value="completed">مكتملة</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary" onclick="loadTickets()">تحديث</button>
+                        </div>
+                        <div id="ticketsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Ticket Page -->
+            <div id="new-ticket-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>تذكرة جديدة</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="newTicketForm">
+                            <div class="form-group">
+                                <label>رقم التكت *</label>
+                                <input type="text" id="ticket_number" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>نوع التكت *</label>
+                                <select id="ticket_type_id" required>
+                                    <option value="">اختر النوع</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>اسم المشترك *</label>
+                                <input type="text" id="subscriber_name" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>رقم هاتف المشترك *</label>
+                                <input type="text" id="subscriber_phone" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>عنوان المشترك</label>
+                                <textarea id="subscriber_address" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>وصف المشكلة *</label>
+                                <textarea id="notes" rows="4" required></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>الفريق *</label>
+                                <select id="team_id" required>
+                                    <option value="">اختر الفريق</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>نوع التوزيع *</label>
+                                <select id="assignment_type" required onchange="handleAssignmentTypeChange()">
+                                    <option value="">اختر نوع التوزيع</option>
+                                    <option value="general">عام (لجميع المندوبين)</option>
+                                    <option value="team">لفريق معين</option>
+                                    <option value="agent">لمندوب معين</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="agent_select_group" style="display: none;">
+                                <label>اختر المندوب</label>
+                                <select id="assigned_to_agent">
+                                    <option value="">اختر المندوب</option>
+                                </select>
+                            </div>
+                            
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-primary">إنشاء التذكرة</button>
+                                <button type="reset" class="btn btn-secondary">إعادة تعيين</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/call-center-dashboard.js"></script>
+</body>
+</html>
+
