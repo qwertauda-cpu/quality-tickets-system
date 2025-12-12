@@ -278,15 +278,21 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         cleanedTimeFirstContact = cleanDateTime(cleanedTimeFirstContact);
         cleanedTimeCompleted = cleanDateTime(cleanedTimeCompleted);
         
+        console.log('Cleaned dates - time_received:', cleanedTimeReceived, 'time_first_contact:', cleanedTimeFirstContact, 'time_completed:', cleanedTimeCompleted);
+        
         // التحقق من صحة time_received بعد التنظيف
         if (!cleanedTimeReceived) {
+            console.log('Validation error: cleanedTimeReceived is null');
             return res.status(400).json({ error: 'تنسيق تاريخ ووقت استلام التكت غير صحيح. يجب أن يكون YYYY-MM-DDTHH:MM' });
         }
         
         // التحقق من صحة التاريخ باستخدام moment
         if (!moment(cleanedTimeReceived).isValid()) {
+            console.log('Validation error: cleanedTimeReceived is not valid moment:', cleanedTimeReceived);
             return res.status(400).json({ error: 'تاريخ ووقت استلام التكت غير صحيح' });
         }
+        
+        console.log('Date validation passed');
         
         // حساب الوقت الفعلي
         let actual_time_minutes = null;
