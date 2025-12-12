@@ -297,10 +297,20 @@
                                 <input type="text" id="user_full_name" required>
                             </div>
                             <div class="form-group">
-                                <label for="user_team_id">الفريق *</label>
-                                <select id="user_team_id" required>
-                                    <option value="">اختر الفريق</option>
+                                <label for="user_role">نوع الحساب *</label>
+                                <select id="user_role" required onchange="handleRoleChange()">
+                                    <option value="">اختر نوع الحساب</option>
+                                    <option value="agent">حساب مندوب</option>
+                                    <option value="call_center">حساب كول سنتر</option>
+                                    <option value="quality_staff">حساب موظف جودة</option>
                                 </select>
+                            </div>
+                            <div class="form-group" id="user_team_group" style="display: none;">
+                                <label for="user_team_id">الفريق</label>
+                                <select id="user_team_id">
+                                    <option value="">اختر الفريق (اختياري)</option>
+                                </select>
+                                <small style="color: var(--text-muted); font-size: 12px;">اختياري - فقط لموظف الجودة</small>
                             </div>
                             <div class="form-group">
                                 <div class="checkbox-group">

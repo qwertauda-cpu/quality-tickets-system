@@ -42,7 +42,7 @@ async function initDatabase() {
                 username VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 full_name VARCHAR(255) NOT NULL,
-                role ENUM('admin', 'quality_staff', 'team_leader', 'technician', 'accountant') NOT NULL,
+                role ENUM('admin', 'quality_staff', 'team_leader', 'technician', 'accountant', 'call_center', 'agent') NOT NULL,
                 team_id INT NULL,
                 is_active TINYINT(1) DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -392,7 +392,56 @@ async function initDatabase() {
         `);
         console.log('✅ تم إنشاء جدول: rewards');
         
-        // ==================== 16. إدراج البيانات الأولية ====================
+        // ==================== 16. جدول توزيع التكتات ====================
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS ticket_assignments (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                ticket_id INT NOT NULL,
+                assigned_by INT NOT NULL COMMENT 'من قام بالتوزيع (كول سنتر أو مدير)',
+                assigned_to INT NULL COMMENT 'المندوب المستهدف (NULL = عام للجميع)',
+                assigned_to_team INT NULL COMMENT 'الفريق المستهدف (NULL = عام)',
+                assignment_type ENUM('general', 'agent', 'team') NOT NULL DEFAULT 'general',
+                status ENUM('pending', 'accepted', 'waiting', 'postponed', 'rejected') DEFAULT 'pending',
+                accepted_at TIMESTAMP NULL,
+                notes TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+                FOREIGN KEY (assigned_by) REFERENCES users(id) ON DELETE RESTRICT,
+                FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (assigned_to_team) REFERENCES teams(id) ON DELETE SET NULL,
+                INDEX idx_ticket_id (ticket_id),
+                INDEX idx_assigned_to (assigned_to),
+                INDEX idx_assigned_to_team (assigned_to_team),
+                INDEX idx_status (status),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('✅ تم إنشاء جدول: ticket_assignments');
+        
+        // ==================== 17. تحديث جدول التكتات ====================
+        // إضافة حقول جديدة للتكتات
+        try {
+            await connection.query(`
+                ALTER TABLE tickets 
+                ADD COLUMN IF NOT EXISTS call_center_id INT NULL COMMENT 'موظف الكول سنتر الذي أنشأ التكت',
+                ADD COLUMN IF NOT EXISTS agent_id INT NULL COMMENT 'المندوب المسؤول',
+                ADD COLUMN IF NOT EXISTS assignment_status ENUM('pending', 'accepted', 'waiting', 'postponed') DEFAULT 'pending',
+                ADD COLUMN IF NOT EXISTS time_accepted TIMESTAMP NULL COMMENT 'وقت قبول التكت من المندوب',
+                ADD COLUMN IF NOT EXISTS time_first_contact_by_agent TIMESTAMP NULL COMMENT 'T1 - وقت أول اتصال من المندوب',
+                ADD COLUMN IF NOT EXISTS time_activation_by_agent TIMESTAMP NULL COMMENT 'T3 - وقت رسالة التفعيل من المندوب',
+                ADD COLUMN IF NOT EXISTS is_public TINYINT(1) DEFAULT 0 COMMENT 'تذكرة عامة (للجميع)',
+                ADD FOREIGN KEY (call_center_id) REFERENCES users(id) ON DELETE SET NULL,
+                ADD FOREIGN KEY (agent_id) REFERENCES users(id) ON DELETE SET NULL
+            `);
+            console.log('✅ تم تحديث جدول tickets');
+        } catch (error) {
+            if (!error.message.includes('Duplicate column')) {
+                console.log('⚠️  بعض الحقول موجودة مسبقاً في جدول tickets');
+            }
+        }
+        
+        // ==================== 18. إدراج البيانات الأولية ====================
         
         // إدراج أنواع التكتات
         const ticketTypes = [

@@ -842,7 +842,10 @@ async function loadUsers() {
                         'admin': 'مدير',
                         'quality_staff': 'موظف جودة',
                         'team_leader': 'قائد فريق',
-                        'technician': 'عامل'
+                        'technician': 'عامل',
+                        'call_center': 'كول سنتر',
+                        'agent': 'مندوب',
+                        'accountant': 'محاسب'
                     }[user.role] || user.role;
                     
                     row.innerHTML = `
@@ -879,11 +882,29 @@ function showAddUserForm() {
     document.getElementById('user_password').required = true;
     document.getElementById('user_password_label').innerHTML = 'كلمة المرور *';
     document.getElementById('user_is_active').checked = true;
+    document.getElementById('user_role').value = '';
+    document.getElementById('user_team_group').style.display = 'none';
+    document.getElementById('user_team_id').required = false;
     
     // Load teams
     loadTeamsForUserForm();
     
     document.getElementById('userModal').style.display = 'flex';
+}
+
+function handleRoleChange() {
+    const role = document.getElementById('user_role').value;
+    const teamGroup = document.getElementById('user_team_group');
+    const teamSelect = document.getElementById('user_team_id');
+    
+    if (role === 'quality_staff') {
+        teamGroup.style.display = 'block';
+        teamSelect.required = false;
+    } else {
+        teamGroup.style.display = 'none';
+        teamSelect.required = false;
+        teamSelect.value = '';
+    }
 }
 
 async function loadTeamsForUserForm() {
@@ -917,8 +938,10 @@ async function editUser(userId) {
                 document.getElementById('user_password').required = false;
                 document.getElementById('user_password_label').innerHTML = 'كلمة المرور (اتركه فارغاً إذا لم ترد تغييره)';
                 document.getElementById('user_full_name').value = user.full_name;
+                document.getElementById('user_role').value = user.role;
                 document.getElementById('user_is_active').checked = user.is_active == 1;
                 
+                handleRoleChange();
                 await loadTeamsForUserForm();
                 if (user.team_id) {
                     document.getElementById('user_team_id').value = user.team_id;
@@ -962,10 +985,19 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             
             const userId = document.getElementById('edit_user_id').value;
+            const role = document.getElementById('user_role').value;
+            const teamId = document.getElementById('user_team_id').value;
+            
+            if (!role) {
+                alert('يرجى اختيار نوع الحساب');
+                return;
+            }
+            
             const formData = {
                 username: document.getElementById('user_username').value,
                 full_name: document.getElementById('user_full_name').value,
-                team_id: parseInt(document.getElementById('user_team_id').value),
+                role: role,
+                team_id: (role === 'quality_staff' && teamId) ? parseInt(teamId) : null,
                 is_active: document.getElementById('user_is_active').checked ? 1 : 0
             };
             

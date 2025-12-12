@@ -124,6 +124,20 @@ const api = {
     },
     getMyTeam: () => apiRequest('/my-team'),
     
+    // Agent & Call Center
+    getMyAssignedTickets: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/tickets/assigned?${queryString}`);
+    },
+    updateTicketAssignment: (ticketId, data) => apiRequest(`/tickets/${ticketId}/assignment`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    assignTicket: (ticketId, data) => apiRequest(`/tickets/${ticketId}/assign`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    
     // Notifications
     getNotifications: (unreadOnly = false) => {
         const params = unreadOnly ? '?unread_only=true' : '';
