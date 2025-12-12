@@ -343,11 +343,6 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             }
         }
         
-        // حساب Load Factor
-        const ticketDate = cleanedTimeReceived ? moment(cleanedTimeReceived).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
-        const loadFactor = await scoring.calculateLoadFactor(teamId, ticketDate);
-        const adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
-        
         // التحقق من الحقول المطلوبة
         if (!ticket_number || !ticket_number.trim()) {
             console.log('Validation error: ticket_number is missing');
