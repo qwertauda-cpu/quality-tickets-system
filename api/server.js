@@ -775,21 +775,40 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
         
         // دالة مساعدة لكتابة النص العربي
         const writeArabicText = (doc, text, options = {}) => {
-            // محاولة استخدام خط عربي إذا كان موجوداً
-            if (fs.existsSync(arabicFontRegular) && !options.bold) {
-                doc.font(arabicFontRegular);
-            } else if (fs.existsSync(arabicFontBold) && options.bold) {
-                doc.font(arabicFontBold);
-            } else {
-                // استخدام خط افتراضي
+            try {
+                // محاولة استخدام خط عربي إذا كان موجوداً ومسجلاً
+                if (fs.existsSync(arabicFontRegular) && !options.bold) {
+                    try {
+                        doc.font('Arabic');
+                    } catch (e) {
+                        doc.font(arabicFontRegular);
+                    }
+                } else if (fs.existsSync(arabicFontBold) && options.bold) {
+                    try {
+                        doc.font('ArabicBold');
+                    } catch (e) {
+                        doc.font(arabicFontBold);
+                    }
+                } else {
+                    // استخدام خط افتراضي
+                    doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+                }
+                
+                // كتابة النص
+                if (options.x !== undefined && options.y !== undefined) {
+                    doc.text(text, options.x, options.y, options);
+                } else {
+                    doc.text(text, options);
+                }
+            } catch (error) {
+                // في حالة الخطأ، استخدم خط افتراضي
+                console.error('Error writing Arabic text:', error);
                 doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
-            }
-            
-            // كتابة النص
-            if (options.x !== undefined && options.y !== undefined) {
-                doc.text(text, options.x, options.y, options);
-            } else {
-                doc.text(text, options);
+                if (options.x !== undefined && options.y !== undefined) {
+                    doc.text(text, options.x, options.y, options);
+                } else {
+                    doc.text(text, options);
+                }
             }
         };
         
