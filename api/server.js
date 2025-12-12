@@ -240,6 +240,11 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'رقم التكت موجود مسبقاً' });
         }
         
+        // التحقق من time_received (مطلوب)
+        if (!time_received || !time_received.trim()) {
+            return res.status(400).json({ error: 'تاريخ ووقت استلام التكت (T0) مطلوب' });
+        }
+        
         // تنظيف وتنسيق التواريخ
         let cleanedTimeReceived = time_received;
         let cleanedTimeFirstContact = time_first_contact;
@@ -270,6 +275,16 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         cleanedTimeReceived = cleanDateTime(cleanedTimeReceived);
         cleanedTimeFirstContact = cleanDateTime(cleanedTimeFirstContact);
         cleanedTimeCompleted = cleanDateTime(cleanedTimeCompleted);
+        
+        // التحقق من صحة time_received بعد التنظيف
+        if (!cleanedTimeReceived) {
+            return res.status(400).json({ error: 'تنسيق تاريخ ووقت استلام التكت غير صحيح. يجب أن يكون YYYY-MM-DDTHH:MM' });
+        }
+        
+        // التحقق من صحة التاريخ باستخدام moment
+        if (!moment(cleanedTimeReceived).isValid()) {
+            return res.status(400).json({ error: 'تاريخ ووقت استلام التكت غير صحيح' });
+        }
         
         // حساب الوقت الفعلي
         let actual_time_minutes = null;
