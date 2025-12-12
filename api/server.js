@@ -232,6 +232,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             notes
         } = req.body;
         
+        console.log('Step 1: Checking for existing ticket...');
         // التحقق من وجود التكت بنفس الرقم
         const existing = await db.queryOne(
             'SELECT id FROM tickets WHERE ticket_number = ?',
@@ -239,13 +240,18 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         );
         
         if (existing) {
+            console.log('Validation error: Ticket number already exists:', ticket_number);
             return res.status(400).json({ error: 'رقم التكت موجود مسبقاً' });
         }
         
+        console.log('Step 2: Validating time_received...');
         // التحقق من time_received (مطلوب)
         if (!time_received || !time_received.trim()) {
+            console.log('Validation error: time_received is missing');
             return res.status(400).json({ error: 'تاريخ ووقت استلام التكت (T0) مطلوب' });
         }
+        
+        console.log('Step 3: Cleaning dates...');
         
         // تنظيف وتنسيق التواريخ
         let cleanedTimeReceived = time_received;
