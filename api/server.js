@@ -988,28 +988,31 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                    .fillColor(index % 2 === 0 ? '#ffffff' : '#f8fafc')
                    .fill();
                 
-                // النص
+                // النص العربي
                 doc.fontSize(10);
                 if (item.bold) {
-                    if (fs.existsSync(arabicFontBold)) {
-                        doc.font(arabicFontBold);
-                    } else {
-                        doc.font('Helvetica-Bold');
-                    }
+                    writeArabicText(doc, item.ar, { 
+                        x: 60, 
+                        y: boxY, 
+                        width: 200, 
+                        align: 'right',
+                        bold: true
+                    });
                 } else {
-                    if (fs.existsSync(arabicFontRegular)) {
-                        doc.font(arabicFontRegular);
-                    } else {
-                        doc.font('Helvetica');
-                    }
+                    writeArabicText(doc, item.ar, { 
+                        x: 60, 
+                        y: boxY, 
+                        width: 200, 
+                        align: 'right'
+                    });
                 }
-                
-                // النص العربي
-                doc.fillColor('#1e293b');
-                doc.text(item.ar, 60, boxY, { width: 200, align: 'right' });
                 
                 // النص الإنجليزي
                 doc.font('Helvetica');
+                if (item.bold) {
+                    doc.font('Helvetica-Bold');
+                }
+                doc.fillColor('#1e293b');
                 doc.text(item.en, 270, boxY, { width: 150 });
                 
                 // القيمة
@@ -1092,12 +1095,12 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 
                 // اسم الفريق
                 doc.fontSize(11);
-                if (fs.existsSync(arabicFontBold)) {
-                    doc.font(arabicFontBold);
-                } else {
-                    doc.font('Helvetica-Bold');
-                }
-                doc.text(team.name, tableStartX + 60, rowY + 5, { width: 190 });
+                writeArabicText(doc, team.name, { 
+                    x: tableStartX + 60, 
+                    y: rowY + 5, 
+                    width: 190,
+                    bold: true
+                });
                 
                 // البيانات
                 doc.font('Helvetica');
@@ -1156,7 +1159,13 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                    .strokeColor('#3b82f6')
                    .lineWidth(1)
                    .stroke();
-                writeArabicText(doc, `Team: ${teamName} | فريق: ${teamName}`, { align: 'right', bold: true });
+                writeArabicText(doc, `Team: ${teamName} | فريق: ${teamName}`, { 
+                    x: 545, 
+                    y: doc.y - 15, 
+                    width: 485,
+                    align: 'right',
+                    bold: true 
+                });
                 doc.fillColor('#000000');
                 doc.moveDown(1);
                 
