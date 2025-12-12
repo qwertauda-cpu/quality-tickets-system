@@ -1117,13 +1117,25 @@ async function loadNotifications() {
 
 function showNotifications() {
     const dropdown = document.getElementById('notificationsDropdown');
-    if (!dropdown) return;
+    const overlay = document.getElementById('notificationsOverlay');
+    if (!dropdown || !overlay) return;
     
-    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    const isVisible = dropdown.classList.contains('active');
     
-    if (dropdown.style.display === 'block') {
+    if (isVisible) {
+        closeNotifications();
+    } else {
+        dropdown.classList.add('active');
+        overlay.classList.add('active');
         loadNotificationsList();
     }
+}
+
+function closeNotifications() {
+    const dropdown = document.getElementById('notificationsDropdown');
+    const overlay = document.getElementById('notificationsOverlay');
+    if (dropdown) dropdown.classList.remove('active');
+    if (overlay) overlay.classList.remove('active');
 }
 
 async function loadNotificationsList() {
@@ -1132,20 +1144,42 @@ async function loadNotificationsList() {
         
         const response = await window.api.getNotifications();
         const list = document.getElementById('notificationsList');
+        const countBadge = document.getElementById('notificationsCount');
         
         if (!response || !response.success || !response.notifications || response.notifications.length === 0) {
-            list.innerHTML = '<p style="padding: 20px; text-align: center;">لا توجد إشعارات</p>';
+            list.innerHTML = `
+                <div class="notification-empty">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📭</div>
+                    <p>لا توجد إشعارات</p>
+                </div>
+            `;
+            if (countBadge) countBadge.textContent = '0';
             return;
         }
         
+        // تحديث العداد
+        const unreadCount = response.notifications.filter(n => !n.is_read).length;
+        if (countBadge) {
+            countBadge.textContent = response.notifications.length;
+            countBadge.style.display = response.notifications.length > 0 ? 'inline-block' : 'none';
+        }
+        
         let html = '';
-        response.notifications.forEach(notif => {
+        response.notifications.forEach((notif, index) => {
             const timeAgo = formatTimeAgo(notif.created_at);
+            const icon = notif.type === 'ticket_delayed' ? '⏰' : 
+                        notif.type === 'ticket_completed' ? '✅' : 
+                        notif.type === 'achievement' ? '🏆' : '📢';
+            
             html += `
-                <div class="notification-item ${notif.is_read ? '' : 'unread'}" onclick="markNotificationRead(${notif.id})">
-                    <div class="notification-title">${notif.title}</div>
-                    <div class="notification-message">${notif.message}</div>
-                    <div class="notification-time">${timeAgo}</div>
+                <div class="notification-item ${notif.is_read ? '' : 'unread'}" onclick="markNotificationRead(${notif.id}, event)">
+                    <div class="notification-icon">${icon}</div>
+                    <div class="notification-content">
+                        <div class="notification-title">${notif.title}</div>
+                        <div class="notification-message">${notif.message}</div>
+                        <div class="notification-time">${timeAgo}</div>
+                    </div>
+                    ${!notif.is_read ? '<div class="notification-dot"></div>' : ''}
                 </div>
             `;
         });
@@ -1153,11 +1187,18 @@ async function loadNotificationsList() {
         list.innerHTML = html;
     } catch (error) {
         console.error('Error loading notifications list:', error);
+        const list = document.getElementById('notificationsList');
+        if (list) {
+            list.innerHTML = '<div class="notification-error">❌ خطأ في تحميل الإشعارات</div>';
+        }
     }
 }
 
-async function markNotificationRead(id) {
+async function markNotificationRead(id, event) {
     try {
+        if (event) {
+            event.stopPropagation();
+        }
         if (!window.api) return;
         
         await window.api.markNotificationRead(id);

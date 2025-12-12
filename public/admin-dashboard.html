@@ -39,13 +39,25 @@
                 </div>
             </div>
             
+            <!-- Notifications Overlay -->
+            <div id="notificationsOverlay" class="notifications-overlay" onclick="closeNotifications()"></div>
+            
             <!-- Notifications Dropdown -->
-            <div id="notificationsDropdown" class="notifications-dropdown" style="display: none;">
+            <div id="notificationsDropdown" class="notifications-dropdown">
                 <div class="notifications-header">
-                    <h3>الإشعارات</h3>
-                    <button onclick="markAllNotificationsRead()" class="btn btn-sm">تعليم الكل كمقروء</button>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h3 style="margin: 0;">🔔 الإشعارات</h3>
+                        <span id="notificationsCount" class="notification-count-badge">0</span>
+                    </div>
+                    <div style="display: flex; gap: 5px;">
+                        <button onclick="markAllNotificationsRead()" class="btn btn-sm btn-secondary">تعليم الكل كمقروء</button>
+                        <button onclick="closeNotifications()" class="btn-close-notifications" title="إغلاق">✕</button>
+                    </div>
                 </div>
                 <div id="notificationsList" class="notifications-list"></div>
+                <div class="notifications-footer">
+                    <button onclick="closeNotifications()" class="btn btn-sm btn-primary" style="width: 100%;">إغلاق</button>
+                </div>
             </div>
 
             <div id="dashboard-page" class="page-content">
