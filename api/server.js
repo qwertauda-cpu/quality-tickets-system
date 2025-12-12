@@ -413,15 +413,15 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         }
         
         // إدراج التكت
-        const result = await db.query(`
-            INSERT INTO tickets (
-                ticket_number, ticket_type_id, team_id, quality_staff_id,
-                time_received, time_first_contact, time_completed,
-                actual_time_minutes, adjusted_time_minutes, load_factor,
-                subscriber_name, subscriber_phone, subscriber_address, notes,
-                status, call_center_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
+        // إذا كان ticketStatus null، لن نضيفه في INSERT وسيستخدم القيمة الافتراضية من قاعدة البيانات
+        let insertFields = `
+            ticket_number, ticket_type_id, team_id, quality_staff_id,
+            time_received, time_first_contact, time_completed,
+            actual_time_minutes, adjusted_time_minutes, load_factor,
+            subscriber_name, subscriber_phone, subscriber_address, notes,
+            call_center_id`;
+        let insertValues = `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`;
+        let insertParams = [
             ticket_number.trim(), ticketTypeId, teamId, quality_staff_id,
             cleanedTimeReceived || null, cleanedTimeFirstContact || null, cleanedTimeCompleted || null,
             actual_time_minutes, adjusted_time_minutes, loadFactor,
@@ -429,9 +429,20 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             subscriber_phone ? subscriber_phone.trim() : null, 
             subscriber_address ? subscriber_address.trim() : null, 
             notes ? notes.trim() : null,
-            ticketStatus,
             req.user.role === 'call_center' ? req.user.id : null
-        ]);
+        ];
+        
+        // فقط إذا كان مؤجل، نضيف status
+        if (ticketStatus === 'postponed') {
+            insertFields += ', status';
+            insertValues += ', ?';
+            insertParams.push(ticketStatus);
+        }
+        
+        const result = await db.query(`
+            INSERT INTO tickets (${insertFields})
+            VALUES (${insertValues})
+        `, insertParams);
         
         const ticketId = result.insertId;
         
