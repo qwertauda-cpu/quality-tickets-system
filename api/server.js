@@ -311,7 +311,8 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         }
         
         // التحقق من التأجيل: إذا كان T1 أو T3 بعد يوم كامل من T0
-        let ticketStatus = 'pending';
+        // لا نضع status افتراضي - فقط إذا كان مؤجل نضعه postponed
+        let ticketStatus = null; // سيستخدم القيمة الافتراضية من قاعدة البيانات
         if (cleanedTimeReceived) {
             const t0 = moment(cleanedTimeReceived);
             if (t0.isValid()) {
