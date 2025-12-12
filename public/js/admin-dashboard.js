@@ -173,7 +173,9 @@ async function loadTicketsFilters() {
             (teamsData.teams || []).forEach(team => {
                 const option = document.createElement('option');
                 option.value = team.id;
-                option.textContent = team.name;
+                // عرض اسم الفريق مع أسماء العمال بين قوسين
+                const membersText = team.members_names ? ` (${team.members_names})` : '';
+                option.textContent = `${team.name}${membersText}`;
                 teamSelect.appendChild(option);
             });
         }
@@ -931,11 +933,13 @@ async function loadTeamsForUserForm() {
         const data = await window.api.getTeams();
         const select = document.getElementById('user_team_id');
         if (select && data.success) {
-            select.innerHTML = '<option value="">اختر الفريق</option>';
+            select.innerHTML = '<option value="">اختر الفريق (اختياري)</option>';
             data.teams.forEach(team => {
                 const option = document.createElement('option');
                 option.value = team.id;
-                option.textContent = team.name;
+                // عرض اسم الفريق مع أسماء العمال بين قوسين
+                const membersText = team.members_names ? ` (${team.members_names})` : '';
+                option.textContent = `${team.name}${membersText}`;
                 select.appendChild(option);
             });
         }

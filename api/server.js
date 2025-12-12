@@ -172,7 +172,15 @@ app.get('/api/teams', authenticate, async (req, res) => {
         
         // إضافة أسماء العمال لكل فريق
         for (let team of teams) {
-            const members = await db.query(`
+            // جلب العمال من جدول users (team_id) و team_members
+            const membersFromUsers = await db.query(`
+                SELECT u.full_name
+                FROM users u
+                WHERE u.team_id = ? AND u.is_active = 1 AND u.role IN ('technician', 'team_leader')
+                ORDER BY u.full_name
+            `, [team.id]);
+            
+            const membersFromTeamMembers = await db.query(`
                 SELECT u.full_name
                 FROM users u
                 JOIN team_members tm ON u.id = tm.user_id
@@ -180,8 +188,12 @@ app.get('/api/teams', authenticate, async (req, res) => {
                 ORDER BY u.full_name
             `, [team.id]);
             
-            team.members = members.map(m => m.full_name);
-            team.members_names = members.length > 0 ? members.map(m => m.full_name).join(', ') : '';
+            // دمج القائمتين وإزالة التكرار
+            const allMembers = [...membersFromUsers, ...membersFromTeamMembers];
+            const uniqueMembers = Array.from(new Set(allMembers.map(m => m.full_name)));
+            
+            team.members = uniqueMembers;
+            team.members_names = uniqueMembers.length > 0 ? uniqueMembers.join(', ') : '';
         }
         
         res.json({ success: true, teams });
