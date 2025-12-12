@@ -324,11 +324,11 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'رقم التكت مطلوب' });
         }
         
-        if (!ticket_type_id || isNaN(ticket_type_id)) {
+        if (!ticket_type_id || isNaN(parseInt(ticket_type_id))) {
             return res.status(400).json({ error: 'نوع التكت مطلوب' });
         }
         
-        if (!team_id || isNaN(team_id)) {
+        if (!team_id || isNaN(parseInt(team_id))) {
             return res.status(400).json({ error: 'الفريق مطلوب' });
         }
         
@@ -336,8 +336,12 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         const ticketTypeId = parseInt(ticket_type_id);
         const teamId = parseInt(team_id);
         
-        if (isNaN(ticketTypeId) || isNaN(teamId)) {
-            return res.status(400).json({ error: 'قيم غير صحيحة: نوع التكت أو الفريق' });
+        if (isNaN(ticketTypeId) || ticketTypeId <= 0) {
+            return res.status(400).json({ error: 'نوع التكت غير صحيح' });
+        }
+        
+        if (isNaN(teamId) || teamId <= 0) {
+            return res.status(400).json({ error: 'الفريق غير صحيح' });
         }
         
         // تحديد quality_staff_id حسب دور المستخدم
