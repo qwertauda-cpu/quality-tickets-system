@@ -43,10 +43,6 @@ if (loginForm) {
                 window.location.href = '/technician-dashboard.html';
             } else if (role === 'accountant') {
                 window.location.href = '/accountant-dashboard.html';
-            } else if (role === 'call_center') {
-                window.location.href = '/call-center-dashboard.html';
-            } else if (role === 'agent') {
-                window.location.href = '/agent-dashboard.html';
             } else {
                 window.location.href = '/index.html';
             }

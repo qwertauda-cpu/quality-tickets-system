@@ -170,6 +170,20 @@ app.get('/api/teams', authenticate, async (req, res) => {
             ORDER BY t.name
         `);
         
+        // إضافة أسماء العمال لكل فريق
+        for (let team of teams) {
+            const members = await db.query(`
+                SELECT u.full_name
+                FROM users u
+                JOIN team_members tm ON u.id = tm.user_id
+                WHERE tm.team_id = ? AND u.is_active = 1
+                ORDER BY u.full_name
+            `, [team.id]);
+            
+            team.members = members.map(m => m.full_name);
+            team.members_names = members.length > 0 ? members.map(m => m.full_name).join(', ') : '';
+        }
+        
         res.json({ success: true, teams });
     } catch (error) {
         console.error('Teams error:', error);

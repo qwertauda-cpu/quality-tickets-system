@@ -475,7 +475,9 @@ async function loadAdminTeams() {
                 data.teams.forEach(team => {
                     const option = document.createElement('option');
                     option.value = team.id;
-                    option.textContent = team.name;
+                    // عرض اسم الفريق مع أسماء العمال بين قوسين
+                    const membersText = team.members_names ? ` (${team.members_names})` : '';
+                    option.textContent = `${team.name}${membersText}`;
                     select.appendChild(option);
                 });
             }
@@ -862,8 +864,6 @@ async function loadUsers() {
                         'quality_staff': 'موظف جودة',
                         'team_leader': 'قائد فريق',
                         'technician': 'عامل',
-                        'call_center': 'كول سنتر',
-                        'agent': 'مندوب',
                         'accountant': 'محاسب'
                     }[user.role] || user.role;
                     
