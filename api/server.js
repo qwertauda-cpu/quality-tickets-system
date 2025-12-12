@@ -11,6 +11,7 @@ const bcrypt = require('bcrypt');
 const moment = require('moment');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
+const https = require('https');
 
 const db = require('./db-manager');
 const config = require('./config');
@@ -767,21 +768,60 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             fs.mkdirSync(uploadsDir, { recursive: true });
         }
         
+        // مسارات الخطوط العربية
+        const fontsDir = path.join(__dirname, 'fonts');
+        const arabicFontRegular = path.join(fontsDir, 'Cairo-Regular.ttf');
+        const arabicFontBold = path.join(fontsDir, 'Cairo-Bold.ttf');
+        
+        // دالة مساعدة لكتابة النص العربي
+        const writeArabicText = (doc, text, options = {}) => {
+            // محاولة استخدام خط عربي إذا كان موجوداً
+            if (fs.existsSync(arabicFontRegular) && !options.bold) {
+                doc.font(arabicFontRegular);
+            } else if (fs.existsSync(arabicFontBold) && options.bold) {
+                doc.font(arabicFontBold);
+            } else {
+                // استخدام خط افتراضي
+                doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+            }
+            
+            // كتابة النص
+            if (options.x !== undefined && options.y !== undefined) {
+                doc.text(text, options.x, options.y, options);
+            } else {
+                doc.text(text, options);
+            }
+        };
+        
         // إنشاء PDF
         const filename = `daily-report-${reportDate}.pdf`;
         const filepath = path.join(uploadsDir, filename);
         
         // إنشاء Promise لانتظار انتهاء الكتابة
         const pdfPromise = new Promise((resolve, reject) => {
-            const doc = new PDFDocument({ margin: 50, size: 'A4' });
+            const doc = new PDFDocument({ 
+                margin: 50, 
+                size: 'A4',
+                autoFirstPage: true
+            });
             const stream = fs.createWriteStream(filepath);
             
             doc.pipe(stream);
             
+            // تسجيل الخطوط العربية إذا كانت موجودة
+            if (fs.existsSync(arabicFontRegular)) {
+                doc.registerFont('Arabic', arabicFontRegular);
+            }
+            if (fs.existsSync(arabicFontBold)) {
+                doc.registerFont('ArabicBold', arabicFontBold);
+            }
+            
             // العنوان الرئيسي
-            doc.fontSize(24).font('Helvetica-Bold').text('تقرير يومي - إدارة التكتات والجودة', { align: 'center' });
+            doc.fontSize(24);
+            writeArabicText(doc, 'تقرير يومي - إدارة التكتات والجودة', { align: 'center', bold: true });
             doc.moveDown();
-            doc.fontSize(16).font('Helvetica').text(`التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'center' });
+            doc.fontSize(16);
+            writeArabicText(doc, `التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'center' });
             doc.moveDown(2);
             
             // خط فاصل
@@ -789,20 +829,21 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             doc.moveDown();
             
             // ========== ملخص اليوم ==========
-            doc.fontSize(18).font('Helvetica-Bold').text('ملخص اليوم', { align: 'right' });
+            doc.fontSize(18);
+            writeArabicText(doc, 'ملخص اليوم', { align: 'right', bold: true });
             doc.moveDown();
-            doc.fontSize(12).font('Helvetica');
-            doc.text(`إجمالي التكتات: ${totalTickets}`, { align: 'right' });
-            doc.text(`التكتات المكتملة: ${completedTickets}`, { align: 'right' });
-            doc.text(`التكتات المؤجلة: ${postponedTickets}`, { align: 'right' });
-            doc.text(`إجمالي النقاط الإيجابية: ${totalPositivePoints}`, { align: 'right' });
-            doc.text(`إجمالي النقاط السالبة: ${totalNegativePoints}`, { align: 'right' });
-            doc.font('Helvetica-Bold').text(`النقاط الصافية الإجمالية: ${totalNetPoints}`, { align: 'right' });
-            doc.font('Helvetica');
+            doc.fontSize(12);
+            writeArabicText(doc, `إجمالي التكتات: ${totalTickets}`, { align: 'right' });
+            writeArabicText(doc, `التكتات المكتملة: ${completedTickets}`, { align: 'right' });
+            writeArabicText(doc, `التكتات المؤجلة: ${postponedTickets}`, { align: 'right' });
+            writeArabicText(doc, `إجمالي النقاط الإيجابية: ${totalPositivePoints}`, { align: 'right' });
+            writeArabicText(doc, `إجمالي النقاط السالبة: ${totalNegativePoints}`, { align: 'right' });
+            writeArabicText(doc, `النقاط الصافية الإجمالية: ${totalNetPoints}`, { align: 'right', bold: true });
             doc.moveDown(2);
             
             // ========== ترتيب الفرق ==========
-            doc.fontSize(18).font('Helvetica-Bold').text('ترتيب الفرق', { align: 'right' });
+            doc.fontSize(18);
+            writeArabicText(doc, 'ترتيب الفرق', { align: 'right', bold: true });
             doc.moveDown();
             
             teamStats.forEach((team, index) => {
@@ -810,15 +851,13 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 const rank = index + 1;
                 const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
                 
-                doc.fontSize(14).font('Helvetica-Bold')
-                   .text(`${medal} المرتبة ${rank}: ${team.name}`, { align: 'right' });
-                doc.fontSize(11).font('Helvetica')
-                   .text(`   عدد التكتات: ${team.total_tickets || 0}`, { align: 'right' })
-                   .text(`   النقاط الإيجابية: ${team.total_positive || 0}`, { align: 'right' })
-                   .text(`   النقاط السالبة: ${team.total_negative || 0}`, { align: 'right' })
-                   .font('Helvetica-Bold')
-                   .text(`   النقاط الصافية: ${netScore}`, { align: 'right' });
-                doc.font('Helvetica');
+                doc.fontSize(14);
+                writeArabicText(doc, `${medal} المرتبة ${rank}: ${team.name}`, { align: 'right', bold: true });
+                doc.fontSize(11);
+                writeArabicText(doc, `   عدد التكتات: ${team.total_tickets || 0}`, { align: 'right' });
+                writeArabicText(doc, `   النقاط الإيجابية: ${team.total_positive || 0}`, { align: 'right' });
+                writeArabicText(doc, `   النقاط السالبة: ${team.total_negative || 0}`, { align: 'right' });
+                writeArabicText(doc, `   النقاط الصافية: ${netScore}`, { align: 'right', bold: true });
                 doc.moveDown();
             });
             
@@ -827,7 +866,8 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             doc.moveDown();
             
             // ========== تفاصيل التكتات ==========
-            doc.fontSize(18).font('Helvetica-Bold').text('تفاصيل التكتات', { align: 'right' });
+            doc.fontSize(18);
+            writeArabicText(doc, 'تفاصيل التكتات', { align: 'right', bold: true });
             doc.moveDown();
             
             // تجميع التكتات حسب الفريق
@@ -840,7 +880,8 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             });
             
             Object.keys(ticketsByTeam).forEach(teamName => {
-                doc.fontSize(14).font('Helvetica-Bold').text(`فريق: ${teamName}`, { align: 'right' });
+                doc.fontSize(14);
+                writeArabicText(doc, `فريق: ${teamName}`, { align: 'right', bold: true });
                 doc.moveDown(0.5);
                 
                 ticketsByTeam[teamName].forEach((ticket, index) => {
@@ -850,25 +891,23 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                                       ticket.status === 'in_progress' ? '🔄 قيد التنفيذ' : '⏳ معلق';
                     const followupText = ticket.needs_followup === 1 ? ' ⚠️ يحتاج متابعة' : '';
                     
-                    doc.fontSize(10).font('Helvetica')
-                       .text(`${index + 1}. التكت رقم: ${ticket.ticket_number} ${statusText}${followupText}`, { align: 'right' })
-                       .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' })
-                       .text(`   النقاط الإيجابية: ${ticket.positive_points || 0}`, { align: 'right' })
-                       .text(`   النقاط السالبة: ${ticket.negative_points || 0}`, { align: 'right' })
-                       .font('Helvetica-Bold')
-                       .text(`   النقاط الصافية: ${netScore}`, { align: 'right' });
+                    doc.fontSize(10);
+                    writeArabicText(doc, `${index + 1}. التكت رقم: ${ticket.ticket_number} ${statusText}${followupText}`, { align: 'right' });
+                    writeArabicText(doc, `   النوع: ${ticket.ticket_type_name}`, { align: 'right' });
+                    writeArabicText(doc, `   النقاط الإيجابية: ${ticket.positive_points || 0}`, { align: 'right' });
+                    writeArabicText(doc, `   النقاط السالبة: ${ticket.negative_points || 0}`, { align: 'right' });
+                    writeArabicText(doc, `   النقاط الصافية: ${netScore}`, { align: 'right', bold: true });
                     
                     if (ticket.actual_time_minutes) {
                         const hours = Math.floor(ticket.actual_time_minutes / 60);
                         const minutes = ticket.actual_time_minutes % 60;
-                        doc.font('Helvetica').text(`   الوقت الفعلي: ${hours} ساعة و ${minutes} دقيقة`, { align: 'right' });
+                        writeArabicText(doc, `   الوقت الفعلي: ${hours} ساعة و ${minutes} دقيقة`, { align: 'right' });
                     }
                     
                     if (ticket.needs_followup === 1 && ticket.followup_reason) {
-                        doc.font('Helvetica').text(`   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
+                        writeArabicText(doc, `   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
                     }
                     
-                    doc.font('Helvetica');
                     doc.moveDown(0.3);
                 });
                 
@@ -881,30 +920,31 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             
             // ========== حالات المتابعة ==========
             if (followupTickets.length > 0) {
-                doc.fontSize(18).font('Helvetica-Bold').text('حالات المتابعة', { align: 'right' });
+                doc.fontSize(18);
+                writeArabicText(doc, 'حالات المتابعة', { align: 'right', bold: true });
                 doc.moveDown();
                 
                 followupTickets.forEach((ticket, index) => {
-                    doc.fontSize(11).font('Helvetica-Bold')
-                       .text(`${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right' });
-                    doc.fontSize(10).font('Helvetica')
-                       .text(`   الفريق: ${ticket.team_name}`, { align: 'right' })
-                       .text(`   النوع: ${ticket.ticket_type_name}`, { align: 'right' });
+                    doc.fontSize(11);
+                    writeArabicText(doc, `${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right', bold: true });
+                    doc.fontSize(10);
+                    writeArabicText(doc, `   الفريق: ${ticket.team_name}`, { align: 'right' });
+                    writeArabicText(doc, `   النوع: ${ticket.ticket_type_name}`, { align: 'right' });
                     
                     if (ticket.followup_reason) {
-                        doc.text(`   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
+                        writeArabicText(doc, `   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
                     }
                     
                     if (ticket.contact_status) {
                         const contactStatusText = ticket.contact_status === 'answered' ? 'تم الرد' : 
                                                   ticket.contact_status === 'no_answer' ? 'لم يرد' : 'مغلق';
-                        doc.text(`   حالة الاتصال: ${contactStatusText}`, { align: 'right' });
+                        writeArabicText(doc, `   حالة الاتصال: ${contactStatusText}`, { align: 'right' });
                     }
                     
                     if (ticket.service_status) {
                         const serviceStatusText = ticket.service_status === 'excellent' ? 'ممتاز' : 
                                                   ticket.service_status === 'good' ? 'جيد' : 'رديء';
-                        doc.text(`   حالة الخدمة: ${serviceStatusText}`, { align: 'right' });
+                        writeArabicText(doc, `   حالة الخدمة: ${serviceStatusText}`, { align: 'right' });
                     }
                     
                     doc.moveDown();
@@ -917,18 +957,20 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             
             // ========== توقيع موظف الجودة ==========
             doc.moveDown(3);
-            doc.fontSize(12).font('Helvetica').text('توقيع موظف الجودة:', { align: 'right' });
+            doc.fontSize(12);
+            writeArabicText(doc, 'توقيع موظف الجودة:', { align: 'right' });
             doc.moveDown(2);
             doc.moveTo(400, doc.y).lineTo(545, doc.y).stroke();
             doc.moveDown(0.5);
-            doc.fontSize(10).text('الاسم والتوقيع', { align: 'right', continued: false });
+            doc.fontSize(10);
+            writeArabicText(doc, 'الاسم والتوقيع', { align: 'right', continued: false });
             
             // ========== تذييل الصفحة ==========
             const pageHeight = doc.page.height;
             const pageWidth = doc.page.width;
-            doc.fontSize(8).font('Helvetica')
-               .text(`تم إنشاء التقرير في: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, 50, pageHeight - 50, { align: 'left' })
-               .text(`الصفحة ${doc.bufferedPageRange().start + 1}`, pageWidth - 50, pageHeight - 50, { align: 'right' });
+            doc.fontSize(8);
+            writeArabicText(doc, `تم إنشاء التقرير في: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, { x: 50, y: pageHeight - 50, align: 'left' });
+            writeArabicText(doc, `الصفحة ${doc.bufferedPageRange().start + 1}`, { x: pageWidth - 50, y: pageHeight - 50, align: 'right' });
             
             // معالجة الأحداث
             stream.on('finish', () => {
