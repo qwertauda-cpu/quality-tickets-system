@@ -34,6 +34,14 @@ async function apiRequest(endpoint, options = {}) {
             return null;
         }
         
+        // إذا كان هناك خطأ (400, 500, إلخ)، نرمي خطأ يحتوي على الرسالة
+        if (!response.ok) {
+            const error = new Error(data.error || 'حدث خطأ');
+            error.status = response.status;
+            error.data = data;
+            throw error;
+        }
+        
         return data;
     } catch (error) {
         console.error('API request error:', error);

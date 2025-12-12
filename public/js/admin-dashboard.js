@@ -620,7 +620,7 @@ async function handleAdminTicketSubmit(e) {
             return;
         }
         const data = await window.api.createTicket(formData);
-        if (data.success) {
+        if (data && data.success) {
             adminCurrentTicketId = data.ticketId;
             alert('تم إدخال التكت بنجاح! يمكنك الآن إضافة الصور وتقييم الجودة.');
             showAdminTicketDetails(data.ticketId);
