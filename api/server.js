@@ -438,21 +438,8 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             }
         }
         
-        // حساب النقاط
-        try {
-            await scoring.calculateTicketScores(ticketId);
-        } catch (scoreError) {
-            console.error('Error calculating scores:', scoreError);
-            // لا نوقف العملية إذا فشل حساب النقاط
-        }
-        
-        // تحديث daily_summary
-        try {
-            await scoring.updateDailySummary(teamId, ticketDate);
-        } catch (summaryError) {
-            console.error('Error updating daily summary:', summaryError);
-            // لا نوقف العملية إذا فشل تحديث الملخص
-        }
+        // لا نحسب النقاط أو نحدث الملخص عند إنشاء التكت
+        // سيتم حساب النقاط عند إضافة تقييم الجودة أو رفع الصور
         
         res.json({
             success: true,
