@@ -551,6 +551,12 @@ async function handleAdminTicketSubmit(e) {
     const timeReceived = getTimeValue('admin_time_received_time_container');
     const timeReceivedFull = combineDateTime(dateReceived, timeReceived);
     
+    // التحقق من time_received (مطلوب)
+    if (!timeReceivedFull) {
+        alert('يرجى إدخال تاريخ ووقت استلام التكت (T0)');
+        return;
+    }
+    
     const dateFirstContact = getDateTimeValue('admin_time_first_contact_container');
     const timeFirstContact = getTimeValue('admin_time_first_contact_time_container');
     const timeFirstContactFull = dateFirstContact && timeFirstContact ? combineDateTime(dateFirstContact, timeFirstContact) : null;
@@ -578,18 +584,35 @@ async function handleAdminTicketSubmit(e) {
         return;
     }
     
+    // التحقق من أن القيم رقمية صحيحة
+    const parsedTicketTypeId = parseInt(ticketTypeId);
+    const parsedTeamId = parseInt(teamId);
+    
+    if (isNaN(parsedTicketTypeId) || parsedTicketTypeId <= 0) {
+        alert('نوع التكت غير صحيح');
+        return;
+    }
+    
+    if (isNaN(parsedTeamId) || parsedTeamId <= 0) {
+        alert('الفريق غير صحيح');
+        return;
+    }
+    
     const formData = {
         ticket_number: ticketNumber,
-        ticket_type_id: parseInt(ticketTypeId),
-        team_id: parseInt(teamId),
+        ticket_type_id: parsedTicketTypeId,
+        team_id: parsedTeamId,
         time_received: timeReceivedFull,
-        time_first_contact: timeFirstContactFull,
-        time_completed: timeCompletedFull,
+        time_first_contact: timeFirstContactFull || null,
+        time_completed: timeCompletedFull || null,
         subscriber_name: document.getElementById('admin_subscriber_name').value?.trim() || null,
         subscriber_phone: document.getElementById('admin_subscriber_phone').value?.trim() || null,
         subscriber_address: document.getElementById('admin_subscriber_address').value?.trim() || null,
         notes: document.getElementById('admin_notes').value?.trim() || null
     };
+    
+    // Log for debugging
+    console.log('Sending ticket data:', formData);
     
     try {
         if (!window.api) {
