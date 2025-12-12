@@ -783,10 +783,20 @@ app.get('/api/tickets/:id', authenticate, async (req, res) => {
 // ==================== Get Tickets List ====================
 app.get('/api/tickets', authenticate, async (req, res) => {
     try {
-        const { team_id, status, date, page = 1, limit = 50 } = req.query;
+        const { team_id, status, date, page = 1, limit = 50, created_by_me } = req.query;
         
         let whereClause = '1=1';
         const params = [];
+        
+        if (created_by_me === 'true') {
+            if (req.user.role === 'call_center') {
+                whereClause += ' AND t.call_center_id = ?';
+                params.push(req.user.id);
+            } else {
+                whereClause += ' AND t.quality_staff_id = ?';
+                params.push(req.user.id);
+            }
+        }
         
         if (team_id) {
             whereClause += ' AND t.team_id = ?';
@@ -804,7 +814,7 @@ app.get('/api/tickets', authenticate, async (req, res) => {
         }
         
         const offset = (page - 1) * limit;
-        params.push(parseInt(limit), offset);
+        const limitParams = [...params, parseInt(limit), offset];
         
         const tickets = await db.query(`
             SELECT t.*, 
@@ -812,19 +822,22 @@ app.get('/api/tickets', authenticate, async (req, res) => {
                    tm.name as team_name,
                    u.full_name as quality_staff_name,
                    (SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id) as positive_points,
-                   (SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id) as negative_points
+                   (SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id) as negative_points,
+                   ta.status as assignment_status,
+                   ta.assignment_type
             FROM tickets t
             JOIN ticket_types tt ON t.ticket_type_id = tt.id
             JOIN teams tm ON t.team_id = tm.id
             JOIN users u ON t.quality_staff_id = u.id
+            LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id
             WHERE ${whereClause}
             ORDER BY t.created_at DESC
             LIMIT ? OFFSET ?
-        `, params);
+        `, limitParams);
         
         const total = await db.queryOne(`
             SELECT COUNT(*) as count FROM tickets t WHERE ${whereClause}
-        `, params.slice(0, -2));
+        `, params);
         
         res.json({
             success: true,
