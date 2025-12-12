@@ -368,6 +368,30 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'الفريق غير صحيح' });
         }
         
+        // التحقق من وجود ticket_type_id في قاعدة البيانات
+        const ticketTypeExists = await db.queryOne(
+            'SELECT id FROM ticket_types WHERE id = ? AND is_active = 1',
+            [ticketTypeId]
+        );
+        
+        if (!ticketTypeExists) {
+            console.log('Validation error: ticket_type_id does not exist:', ticketTypeId);
+            return res.status(400).json({ error: 'نوع التكت غير موجود أو غير نشط' });
+        }
+        
+        // التحقق من وجود team_id في قاعدة البيانات
+        const teamExists = await db.queryOne(
+            'SELECT id FROM teams WHERE id = ? AND is_active = 1',
+            [teamId]
+        );
+        
+        if (!teamExists) {
+            console.log('Validation error: team_id does not exist:', teamId);
+            return res.status(400).json({ error: 'الفريق غير موجود أو غير نشط' });
+        }
+        
+        console.log('All validations passed. Proceeding with ticket creation...');
+        
         // تحديد quality_staff_id حسب دور المستخدم
         let quality_staff_id = req.user.id;
         if (req.user.role === 'call_center') {
