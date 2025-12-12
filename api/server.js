@@ -217,6 +217,8 @@ app.get('/api/ticket-types', authenticate, async (req, res) => {
 // ==================== Create Ticket (Manual Entry) ====================
 app.post('/api/tickets', authenticate, async (req, res) => {
     try {
+        console.log('Create ticket request body:', JSON.stringify(req.body, null, 2));
+        
         const {
             ticket_number,
             ticket_type_id,
