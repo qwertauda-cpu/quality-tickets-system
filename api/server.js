@@ -399,6 +399,11 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         
         console.log('All validations passed. Proceeding with ticket creation...');
         
+        // حساب Load Factor (بعد تعريف teamId)
+        const ticketDate = cleanedTimeReceived ? moment(cleanedTimeReceived).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+        const loadFactor = await scoring.calculateLoadFactor(teamId, ticketDate);
+        const adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
+        
         // تحديد quality_staff_id حسب دور المستخدم
         let quality_staff_id = req.user.id;
         if (req.user.role === 'call_center') {
