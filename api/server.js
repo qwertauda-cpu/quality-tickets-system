@@ -290,12 +290,28 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         
         // حساب Load Factor
         const ticketDate = cleanedTimeReceived ? moment(cleanedTimeReceived).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
-        const loadFactor = await scoring.calculateLoadFactor(team_id, ticketDate);
+        const loadFactor = await scoring.calculateLoadFactor(teamId, ticketDate);
         const adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
         
         // التحقق من الحقول المطلوبة
-        if (!ticket_number || !ticket_type_id || !team_id) {
-            return res.status(400).json({ error: 'الحقول المطلوبة: رقم التكت، نوع التكت، الفريق' });
+        if (!ticket_number || !ticket_number.trim()) {
+            return res.status(400).json({ error: 'رقم التكت مطلوب' });
+        }
+        
+        if (!ticket_type_id || isNaN(ticket_type_id)) {
+            return res.status(400).json({ error: 'نوع التكت مطلوب' });
+        }
+        
+        if (!team_id || isNaN(team_id)) {
+            return res.status(400).json({ error: 'الفريق مطلوب' });
+        }
+        
+        // تحويل إلى أرقام
+        const ticketTypeId = parseInt(ticket_type_id);
+        const teamId = parseInt(team_id);
+        
+        if (isNaN(ticketTypeId) || isNaN(teamId)) {
+            return res.status(400).json({ error: 'قيم غير صحيحة: نوع التكت أو الفريق' });
         }
         
         // تحديد quality_staff_id حسب دور المستخدم
@@ -315,10 +331,13 @@ app.post('/api/tickets', authenticate, async (req, res) => {
                 status, call_center_id
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            ticket_number, ticket_type_id, team_id, quality_staff_id,
+            ticket_number.trim(), ticketTypeId, teamId, quality_staff_id,
             cleanedTimeReceived || null, cleanedTimeFirstContact || null, cleanedTimeCompleted || null,
             actual_time_minutes, adjusted_time_minutes, loadFactor,
-            subscriber_name || null, subscriber_phone || null, subscriber_address || null, notes || null,
+            subscriber_name ? subscriber_name.trim() : null, 
+            subscriber_phone ? subscriber_phone.trim() : null, 
+            subscriber_address ? subscriber_address.trim() : null, 
+            notes ? notes.trim() : null,
             ticketStatus,
             req.user.role === 'call_center' ? req.user.id : null
         ]);
@@ -335,7 +354,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             if (assignment_type === 'agent' && assigned_to) {
                 assignedToAgent = assigned_to;
             } else if (assignment_type === 'team') {
-                assignedToTeam = team_id;
+                assignedToTeam = teamId;
             }
             
             // إنشاء assignment
@@ -378,7 +397,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         await scoring.calculateTicketScores(ticketId);
         
         // تحديث daily_summary
-        await scoring.updateDailySummary(team_id, ticketDate);
+        await scoring.updateDailySummary(teamId, ticketDate);
         
         res.json({
             success: true,

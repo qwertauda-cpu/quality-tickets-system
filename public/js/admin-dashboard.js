@@ -555,17 +555,36 @@ async function handleAdminTicketSubmit(e) {
     const timeCompleted = getTimeValue('admin_time_completed_time_container');
     const timeCompletedFull = dateCompleted && timeCompleted ? combineDateTime(dateCompleted, timeCompleted) : null;
     
+    const ticketNumber = document.getElementById('admin_ticket_number').value?.trim();
+    const ticketTypeId = document.getElementById('admin_ticket_type_id').value;
+    const teamId = document.getElementById('admin_team_id').value;
+    
+    if (!ticketNumber) {
+        alert('يرجى إدخال رقم التكت');
+        return;
+    }
+    
+    if (!ticketTypeId || ticketTypeId === '') {
+        alert('يرجى اختيار نوع التكت');
+        return;
+    }
+    
+    if (!teamId || teamId === '') {
+        alert('يرجى اختيار الفريق');
+        return;
+    }
+    
     const formData = {
-        ticket_number: document.getElementById('admin_ticket_number').value,
-        ticket_type_id: parseInt(document.getElementById('admin_ticket_type_id').value),
-        team_id: parseInt(document.getElementById('admin_team_id').value),
+        ticket_number: ticketNumber,
+        ticket_type_id: parseInt(ticketTypeId),
+        team_id: parseInt(teamId),
         time_received: timeReceivedFull,
         time_first_contact: timeFirstContactFull,
         time_completed: timeCompletedFull,
-        subscriber_name: document.getElementById('admin_subscriber_name').value || null,
-        subscriber_phone: document.getElementById('admin_subscriber_phone').value || null,
-        subscriber_address: document.getElementById('admin_subscriber_address').value || null,
-        notes: document.getElementById('admin_notes').value || null
+        subscriber_name: document.getElementById('admin_subscriber_name').value?.trim() || null,
+        subscriber_phone: document.getElementById('admin_subscriber_phone').value?.trim() || null,
+        subscriber_address: document.getElementById('admin_subscriber_address').value?.trim() || null,
+        notes: document.getElementById('admin_notes').value?.trim() || null
     };
     
     try {
