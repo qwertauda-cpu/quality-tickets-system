@@ -781,14 +781,12 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                     try {
                         doc.font(arabicFontBold);
                     } catch (e) {
-                        console.error('Error using Arabic Bold font, falling back to Helvetica:', e.message);
                         doc.font('Helvetica-Bold');
                     }
                 } else if (fs.existsSync(arabicFontRegular)) {
                     try {
                         doc.font(arabicFontRegular);
                     } catch (e) {
-                        console.error('Error using Arabic Regular font, falling back to Helvetica:', e.message);
                         doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
                     }
                 } else {
@@ -802,14 +800,44 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                     doc.text(text, options);
                 }
             } catch (error) {
-                console.error('Error in writeArabicText:', error);
-                // استخدام خط افتراضي في حالة الخطأ
                 doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
                 if (options.x !== undefined && options.y !== undefined) {
                     doc.text(text, options.x, options.y, options);
                 } else {
                     doc.text(text, options);
                 }
+            }
+        };
+        
+        // دالة لرسم صندوق ملون
+        const drawBox = (doc, x, y, width, height, color, fillColor) => {
+            if (fillColor) {
+                doc.rect(x, y, width, height).fillColor(fillColor).fill();
+            }
+            if (color) {
+                doc.rect(x, y, width, height).strokeColor(color).lineWidth(1).stroke();
+            }
+        };
+        
+        // دالة لرسم جدول
+        const drawTable = (doc, startX, startY, columns, rows, cellWidth, cellHeight) => {
+            let currentY = startY;
+            
+            // رسم الخطوط الأفقية
+            for (let i = 0; i <= rows.length; i++) {
+                doc.moveTo(startX, currentY)
+                   .lineTo(startX + (columns.length * cellWidth), currentY)
+                   .stroke();
+                currentY += cellHeight;
+            }
+            
+            // رسم الخطوط العمودية
+            let currentX = startX;
+            for (let i = 0; i <= columns.length; i++) {
+                doc.moveTo(currentX, startY)
+                   .lineTo(currentX, startY + (rows.length * cellHeight))
+                   .stroke();
+                currentX += cellWidth;
             }
         };
         
@@ -846,70 +874,250 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 }
             }
             
+            // ========== Header ==========
+            // خلفية ملونة للعنوان
+            doc.rect(50, 50, 495, 60)
+               .fillColor('#1e3a8a')
+               .fill()
+               .strokeColor('#1e40af')
+               .lineWidth(2)
+               .stroke();
+            
             // العنوان الرئيسي
-            doc.fontSize(24);
-            // استخدام الخط العربي مباشرة مع معالجة الأخطاء
-            try {
+            doc.fontSize(26);
+            if (fs.existsSync(arabicFontBold)) {
+                doc.font(arabicFontBold);
+            } else {
+                doc.font('Helvetica-Bold');
+            }
+            doc.fillColor('#ffffff')
+               .text('Daily Report - Quality & Tickets Management', { 
+                   x: 297.5, 
+                   y: 65, 
+                   align: 'center',
+                   width: 490
+               });
+            
+            doc.fontSize(22);
+            doc.text('تقرير يومي - إدارة التكتات والجودة', { 
+                x: 297.5, 
+                y: 85, 
+                align: 'center',
+                width: 490
+            });
+            
+            // التاريخ
+            doc.fontSize(14);
+            if (fs.existsSync(arabicFontRegular)) {
+                doc.font(arabicFontRegular);
+            } else {
+                doc.font('Helvetica');
+            }
+            doc.text(`Date: ${moment(reportDate).format('YYYY-MM-DD')} | التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { 
+                x: 297.5, 
+                y: 100, 
+                align: 'center',
+                width: 490
+            });
+            
+            doc.fillColor('#000000'); // إعادة تعيين اللون
+            doc.y = 130;
+            doc.moveDown();
+            
+            // ========== ملخص اليوم (Summary) ==========
+            const summaryY = doc.y;
+            
+            // عنوان القسم
+            doc.fontSize(18);
+            if (fs.existsSync(arabicFontBold)) {
+                doc.font(arabicFontBold);
+            } else {
+                doc.font('Helvetica-Bold');
+            }
+            doc.fillColor('#1e40af');
+            writeArabicText(doc, 'ملخص اليوم | Daily Summary', { align: 'right', bold: true });
+            doc.fillColor('#000000');
+            doc.moveDown(0.5);
+            
+            // صندوق ملون للخلفية
+            const summaryBoxY = doc.y;
+            doc.rect(50, summaryBoxY - 5, 495, 100)
+               .fillColor('#f0f9ff')
+               .fill()
+               .strokeColor('#3b82f6')
+               .lineWidth(1.5)
+               .stroke();
+            
+            // جدول الملخص
+            doc.fontSize(11);
+            if (fs.existsSync(arabicFontRegular)) {
+                doc.font(arabicFontRegular);
+            } else {
+                doc.font('Helvetica');
+            }
+            
+            const summaryData = [
+                { ar: 'إجمالي التكتات', en: 'Total Tickets', value: totalTickets, color: '#3b82f6' },
+                { ar: 'التكتات المكتملة', en: 'Completed', value: completedTickets, color: '#10b981' },
+                { ar: 'التكتات المؤجلة', en: 'Postponed', value: postponedTickets, color: '#f59e0b' },
+                { ar: 'النقاط الإيجابية', en: 'Positive Points', value: totalPositivePoints, color: '#10b981' },
+                { ar: 'النقاط السالبة', en: 'Negative Points', value: totalNegativePoints, color: '#ef4444' },
+                { ar: 'النقاط الصافية', en: 'Net Points', value: totalNetPoints, color: '#6366f1', bold: true }
+            ];
+            
+            let currentSummaryY = summaryBoxY + 10;
+            summaryData.forEach((item, index) => {
+                const boxHeight = 15;
+                const boxY = currentSummaryY + (index * boxHeight);
+                
+                // خلفية ملونة للصف
+                doc.rect(55, boxY - 2, 485, boxHeight - 2)
+                   .fillColor(index % 2 === 0 ? '#ffffff' : '#f8fafc')
+                   .fill();
+                
+                // النص
+                doc.fontSize(10);
+                if (item.bold) {
+                    if (fs.existsSync(arabicFontBold)) {
+                        doc.font(arabicFontBold);
+                    } else {
+                        doc.font('Helvetica-Bold');
+                    }
+                } else {
+                    if (fs.existsSync(arabicFontRegular)) {
+                        doc.font(arabicFontRegular);
+                    } else {
+                        doc.font('Helvetica');
+                    }
+                }
+                
+                // النص العربي
+                doc.fillColor('#1e293b');
+                doc.text(item.ar, 60, boxY, { width: 200, align: 'right' });
+                
+                // النص الإنجليزي
+                doc.font('Helvetica');
+                doc.text(item.en, 270, boxY, { width: 150 });
+                
+                // القيمة
+                doc.font('Helvetica-Bold');
+                doc.fillColor(item.color);
+                doc.text(item.value.toString(), 430, boxY, { width: 100, align: 'right' });
+                doc.fillColor('#000000');
+            });
+            
+            doc.y = summaryBoxY + 110;
+            doc.moveDown();
+            
+            // ========== ترتيب الفرق (Team Rankings) ==========
+            // عنوان القسم
+            doc.fontSize(18);
+            if (fs.existsSync(arabicFontBold)) {
+                doc.font(arabicFontBold);
+            } else {
+                doc.font('Helvetica-Bold');
+            }
+            doc.fillColor('#1e40af');
+            writeArabicText(doc, 'ترتيب الفرق | Team Rankings', { align: 'right', bold: true });
+            doc.fillColor('#000000');
+            doc.moveDown(0.5);
+            
+            // جدول الترتيب
+            const tableStartY = doc.y;
+            const tableStartX = 50;
+            const colWidths = [50, 200, 80, 80, 80, 85]; // Rank, Team, Tickets, Positive, Negative, Net
+            const headerHeight = 25;
+            const rowHeight = 20;
+            
+            // رأس الجدول
+            doc.rect(tableStartX, tableStartY, 495, headerHeight)
+               .fillColor('#1e40af')
+               .fill();
+            
+            doc.fontSize(10);
+            doc.font('Helvetica-Bold');
+            doc.fillColor('#ffffff');
+            const headers = [
+                { text: 'Rank', ar: 'الترتيب', x: tableStartX + 10 },
+                { text: 'Team | الفريق', x: tableStartX + 60 },
+                { text: 'Tickets', ar: 'التكتات', x: tableStartX + 260 },
+                { text: 'Positive', ar: 'إيجابية', x: tableStartX + 340 },
+                { text: 'Negative', ar: 'سالبة', x: tableStartX + 420 },
+                { text: 'Net', ar: 'صافية', x: tableStartX + 500 }
+            ];
+            
+            headers.forEach(header => {
+                doc.text(header.text, header.x, tableStartY + 8, { width: colWidths[headers.indexOf(header)] - 10 });
+            });
+            
+            doc.fillColor('#000000');
+            doc.y = tableStartY + headerHeight;
+            
+            // بيانات الفرق
+            teamStats.forEach((team, index) => {
+                const netScore = (team.total_positive || 0) - (team.total_negative || 0);
+                const rank = index + 1;
+                const rowY = doc.y;
+                
+                // خلفية متناوبة
+                doc.rect(tableStartX, rowY, 495, rowHeight)
+                   .fillColor(index % 2 === 0 ? '#ffffff' : '#f8fafc')
+                   .fill()
+                   .strokeColor('#e2e8f0')
+                   .lineWidth(0.5)
+                   .stroke();
+                
+                // الترتيب
+                doc.fontSize(12);
+                doc.font('Helvetica-Bold');
+                if (rank === 1) doc.fillColor('#fbbf24');
+                else if (rank === 2) doc.fillColor('#94a3b8');
+                else if (rank === 3) doc.fillColor('#f59e0b');
+                else doc.fillColor('#64748b');
+                doc.text(`#${rank}`, tableStartX + 15, rowY + 5, { width: 30, align: 'center' });
+                doc.fillColor('#000000');
+                
+                // اسم الفريق
+                doc.fontSize(11);
                 if (fs.existsSync(arabicFontBold)) {
                     doc.font(arabicFontBold);
                 } else {
                     doc.font('Helvetica-Bold');
                 }
-            } catch (e) {
-                console.error('Error setting font for title:', e.message);
-                doc.font('Helvetica-Bold');
-            }
-            doc.text('تقرير يومي - إدارة التكتات والجودة', { align: 'center' });
-            doc.moveDown();
-            doc.fontSize(16);
-            writeArabicText(doc, `التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'center' });
-            doc.moveDown(2);
-            
-            // خط فاصل
-            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
-            doc.moveDown();
-            
-            // ========== ملخص اليوم ==========
-            doc.fontSize(18);
-            writeArabicText(doc, 'ملخص اليوم', { align: 'right', bold: true });
-            doc.moveDown();
-            doc.fontSize(12);
-            writeArabicText(doc, `إجمالي التكتات: ${totalTickets}`, { align: 'right' });
-            writeArabicText(doc, `التكتات المكتملة: ${completedTickets}`, { align: 'right' });
-            writeArabicText(doc, `التكتات المؤجلة: ${postponedTickets}`, { align: 'right' });
-            writeArabicText(doc, `إجمالي النقاط الإيجابية: ${totalPositivePoints}`, { align: 'right' });
-            writeArabicText(doc, `إجمالي النقاط السالبة: ${totalNegativePoints}`, { align: 'right' });
-            writeArabicText(doc, `النقاط الصافية الإجمالية: ${totalNetPoints}`, { align: 'right', bold: true });
-            doc.moveDown(2);
-            
-            // ========== ترتيب الفرق ==========
-            doc.fontSize(18);
-            writeArabicText(doc, 'ترتيب الفرق', { align: 'right', bold: true });
-            doc.moveDown();
-            
-            teamStats.forEach((team, index) => {
-                const netScore = (team.total_positive || 0) - (team.total_negative || 0);
-                const rank = index + 1;
-                const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '';
+                doc.text(team.name, tableStartX + 60, rowY + 5, { width: 190 });
                 
-                doc.fontSize(14);
-                writeArabicText(doc, `${medal} المرتبة ${rank}: ${team.name}`, { align: 'right', bold: true });
-                doc.fontSize(11);
-                writeArabicText(doc, `   عدد التكتات: ${team.total_tickets || 0}`, { align: 'right' });
-                writeArabicText(doc, `   النقاط الإيجابية: ${team.total_positive || 0}`, { align: 'right' });
-                writeArabicText(doc, `   النقاط السالبة: ${team.total_negative || 0}`, { align: 'right' });
-                writeArabicText(doc, `   النقاط الصافية: ${netScore}`, { align: 'right', bold: true });
-                doc.moveDown();
+                // البيانات
+                doc.font('Helvetica');
+                doc.fontSize(10);
+                doc.text((team.total_tickets || 0).toString(), tableStartX + 260, rowY + 5, { width: 70, align: 'center' });
+                doc.fillColor('#10b981');
+                doc.text((team.total_positive || 0).toString(), tableStartX + 340, rowY + 5, { width: 70, align: 'center' });
+                doc.fillColor('#ef4444');
+                doc.text((team.total_negative || 0).toString(), tableStartX + 420, rowY + 5, { width: 70, align: 'center' });
+                doc.fillColor('#6366f1');
+                doc.font('Helvetica-Bold');
+                doc.text(netScore.toString(), tableStartX + 500, rowY + 5, { width: 75, align: 'center' });
+                doc.fillColor('#000000');
+                
+                doc.y = rowY + rowHeight;
             });
             
-            doc.moveDown();
-            doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+            // خط فاصل أسفل الجدول
+            doc.moveTo(tableStartX, doc.y).lineTo(tableStartX + 495, doc.y).stroke();
             doc.moveDown();
             
-            // ========== تفاصيل التكتات ==========
+            // ========== تفاصيل التكتات (Ticket Details) ==========
+            // عنوان القسم
             doc.fontSize(18);
-            writeArabicText(doc, 'تفاصيل التكتات', { align: 'right', bold: true });
-            doc.moveDown();
+            if (fs.existsSync(arabicFontBold)) {
+                doc.font(arabicFontBold);
+            } else {
+                doc.font('Helvetica-Bold');
+            }
+            doc.fillColor('#1e40af');
+            writeArabicText(doc, 'تفاصيل التكتات | Ticket Details', { align: 'right', bold: true });
+            doc.fillColor('#000000');
+            doc.moveDown(0.5);
             
             // تجميع التكتات حسب الفريق
             const ticketsByTeam = {};
@@ -921,97 +1129,241 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             });
             
             Object.keys(ticketsByTeam).forEach(teamName => {
+                // عنوان الفريق
                 doc.fontSize(14);
-                writeArabicText(doc, `فريق: ${teamName}`, { align: 'right', bold: true });
-                doc.moveDown(0.5);
+                if (fs.existsSync(arabicFontBold)) {
+                    doc.font(arabicFontBold);
+                } else {
+                    doc.font('Helvetica-Bold');
+                }
+                doc.fillColor('#1e40af');
+                doc.rect(50, doc.y - 3, 495, 20)
+                   .fillColor('#eff6ff')
+                   .fill()
+                   .strokeColor('#3b82f6')
+                   .lineWidth(1)
+                   .stroke();
+                writeArabicText(doc, `Team: ${teamName} | فريق: ${teamName}`, { align: 'right', bold: true });
+                doc.fillColor('#000000');
+                doc.moveDown(1);
+                
+                // جدول التكتات
+                const ticketTableY = doc.y;
+                const ticketColWidths = [40, 80, 150, 60, 60, 60, 55]; // #, Ticket#, Type, Status, Time, Points, Net
+                
+                // رأس الجدول
+                doc.rect(50, ticketTableY, 495, 20)
+                   .fillColor('#64748b')
+                   .fill();
+                
+                doc.fontSize(9);
+                doc.font('Helvetica-Bold');
+                doc.fillColor('#ffffff');
+                const ticketHeaders = [
+                    { text: '#', x: 55 },
+                    { text: 'Ticket#', ar: 'رقم', x: 95 },
+                    { text: 'Type | النوع', x: 175 },
+                    { text: 'Status', ar: 'الحالة', x: 325 },
+                    { text: 'Time', ar: 'الوقت', x: 385 },
+                    { text: 'Points', ar: 'النقاط', x: 445 },
+                    { text: 'Net', ar: 'صافي', x: 505 }
+                ];
+                
+                ticketHeaders.forEach(header => {
+                    doc.text(header.text, header.x, ticketTableY + 6, { width: ticketColWidths[ticketHeaders.indexOf(header)] - 5 });
+                });
+                
+                doc.fillColor('#000000');
+                doc.y = ticketTableY + 20;
                 
                 ticketsByTeam[teamName].forEach((ticket, index) => {
                     const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
-                    const statusText = ticket.status === 'completed' ? '✅ مكتمل' : 
-                                      ticket.status === 'postponed' ? '⏸️ مؤجل' : 
-                                      ticket.status === 'in_progress' ? '🔄 قيد التنفيذ' : '⏳ معلق';
-                    const followupText = ticket.needs_followup === 1 ? ' ⚠️ يحتاج متابعة' : '';
+                    const rowY = doc.y;
+                    const isPostponed = ticket.status === 'postponed';
                     
-                    doc.fontSize(10);
-                    writeArabicText(doc, `${index + 1}. التكت رقم: ${ticket.ticket_number} ${statusText}${followupText}`, { align: 'right' });
-                    writeArabicText(doc, `   النوع: ${ticket.ticket_type_name}`, { align: 'right' });
-                    writeArabicText(doc, `   النقاط الإيجابية: ${ticket.positive_points || 0}`, { align: 'right' });
-                    writeArabicText(doc, `   النقاط السالبة: ${ticket.negative_points || 0}`, { align: 'right' });
-                    writeArabicText(doc, `   النقاط الصافية: ${netScore}`, { align: 'right', bold: true });
+                    // خلفية الصف
+                    let bgColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+                    if (isPostponed) bgColor = '#fef2f2';
                     
+                    doc.rect(50, rowY, 495, 18)
+                       .fillColor(bgColor)
+                       .fill()
+                       .strokeColor(isPostponed ? '#ef4444' : '#e2e8f0')
+                       .lineWidth(isPostponed ? 1 : 0.5)
+                       .stroke();
+                    
+                    // رقم التسلسل
+                    doc.fontSize(9);
+                    doc.font('Helvetica');
+                    doc.text((index + 1).toString(), 55, rowY + 5, { width: 35, align: 'center' });
+                    
+                    // رقم التكت
+                    doc.font('Helvetica-Bold');
+                    doc.text(ticket.ticket_number, 95, rowY + 5, { width: 75 });
+                    
+                    // النوع
+                    doc.fontSize(8);
+                    if (fs.existsSync(arabicFontRegular)) {
+                        doc.font(arabicFontRegular);
+                    } else {
+                        doc.font('Helvetica');
+                    }
+                    doc.text(ticket.ticket_type_name, 175, rowY + 5, { width: 145 });
+                    
+                    // الحالة
+                    doc.fontSize(8);
+                    doc.font('Helvetica');
+                    let statusText = '';
+                    let statusColor = '#64748b';
+                    if (ticket.status === 'completed') {
+                        statusText = 'Completed | مكتمل';
+                        statusColor = '#10b981';
+                    } else if (ticket.status === 'postponed') {
+                        statusText = 'Postponed | مؤجل';
+                        statusColor = '#ef4444';
+                    } else if (ticket.status === 'in_progress') {
+                        statusText = 'In Progress | قيد التنفيذ';
+                        statusColor = '#3b82f6';
+                    } else {
+                        statusText = 'Pending | معلق';
+                        statusColor = '#f59e0b';
+                    }
+                    doc.fillColor(statusColor);
+                    doc.text(statusText, 325, rowY + 5, { width: 55 });
+                    doc.fillColor('#000000');
+                    
+                    // الوقت
                     if (ticket.actual_time_minutes) {
                         const hours = Math.floor(ticket.actual_time_minutes / 60);
                         const minutes = ticket.actual_time_minutes % 60;
-                        writeArabicText(doc, `   الوقت الفعلي: ${hours} ساعة و ${minutes} دقيقة`, { align: 'right' });
+                        doc.fontSize(8);
+                        doc.font('Helvetica');
+                        doc.text(`${hours}h ${minutes}m`, 385, rowY + 5, { width: 55, align: 'center' });
+                    } else {
+                        doc.text('-', 385, rowY + 5, { width: 55, align: 'center' });
                     }
                     
-                    if (ticket.needs_followup === 1 && ticket.followup_reason) {
-                        writeArabicText(doc, `   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
-                    }
+                    // النقاط
+                    doc.fontSize(8);
+                    doc.font('Helvetica');
+                    doc.text(`${ticket.positive_points || 0} / ${ticket.negative_points || 0}`, 445, rowY + 5, { width: 55, align: 'center' });
                     
-                    doc.moveDown(0.3);
+                    // النقاط الصافية
+                    doc.font('Helvetica-Bold');
+                    doc.fontSize(9);
+                    if (netScore >= 0) {
+                        doc.fillColor('#10b981');
+                    } else {
+                        doc.fillColor('#ef4444');
+                    }
+                    doc.text(netScore.toString(), 505, rowY + 5, { width: 50, align: 'center' });
+                    doc.fillColor('#000000');
+                    
+                    doc.y = rowY + 18;
                 });
                 
-                doc.moveDown();
+                doc.moveDown(0.5);
             });
             
             doc.moveDown();
             doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
             doc.moveDown();
             
-            // ========== حالات المتابعة ==========
+            // ========== حالات المتابعة (Follow-up Cases) ==========
             if (followupTickets.length > 0) {
+                // عنوان القسم
                 doc.fontSize(18);
-                writeArabicText(doc, 'حالات المتابعة', { align: 'right', bold: true });
-                doc.moveDown();
+                if (fs.existsSync(arabicFontBold)) {
+                    doc.font(arabicFontBold);
+                } else {
+                    doc.font('Helvetica-Bold');
+                }
+                doc.fillColor('#dc2626');
+                writeArabicText(doc, 'حالات المتابعة | Follow-up Cases', { align: 'right', bold: true });
+                doc.fillColor('#000000');
+                doc.moveDown(0.5);
                 
                 followupTickets.forEach((ticket, index) => {
+                    const boxY = doc.y;
+                    
+                    // صندوق ملون
+                    doc.rect(50, boxY - 3, 495, 50)
+                       .fillColor('#fef2f2')
+                       .fill()
+                       .strokeColor('#ef4444')
+                       .lineWidth(1.5)
+                       .stroke();
+                    
                     doc.fontSize(11);
-                    writeArabicText(doc, `${index + 1}. التكت رقم: ${ticket.ticket_number}`, { align: 'right', bold: true });
-                    doc.fontSize(10);
-                    writeArabicText(doc, `   الفريق: ${ticket.team_name}`, { align: 'right' });
-                    writeArabicText(doc, `   النوع: ${ticket.ticket_type_name}`, { align: 'right' });
+                    if (fs.existsSync(arabicFontBold)) {
+                        doc.font(arabicFontBold);
+                    } else {
+                        doc.font('Helvetica-Bold');
+                    }
+                    doc.fillColor('#dc2626');
+                    writeArabicText(doc, `${index + 1}. Ticket# ${ticket.ticket_number} | التكت رقم: ${ticket.ticket_number}`, { 
+                        x: 55, 
+                        y: boxY + 5, 
+                        width: 485,
+                        align: 'right'
+                    });
+                    
+                    doc.fontSize(9);
+                    if (fs.existsSync(arabicFontRegular)) {
+                        doc.font(arabicFontRegular);
+                    } else {
+                        doc.font('Helvetica');
+                    }
+                    doc.fillColor('#000000');
+                    doc.text(`Team: ${ticket.team_name} | الفريق: ${ticket.team_name}`, 55, boxY + 18, { width: 240 });
+                    doc.text(`Type: ${ticket.ticket_type_name} | النوع: ${ticket.ticket_type_name}`, 300, boxY + 18, { width: 240 });
                     
                     if (ticket.followup_reason) {
-                        writeArabicText(doc, `   سبب المتابعة: ${ticket.followup_reason}`, { align: 'right' });
+                        doc.text(`Reason: ${ticket.followup_reason} | السبب: ${ticket.followup_reason}`, 55, boxY + 32, { width: 485 });
                     }
                     
-                    if (ticket.contact_status) {
-                        const contactStatusText = ticket.contact_status === 'answered' ? 'تم الرد' : 
-                                                  ticket.contact_status === 'no_answer' ? 'لم يرد' : 'مغلق';
-                        writeArabicText(doc, `   حالة الاتصال: ${contactStatusText}`, { align: 'right' });
-                    }
-                    
-                    if (ticket.service_status) {
-                        const serviceStatusText = ticket.service_status === 'excellent' ? 'ممتاز' : 
-                                                  ticket.service_status === 'good' ? 'جيد' : 'رديء';
-                        writeArabicText(doc, `   حالة الخدمة: ${serviceStatusText}`, { align: 'right' });
-                    }
-                    
-                    doc.moveDown();
+                    doc.y = boxY + 55;
+                    doc.moveDown(0.3);
                 });
                 
                 doc.moveDown();
-                doc.moveTo(50, doc.y).lineTo(545, doc.y).stroke();
-                doc.moveDown();
             }
             
-            // ========== توقيع موظف الجودة ==========
-            doc.moveDown(3);
-            doc.fontSize(12);
-            writeArabicText(doc, 'توقيع موظف الجودة:', { align: 'right' });
+            // ========== توقيع موظف الجودة (Quality Staff Signature) ==========
             doc.moveDown(2);
-            doc.moveTo(400, doc.y).lineTo(545, doc.y).stroke();
-            doc.moveDown(0.5);
-            doc.fontSize(10);
-            writeArabicText(doc, 'الاسم والتوقيع', { align: 'right', continued: false });
+            doc.rect(350, doc.y, 195, 60)
+               .strokeColor('#3b82f6')
+               .lineWidth(1)
+               .stroke();
             
-            // ========== تذييل الصفحة ==========
+            doc.fontSize(11);
+            if (fs.existsSync(arabicFontRegular)) {
+                doc.font(arabicFontRegular);
+            } else {
+                doc.font('Helvetica');
+            }
+            doc.text('Quality Staff Signature | توقيع موظف الجودة:', 355, doc.y + 5, { width: 185, align: 'right' });
+            doc.moveDown(3);
+            doc.moveTo(360, doc.y).lineTo(535, doc.y).stroke();
+            doc.moveDown(0.5);
+            doc.fontSize(9);
+            doc.text('Name & Signature | الاسم والتوقيع', 355, doc.y, { width: 185, align: 'right' });
+            
+            // ========== تذييل الصفحة (Footer) ==========
             const pageHeight = doc.page.height;
             const pageWidth = doc.page.width;
+            
+            // خط فاصل
+            doc.moveTo(50, pageHeight - 40).lineTo(545, pageHeight - 40).stroke();
+            
             doc.fontSize(8);
-            writeArabicText(doc, `تم إنشاء التقرير في: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, { x: 50, y: pageHeight - 50, align: 'left' });
-            writeArabicText(doc, `الصفحة ${doc.bufferedPageRange().start + 1}`, { x: pageWidth - 50, y: pageHeight - 50, align: 'right' });
+            doc.font('Helvetica');
+            doc.fillColor('#64748b');
+            doc.text(`Generated: ${moment().format('YYYY-MM-DD HH:mm:ss')} | تم الإنشاء: ${moment().format('YYYY-MM-DD HH:mm:ss')}`, 
+                50, pageHeight - 30, { width: 200, align: 'left' });
+            doc.text(`Page ${doc.bufferedPageRange().start + 1} | الصفحة ${doc.bufferedPageRange().start + 1}`, 
+                pageWidth - 100, pageHeight - 30, { width: 95, align: 'right' });
+            doc.fillColor('#000000');
             
             // معالجة الأحداث
             stream.on('finish', () => {
