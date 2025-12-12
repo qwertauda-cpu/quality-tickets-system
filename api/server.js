@@ -1225,43 +1225,55 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                     
                     // النوع
                     doc.fontSize(8);
-                    if (fs.existsSync(arabicFontRegular)) {
-                        doc.font(arabicFontRegular);
-                    } else {
-                        doc.font('Helvetica');
-                    }
-                    doc.text(ticket.ticket_type_name, 175, rowY + 5, { width: 145 });
+                    writeArabicText(doc, ticket.ticket_type_name || '', { 
+                        x: 175, 
+                        y: rowY + 5, 
+                        width: 145 
+                    });
                     
                     // الحالة
                     doc.fontSize(8);
-                    doc.font('Helvetica');
                     let statusText = '';
+                    let statusTextAr = '';
                     let statusColor = '#64748b';
                     if (ticket.status === 'completed') {
-                        statusText = 'Completed | مكتمل';
+                        statusText = 'Completed';
+                        statusTextAr = 'مكتمل';
                         statusColor = '#10b981';
                     } else if (ticket.status === 'postponed') {
-                        statusText = 'Postponed | مؤجل';
+                        statusText = 'Postponed';
+                        statusTextAr = 'مؤجل';
                         statusColor = '#ef4444';
                     } else if (ticket.status === 'in_progress') {
-                        statusText = 'In Progress | قيد التنفيذ';
+                        statusText = 'In Progress';
+                        statusTextAr = 'قيد التنفيذ';
                         statusColor = '#3b82f6';
                     } else {
-                        statusText = 'Pending | معلق';
+                        statusText = 'Pending';
+                        statusTextAr = 'معلق';
                         statusColor = '#f59e0b';
                     }
                     doc.fillColor(statusColor);
-                    doc.text(statusText, 325, rowY + 5, { width: 55 });
+                    doc.font('Helvetica');
+                    doc.fontSize(7);
+                    doc.text(statusText, 325, rowY + 2, { width: 55, align: 'center' });
+                    writeArabicText(doc, statusTextAr, { 
+                        x: 325, 
+                        y: rowY + 9, 
+                        width: 55,
+                        align: 'center'
+                    });
                     doc.fillColor('#000000');
                     
                     // الوقت
-                    if (ticket.actual_time_minutes) {
+                    if (ticket.actual_time_minutes && ticket.actual_time_minutes > 0) {
                         const hours = Math.floor(ticket.actual_time_minutes / 60);
                         const minutes = ticket.actual_time_minutes % 60;
                         doc.fontSize(8);
                         doc.font('Helvetica');
                         doc.text(`${hours}h ${minutes}m`, 385, rowY + 5, { width: 55, align: 'center' });
                     } else {
+                        doc.font('Helvetica');
                         doc.text('-', 385, rowY + 5, { width: 55, align: 'center' });
                     }
                     
