@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>لوحة المحاسب - نظام إدارة التكتات</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
+    <div class="mobile-menu-overlay" onclick="toggleMobileMenu()"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>💰 لوحة المحاسب</h2>
+                <p id="userName"></p>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a href="#" class="active" data-page="rewards"><i>💰</i> المكافآت</a></li>
+                <li><a href="#" data-page="calculate"><i>🧮</i> حساب المكافآت</a></li>
+                <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="header">
+                <h1 id="pageTitle">المكافآت</h1>
+                <div class="user-info">
+                    <span id="currentUser"></span>
+                    <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
+                </div>
+            </div>
+
+            <div id="rewards-page" class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>قائمة المكافآت</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="filters-bar" style="margin-bottom: 20px;">
+                            <div class="form-group" style="display: inline-block; margin-left: 10px;">
+                                <label>السنة:</label>
+                                <select id="filterYear" onchange="loadRewards()">
+                                    <option value="">الكل</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="display: inline-block; margin-left: 10px;">
+                                <label>الشهر:</label>
+                                <select id="filterMonth" onchange="loadRewards()">
+                                    <option value="">الكل</option>
+                                    <option value="1">يناير</option>
+                                    <option value="2">فبراير</option>
+                                    <option value="3">مارس</option>
+                                    <option value="4">أبريل</option>
+                                    <option value="5">مايو</option>
+                                    <option value="6">يونيو</option>
+                                    <option value="7">يوليو</option>
+                                    <option value="8">أغسطس</option>
+                                    <option value="9">سبتمبر</option>
+                                    <option value="10">أكتوبر</option>
+                                    <option value="11">نوفمبر</option>
+                                    <option value="12">ديسمبر</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="display: inline-block; margin-left: 10px;">
+                                <label>الحالة:</label>
+                                <select id="filterStatus" onchange="loadRewards()">
+                                    <option value="">الكل</option>
+                                    <option value="pending">معلق</option>
+                                    <option value="approved">معتمد</option>
+                                    <option value="paid">مدفوع</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="rewardsList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="calculate-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>حساب المكافآت</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label>السنة:</label>
+                            <input type="number" id="calcYear" min="2020" max="2100" value="">
+                        </div>
+                        <div class="form-group">
+                            <label>الشهر:</label>
+                            <select id="calcMonth">
+                                <option value="1">يناير</option>
+                                <option value="2">فبراير</option>
+                                <option value="3">مارس</option>
+                                <option value="4">أبريل</option>
+                                <option value="5">مايو</option>
+                                <option value="6">يونيو</option>
+                                <option value="7">يوليو</option>
+                                <option value="8">أغسطس</option>
+                                <option value="9">سبتمبر</option>
+                                <option value="10">أكتوبر</option>
+                                <option value="11">نوفمبر</option>
+                                <option value="12">ديسمبر</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="calculateRewards()">حساب المكافآت</button>
+                        <div id="calculateResult" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/accountant-dashboard.js"></script>
+</body>
+</html>
+

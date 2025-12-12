@@ -42,7 +42,7 @@ async function initDatabase() {
                 username VARCHAR(100) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 full_name VARCHAR(255) NOT NULL,
-                role ENUM('admin', 'quality_staff', 'team_leader', 'technician') NOT NULL,
+                role ENUM('admin', 'quality_staff', 'team_leader', 'technician', 'accountant') NOT NULL,
                 team_id INT NULL,
                 is_active TINYINT(1) DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -346,7 +346,53 @@ async function initDatabase() {
         `);
         console.log('✅ تم إنشاء جدول: message_templates');
         
-        // ==================== 14. إدراج البيانات الأولية ====================
+        // ==================== 14. جدول الإشعارات ====================
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NULL COMMENT 'المستخدم المستهدف (NULL = جميع المديرين)',
+                type ENUM('ticket_delayed', 'ticket_completed', 'achievement', 'system') NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                message TEXT NOT NULL,
+                related_ticket_id INT NULL,
+                is_read TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (related_ticket_id) REFERENCES tickets(id) ON DELETE SET NULL,
+                INDEX idx_user_id (user_id),
+                INDEX idx_type (type),
+                INDEX idx_is_read (is_read),
+                INDEX idx_created_at (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('✅ تم إنشاء جدول: notifications');
+        
+        // ==================== 15. جدول المكافآت ====================
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS rewards (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                team_id INT NOT NULL,
+                year INT NOT NULL,
+                month INT NOT NULL,
+                connection_bonus DECIMAL(10,2) DEFAULT 0 COMMENT 'مكافأة الربط',
+                maintenance_bonus DECIMAL(10,2) DEFAULT 0 COMMENT 'مكافأة الصيانة',
+                quality_bonus DECIMAL(10,2) DEFAULT 0 COMMENT 'مكافأة الجودة',
+                ranking_bonus DECIMAL(10,2) DEFAULT 0 COMMENT 'مكافأة الترتيب',
+                total_points INT DEFAULT 0,
+                total_reward DECIMAL(10,2) DEFAULT 0,
+                status ENUM('pending', 'approved', 'paid') DEFAULT 'pending',
+                notes TEXT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_team_month (team_id, year, month),
+                INDEX idx_year_month (year, month),
+                INDEX idx_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('✅ تم إنشاء جدول: rewards');
+        
+        // ==================== 16. إدراج البيانات الأولية ====================
         
         // إدراج أنواع التكتات
         const ticketTypes = [
@@ -455,6 +501,14 @@ async function initDatabase() {
         `, ['quality', qualityPassword, 'موظف الجودة', 'quality_staff']);
         console.log('✅ تم إدراج حساب موظف الجودة الافتراضي (quality/quality123)');
         
+        // إدراج حساب محاسب افتراضي
+        const accountantPassword = await bcrypt.hash('accountant123', 10);
+        await connection.query(`
+            INSERT IGNORE INTO users (username, password_hash, full_name, role)
+            VALUES (?, ?, ?, ?)
+        `, ['accountant', accountantPassword, 'المحاسب', 'accountant']);
+        console.log('✅ تم إدراج حساب المحاسب الافتراضي (accountant/accountant123)');
+        
         await connection.end();
         console.log('');
         console.log('==========================================');
@@ -464,6 +518,7 @@ async function initDatabase() {
         console.log('📝 الحسابات الافتراضية:');
         console.log('   المدير: admin / admin123');
         console.log('   موظف الجودة: quality / quality123');
+        console.log('   المحاسب: accountant / accountant123');
         console.log('');
         
     } catch (error) {

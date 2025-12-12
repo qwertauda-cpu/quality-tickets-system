@@ -33,6 +33,9 @@ function initAdminDashboard() {
     setupNavigation();
     
     loadDashboard();
+    
+    // Initialize notifications
+    setTimeout(initNotifications, 1000);
 }
 
 function setupNavigation() {
@@ -90,10 +93,16 @@ function showPage(pageName) {
         loadTeams();
     } else if (pageName === 'tickets') {
         loadTickets();
+        setupTicketsAutoRefresh();
     } else if (pageName === 'reports') {
         loadReports();
     }
 }
+
+// Auto refresh variables
+let ticketsAutoRefreshInterval = null;
+let currentTicketsFilters = {};
+let currentTicketsSort = { field: 'created_at', order: 'DESC' };
 
 async function loadTeams() {
     try {
@@ -128,6 +137,10 @@ async function loadTeams() {
     }
 }
 
+// Store all tickets for client-side filtering
+let allTickets = [];
+let filteredTickets = [];
+
 async function loadTickets() {
     try {
         if (!window.api) {
@@ -135,58 +148,217 @@ async function loadTickets() {
             return;
         }
         
-        const date = document.getElementById('ticketsDateFilter')?.value || '';
-        const status = document.getElementById('ticketsStatusFilter')?.value || '';
+        // Load teams and ticket types for filters
+        await loadTicketsFilters();
         
-        const params = {};
-        if (date) params.date = date;
-        if (status) params.status = status;
-        
-        const data = await window.api.getTickets(params);
+        // Load all tickets (we'll filter client-side)
+        const data = await window.api.getTickets({ limit: 1000 });
         if (data && data.success) {
-            const tbody = document.getElementById('ticketsTableBody');
-            tbody.innerHTML = '';
-            
-            if (data.tickets && data.tickets.length > 0) {
-                data.tickets.forEach(ticket => {
-                    const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
-                    const statusBadge = {
-                        'pending': 'badge-warning',
-                        'in_progress': 'badge-info',
-                        'completed': 'badge-success',
-                        'postponed': 'badge-danger',
-                        'closed': 'badge-danger'
-                    }[ticket.status] || 'badge-info';
-                    
-                    const statusText = {
-                        'pending': 'معلقة',
-                        'in_progress': 'قيد التنفيذ',
-                        'completed': 'مكتملة',
-                        'postponed': 'مؤجلة',
-                        'closed': 'مغلقة'
-                    }[ticket.status] || ticket.status;
-                    
-                    const row = document.createElement('tr');
-                    if (ticket.status === 'postponed') {
-                        row.classList.add('postponed');
-                    }
-                    row.innerHTML = `
-                        <td>${ticket.ticket_number}</td>
-                        <td>${ticket.ticket_type_name || ''}</td>
-                        <td>${ticket.team_name || ''}</td>
-                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
-                        <td>${formatTimeDuration(ticket.actual_time_minutes)}</td>
-                        <td>${netScore}</td>
-                        <td>${formatDate(ticket.created_at)}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات</td></tr>';
-            }
+            allTickets = data.tickets || [];
+            filterTickets();
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
+        document.getElementById('ticketsTableBody').innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التكتات</td></tr>';
+    }
+}
+
+async function loadTicketsFilters() {
+    try {
+        // Load teams
+        const teamsData = await window.api.getTeams();
+        const teamSelect = document.getElementById('ticketsTeamFilter');
+        if (teamSelect && teamsData && teamsData.success) {
+            teamSelect.innerHTML = '<option value="">جميع الفرق</option>';
+            (teamsData.teams || []).forEach(team => {
+                const option = document.createElement('option');
+                option.value = team.id;
+                option.textContent = team.name;
+                teamSelect.appendChild(option);
+            });
+        }
+        
+        // Load ticket types
+        const typesData = await window.api.getTicketTypes();
+        const typeSelect = document.getElementById('ticketsTypeFilter');
+        if (typeSelect && typesData && typesData.success) {
+            typeSelect.innerHTML = '<option value="">جميع الأنواع</option>';
+            (typesData.ticket_types || []).forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.id;
+                option.textContent = type.name_ar;
+                typeSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading filters:', error);
+    }
+}
+
+function filterTickets() {
+    const search = (document.getElementById('ticketsSearch')?.value || '').toLowerCase();
+    const date = document.getElementById('ticketsDateFilter')?.value || '';
+    const teamId = document.getElementById('ticketsTeamFilter')?.value || '';
+    const typeId = document.getElementById('ticketsTypeFilter')?.value || '';
+    const status = document.getElementById('ticketsStatusFilter')?.value || '';
+    const sortBy = document.getElementById('ticketsSortBy')?.value || 'created_at';
+    const sortOrder = document.getElementById('ticketsSortOrder')?.value || 'DESC';
+    
+    // Filter tickets
+    filteredTickets = allTickets.filter(ticket => {
+        // Search filter
+        if (search) {
+            const searchText = `${ticket.ticket_number} ${ticket.ticket_type_name || ''} ${ticket.team_name || ''}`.toLowerCase();
+            if (!searchText.includes(search)) return false;
+        }
+        
+        // Date filter
+        if (date) {
+            const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
+            if (ticketDate !== date) return false;
+        }
+        
+        // Team filter
+        if (teamId && ticket.team_id != teamId) return false;
+        
+        // Type filter
+        if (typeId && ticket.ticket_type_id != typeId) return false;
+        
+        // Status filter
+        if (status && ticket.status !== status) return false;
+        
+        return true;
+    });
+    
+    // Sort tickets
+    filteredTickets.sort((a, b) => {
+        let aVal = a[sortBy];
+        let bVal = b[sortBy];
+        
+        // Handle null/undefined
+        if (aVal == null) aVal = '';
+        if (bVal == null) bVal = '';
+        
+        // Handle numbers
+        if (typeof aVal === 'number' && typeof bVal === 'number') {
+            return sortOrder === 'ASC' ? aVal - bVal : bVal - aVal;
+        }
+        
+        // Handle strings
+        aVal = String(aVal).toLowerCase();
+        bVal = String(bVal).toLowerCase();
+        
+        if (sortOrder === 'ASC') {
+            return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        } else {
+            return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+        }
+    });
+    
+    displayTickets(filteredTickets);
+}
+
+function displayTickets(tickets) {
+    const tbody = document.getElementById('ticketsTableBody');
+    tbody.innerHTML = '';
+    
+    if (tickets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات</td></tr>';
+        return;
+    }
+    
+    tickets.forEach(ticket => {
+        const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
+        const statusBadge = {
+            'pending': 'badge-warning',
+            'in_progress': 'badge-info',
+            'completed': 'badge-success',
+            'postponed': 'badge-danger',
+            'closed': 'badge-danger'
+        }[ticket.status] || 'badge-info';
+        
+        const statusText = {
+            'pending': 'معلقة',
+            'in_progress': 'قيد التنفيذ',
+            'completed': 'مكتملة',
+            'postponed': 'مؤجلة',
+            'closed': 'مغلقة'
+        }[ticket.status] || ticket.status;
+        
+        const row = document.createElement('tr');
+        if (ticket.status === 'postponed') {
+            row.classList.add('postponed');
+        }
+        row.innerHTML = `
+            <td>${ticket.ticket_number}</td>
+            <td>${ticket.ticket_type_name || ''}</td>
+            <td>${ticket.team_name || ''}</td>
+            <td><span class="badge ${statusBadge}">${statusText}</span></td>
+            <td>${formatTimeDuration(ticket.actual_time_minutes)}</td>
+            <td>${netScore}</td>
+            <td>${formatDate(ticket.created_at)}</td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function sortTickets(field) {
+    const currentField = document.getElementById('ticketsSortBy').value;
+    const currentOrder = document.getElementById('ticketsSortOrder').value;
+    
+    if (currentField === field) {
+        // Toggle order
+        document.getElementById('ticketsSortOrder').value = currentOrder === 'ASC' ? 'DESC' : 'ASC';
+    } else {
+        document.getElementById('ticketsSortBy').value = field;
+        document.getElementById('ticketsSortOrder').value = 'DESC';
+    }
+    
+    filterTickets();
+}
+
+function resetFilters() {
+    document.getElementById('ticketsSearch').value = '';
+    document.getElementById('ticketsDateFilter').value = '';
+    document.getElementById('ticketsTeamFilter').value = '';
+    document.getElementById('ticketsTypeFilter').value = '';
+    document.getElementById('ticketsStatusFilter').value = '';
+    document.getElementById('ticketsSortBy').value = 'created_at';
+    document.getElementById('ticketsSortOrder').value = 'DESC';
+    filterTickets();
+}
+
+function setupTicketsAutoRefresh() {
+    // Clear existing interval
+    if (ticketsAutoRefreshInterval) {
+        clearInterval(ticketsAutoRefreshInterval);
+    }
+    
+    // Check if auto-refresh is enabled
+    const autoRefreshCheckbox = document.getElementById('autoRefreshTickets');
+    if (!autoRefreshCheckbox) return;
+    
+    // Setup interval
+    const refresh = () => {
+        if (autoRefreshCheckbox.checked) {
+            loadTickets();
+        }
+    };
+    
+    autoRefreshCheckbox.addEventListener('change', () => {
+        if (autoRefreshCheckbox.checked) {
+            ticketsAutoRefreshInterval = setInterval(refresh, 30000); // 30 seconds
+        } else {
+            if (ticketsAutoRefreshInterval) {
+                clearInterval(ticketsAutoRefreshInterval);
+                ticketsAutoRefreshInterval = null;
+            }
+        }
+    });
+    
+    // Start if checked
+    if (autoRefreshCheckbox.checked) {
+        ticketsAutoRefreshInterval = setInterval(refresh, 30000);
     }
 }
 
@@ -911,5 +1083,200 @@ async function loadDashboard() {
     } catch (error) {
         console.error('Error loading dashboard:', error);
     }
+}
+
+// ==================== Notifications ====================
+let notificationsInterval = null;
+
+function initNotifications() {
+    loadNotifications();
+    // Check for new notifications every 30 seconds
+    notificationsInterval = setInterval(loadNotifications, 30000);
+}
+
+async function loadNotifications() {
+    try {
+        if (!window.api) return;
+        
+        const response = await window.api.getNotifications(true); // Only unread
+        if (response && response.success) {
+            const badge = document.getElementById('notificationBadge');
+            if (badge) {
+                if (response.unread_count > 0) {
+                    badge.textContent = response.unread_count;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading notifications:', error);
+    }
+}
+
+function showNotifications() {
+    const dropdown = document.getElementById('notificationsDropdown');
+    if (!dropdown) return;
+    
+    dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+    
+    if (dropdown.style.display === 'block') {
+        loadNotificationsList();
+    }
+}
+
+async function loadNotificationsList() {
+    try {
+        if (!window.api) return;
+        
+        const response = await window.api.getNotifications();
+        const list = document.getElementById('notificationsList');
+        
+        if (!response || !response.success || !response.notifications || response.notifications.length === 0) {
+            list.innerHTML = '<p style="padding: 20px; text-align: center;">لا توجد إشعارات</p>';
+            return;
+        }
+        
+        let html = '';
+        response.notifications.forEach(notif => {
+            const timeAgo = formatTimeAgo(notif.created_at);
+            html += `
+                <div class="notification-item ${notif.is_read ? '' : 'unread'}" onclick="markNotificationRead(${notif.id})">
+                    <div class="notification-title">${notif.title}</div>
+                    <div class="notification-message">${notif.message}</div>
+                    <div class="notification-time">${timeAgo}</div>
+                </div>
+            `;
+        });
+        
+        list.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading notifications list:', error);
+    }
+}
+
+async function markNotificationRead(id) {
+    try {
+        if (!window.api) return;
+        
+        await window.api.markNotificationRead(id);
+        loadNotifications();
+        loadNotificationsList();
+    } catch (error) {
+        console.error('Error marking notification read:', error);
+    }
+}
+
+async function markAllNotificationsRead() {
+    try {
+        if (!window.api) return;
+        
+        await window.api.markAllNotificationsRead();
+        loadNotifications();
+        loadNotificationsList();
+    } catch (error) {
+        console.error('Error marking all notifications read:', error);
+    }
+}
+
+function formatTimeAgo(dateString) {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'الآن';
+    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+    if (diffDays < 7) return `منذ ${diffDays} يوم`;
+    return formatDate(dateString);
+}
+
+// ==================== Database Export ====================
+async function loadExportTables() {
+    try {
+        if (!window.api) return;
+        
+        const response = await window.api.getExportTables();
+        const container = document.getElementById('exportTablesList');
+        
+        if (!response || !response.success || !response.tables) {
+            container.innerHTML = '<p>خطأ في تحميل قائمة الجداول</p>';
+            return;
+        }
+        
+        let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">';
+        response.tables.forEach(table => {
+            html += `
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" class="export-table-checkbox" value="${table.name}" checked style="margin-left: 5px;">
+                    <span>${table.description} (${table.name})</span>
+                </label>
+            `;
+        });
+        html += '</div>';
+        html += '<div style="margin-top: 10px;">';
+        html += '<button class="btn btn-sm btn-secondary" onclick="selectAllExportTables()">تحديد الكل</button> ';
+        html += '<button class="btn btn-sm btn-secondary" onclick="deselectAllExportTables()">إلغاء تحديد الكل</button>';
+        html += '</div>';
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Error loading export tables:', error);
+    }
+}
+
+function selectAllExportTables() {
+    document.querySelectorAll('.export-table-checkbox').forEach(cb => cb.checked = true);
+}
+
+function deselectAllExportTables() {
+    document.querySelectorAll('.export-table-checkbox').forEach(cb => cb.checked = false);
+}
+
+async function exportDatabase() {
+    try {
+        if (!window.api) {
+            alert('API غير متاح');
+            return;
+        }
+        
+        const selectedTables = Array.from(document.querySelectorAll('.export-table-checkbox:checked'))
+            .map(cb => cb.value);
+        
+        if (selectedTables.length === 0) {
+            alert('الرجاء اختيار جدول واحد على الأقل');
+            return;
+        }
+        
+        const resultDiv = document.getElementById('exportResult');
+        resultDiv.innerHTML = '<p>جاري تصدير قاعدة البيانات...</p>';
+        
+        await window.api.exportDatabase(selectedTables);
+        
+        resultDiv.innerHTML = '<div class="alert alert-success">✅ تم تصدير قاعدة البيانات بنجاح</div>';
+    } catch (error) {
+        console.error('Error exporting database:', error);
+        document.getElementById('exportResult').innerHTML = '<div class="alert alert-error">❌ خطأ في تصدير قاعدة البيانات</div>';
+    }
+}
+
+// Update loadReports to load export tables
+const originalLoadReports = loadReports;
+loadReports = function() {
+    originalLoadReports();
+    loadExportTables();
+};
+
+// Initialize notifications on page load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initNotifications, 1000);
+    });
+} else {
+    setTimeout(initNotifications, 1000);
 }
 

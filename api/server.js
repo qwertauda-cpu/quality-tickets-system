@@ -1267,7 +1267,430 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Quality & Tickets Management System');
     console.log('==========================================');
     console.log(`✅ Server running on port ${PORT}`);
+    // ==================== Start Background Jobs ====================
+    // فحص التكتات المتأخرة كل 5 دقائق
+    setInterval(checkDelayedTickets, 5 * 60 * 1000); // 5 minutes
+    checkDelayedTickets(); // Run immediately on startup
+    
     console.log(`🌐 Access: http://localhost:${PORT}`);
     console.log('');
+});
+
+// ==================== Background Job: Check Delayed Tickets ====================
+async function checkDelayedTickets() {
+    try {
+        // البحث عن تكتات متأخرة أكثر من 3 ساعات
+        const delayedTickets = await db.query(`
+            SELECT t.*, tm.name as team_name, tt.name_ar as ticket_type_name
+            FROM tickets t
+            JOIN teams tm ON t.team_id = tm.id
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE t.status IN ('in_progress', 'pending')
+            AND t.time_received IS NOT NULL
+            AND TIMESTAMPDIFF(MINUTE, t.time_received, NOW()) > 180
+            AND NOT EXISTS (
+                SELECT 1 FROM notifications n 
+                WHERE n.related_ticket_id = t.id 
+                AND n.type = 'ticket_delayed' 
+                AND n.is_read = 0
+                AND DATE(n.created_at) = CURDATE()
+            )
+        `);
+        
+        // إنشاء إشعارات للمديرين
+        if (delayedTickets.length > 0) {
+            const admins = await db.query('SELECT id FROM users WHERE role = "admin" AND is_active = 1');
+            
+            for (const ticket of delayedTickets) {
+                for (const admin of admins) {
+                    await db.query(`
+                        INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+                        VALUES (?, 'ticket_delayed', ?, ?, ?)
+                    `, [
+                        admin.id,
+                        `تأخر التكت رقم ${ticket.ticket_number}`,
+                        `التكت رقم ${ticket.ticket_number} (${ticket.ticket_type_name}) للفريق ${ticket.team_name} متأخر أكثر من 3 ساعات. الوقت المنقضي: ${Math.floor((Date.now() - new Date(ticket.time_received).getTime()) / 60000)} دقيقة`,
+                        ticket.id
+                    ]);
+                }
+            }
+            
+            console.log(`📢 تم إنشاء ${delayedTickets.length} إشعار للتكتات المتأخرة`);
+        }
+    } catch (error) {
+        console.error('Error checking delayed tickets:', error);
+    }
+}
+
+// ==================== Notifications API ====================
+// Get notifications for current user
+app.get('/api/notifications', authenticate, async (req, res) => {
+    try {
+        const { unread_only = false } = req.query;
+        
+        let query = `
+            SELECT n.*, t.ticket_number, t.status as ticket_status
+            FROM notifications n
+            LEFT JOIN tickets t ON n.related_ticket_id = t.id
+            WHERE (n.user_id = ? OR n.user_id IS NULL)
+        `;
+        
+        const params = [req.user.id];
+        
+        if (unread_only === 'true') {
+            query += ' AND n.is_read = 0';
+        }
+        
+        query += ' ORDER BY n.created_at DESC LIMIT 100';
+        
+        const notifications = await db.query(query, params);
+        
+        res.json({
+            success: true,
+            notifications: notifications,
+            unread_count: notifications.filter(n => !n.is_read).length
+        });
+    } catch (error) {
+        console.error('Get notifications error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الإشعارات' });
+    }
+});
+
+// Mark notification as read
+app.put('/api/notifications/:id/read', authenticate, async (req, res) => {
+    try {
+        await db.query(`
+            UPDATE notifications 
+            SET is_read = 1 
+            WHERE id = ? AND (user_id = ? OR user_id IS NULL)
+        `, [req.params.id, req.user.id]);
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Mark notification read error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث الإشعار' });
+    }
+});
+
+// Mark all notifications as read
+app.put('/api/notifications/read-all', authenticate, async (req, res) => {
+    try {
+        await db.query(`
+            UPDATE notifications 
+            SET is_read = 1 
+            WHERE (user_id = ? OR user_id IS NULL) AND is_read = 0
+        `, [req.user.id]);
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Mark all notifications read error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث الإشعارات' });
+    }
+});
+
+// ==================== Rewards API (Accountant Only) ====================
+// Get rewards for accountant
+app.get('/api/rewards', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'accountant' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const { year, month, team_id, status } = req.query;
+        
+        let whereClause = '1=1';
+        const params = [];
+        
+        if (year) {
+            whereClause += ' AND r.year = ?';
+            params.push(year);
+        }
+        
+        if (month) {
+            whereClause += ' AND r.month = ?';
+            params.push(month);
+        }
+        
+        if (team_id) {
+            whereClause += ' AND r.team_id = ?';
+            params.push(team_id);
+        }
+        
+        if (status) {
+            whereClause += ' AND r.status = ?';
+            params.push(status);
+        }
+        
+        const rewards = await db.query(`
+            SELECT r.*, tm.name as team_name
+            FROM rewards r
+            JOIN teams tm ON r.team_id = tm.id
+            WHERE ${whereClause}
+            ORDER BY r.year DESC, r.month DESC, r.team_id
+        `, params);
+        
+        res.json({ success: true, rewards });
+    } catch (error) {
+        console.error('Get rewards error:', error);
+        res.status(500).json({ error: 'خطأ في جلب المكافآت' });
+    }
+});
+
+// Calculate and create rewards for a month
+app.post('/api/rewards/calculate', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'accountant' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const { year, month } = req.body;
+        
+        if (!year || !month) {
+            return res.status(400).json({ error: 'السنة والشهر مطلوبان' });
+        }
+        
+        // جلب بيانات الفرق للشهر المحدد
+        const teamStats = await db.query(`
+            SELECT 
+                tm.id as team_id,
+                tm.name as team_name,
+                COUNT(DISTINCT t.id) as total_tickets,
+                SUM(CASE WHEN tt.category = 'connection' THEN 1 ELSE 0 END) as connection_count,
+                SUM(CASE WHEN tt.category = 'maintenance' THEN 1 ELSE 0 END) as maintenance_count,
+                COALESCE(SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id)), 0) as total_positive,
+                COALESCE(SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id)), 0) as total_negative
+            FROM teams tm
+            LEFT JOIN tickets t ON tm.id = t.team_id 
+                AND YEAR(t.created_at) = ? 
+                AND MONTH(t.created_at) = ?
+            LEFT JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE tm.is_active = 1
+            GROUP BY tm.id, tm.name
+        `, [year, month]);
+        
+        // جلب ترتيب الفرق
+        const rankings = await db.query(`
+            SELECT 
+                team_id,
+                net_points,
+                RANK() OVER (ORDER BY net_points DESC) as rank_position
+            FROM (
+                SELECT 
+                    tm.id as team_id,
+                    COALESCE(SUM((SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id)), 0) - 
+                    COALESCE(SUM((SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id)), 0) as net_points
+                FROM teams tm
+                LEFT JOIN tickets t ON tm.id = t.team_id 
+                    AND YEAR(t.created_at) = ? 
+                    AND MONTH(t.created_at) = ?
+                WHERE tm.is_active = 1
+                GROUP BY tm.id
+            ) as team_scores
+            ORDER BY net_points DESC
+        `, [year, month]);
+        
+        const rankingMap = {};
+        rankings.forEach((r, index) => {
+            rankingMap[r.team_id] = r.rank_position;
+        });
+        
+        // إعدادات المكافآت (يمكن نقلها إلى جدول إعدادات)
+        const CONNECTION_BONUS = 5000; // 5000 دينار لكل تكت ربط
+        const MAINTENANCE_BONUS = 3000; // 3000 دينار لكل تكت صيانة
+        const QUALITY_BONUS_RATE = 100; // 100 دينار لكل 10 نقاط
+        const RANKING_BONUS = {
+            1: 50000, // المركز الأول
+            2: 30000, // المركز الثاني
+            3: 20000  // المركز الثالث
+        };
+        
+        const createdRewards = [];
+        
+        for (const team of teamStats) {
+            const connectionBonus = (team.connection_count || 0) * CONNECTION_BONUS;
+            const maintenanceBonus = (team.maintenance_count || 0) * MAINTENANCE_BONUS;
+            const qualityBonus = Math.floor((team.total_positive || 0) / 10) * QUALITY_BONUS_RATE;
+            const rankingBonus = RANKING_BONUS[rankingMap[team.team_id]] || 0;
+            
+            const totalReward = connectionBonus + maintenanceBonus + qualityBonus + rankingBonus;
+            const totalPoints = (team.total_positive || 0) - (team.total_negative || 0);
+            
+            // إدراج أو تحديث المكافأة
+            await db.query(`
+                INSERT INTO rewards (
+                    team_id, year, month, connection_bonus, maintenance_bonus,
+                    quality_bonus, ranking_bonus, total_points, total_reward, status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                ON DUPLICATE KEY UPDATE
+                    connection_bonus = VALUES(connection_bonus),
+                    maintenance_bonus = VALUES(maintenance_bonus),
+                    quality_bonus = VALUES(quality_bonus),
+                    ranking_bonus = VALUES(ranking_bonus),
+                    total_points = VALUES(total_points),
+                    total_reward = VALUES(total_reward),
+                    updated_at = CURRENT_TIMESTAMP
+            `, [
+                team.team_id, year, month, connectionBonus, maintenanceBonus,
+                qualityBonus, rankingBonus, totalPoints, totalReward
+            ]);
+            
+            createdRewards.push({
+                team_id: team.team_id,
+                team_name: team.team_name,
+                connection_bonus: connectionBonus,
+                maintenance_bonus: maintenanceBonus,
+                quality_bonus: qualityBonus,
+                ranking_bonus: rankingBonus,
+                total_reward: totalReward
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: `تم حساب المكافآت لـ ${createdRewards.length} فريق`,
+            rewards: createdRewards
+        });
+    } catch (error) {
+        console.error('Calculate rewards error:', error);
+        res.status(500).json({ error: 'خطأ في حساب المكافآت' });
+    }
+});
+
+// Update reward status
+app.put('/api/rewards/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'accountant' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const { status, notes } = req.body;
+        
+        await db.query(`
+            UPDATE rewards 
+            SET status = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [status, notes, req.params.id]);
+        
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Update reward error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث المكافأة' });
+    }
+});
+
+// ==================== Database Export API ====================
+app.get('/api/export/database', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const { tables } = req.query;
+        const selectedTables = tables ? tables.split(',') : null;
+        
+        // قائمة الجداول المتاحة
+        const allTables = [
+            'users', 'teams', 'team_members', 'ticket_types', 'tickets',
+            'ticket_photos', 'quality_reviews', 'positive_scores', 'negative_scores',
+            'followup_reports', 'daily_summaries', 'monthly_summaries',
+            'message_templates', 'notifications', 'rewards'
+        ];
+        
+        const tablesToExport = selectedTables && selectedTables.length > 0
+            ? allTables.filter(t => selectedTables.includes(t))
+            : allTables;
+        
+        if (tablesToExport.length === 0) {
+            return res.status(400).json({ error: 'لم يتم اختيار أي جداول' });
+        }
+        
+        // إنشاء ملف SQL
+        const mysql = require('mysql2/promise');
+        const config = require('./config');
+        const connection = await mysql.createConnection({
+            host: config.db.host,
+            user: config.db.user,
+            password: config.db.password,
+            database: config.db.database
+        });
+        
+        let sqlContent = `-- Database Export\n`;
+        sqlContent += `-- Generated: ${moment().format('YYYY-MM-DD HH:mm:ss')}\n`;
+        sqlContent += `-- Tables: ${tablesToExport.join(', ')}\n\n`;
+        sqlContent += `SET FOREIGN_KEY_CHECKS=0;\n\n`;
+        
+        for (const tableName of tablesToExport) {
+            // جلب البيانات
+            const [rows] = await connection.query(`SELECT * FROM ??`, [tableName]);
+            
+            if (rows.length > 0) {
+                sqlContent += `-- Table: ${tableName}\n`;
+                sqlContent += `TRUNCATE TABLE \`${tableName}\`;\n\n`;
+                
+                // إنشاء INSERT statements
+                const columns = Object.keys(rows[0]);
+                sqlContent += `INSERT INTO \`${tableName}\` (\`${columns.join('`, `')}\`) VALUES\n`;
+                
+                const values = rows.map(row => {
+                    const rowValues = columns.map(col => {
+                        const value = row[col];
+                        if (value === null) return 'NULL';
+                        if (typeof value === 'string') {
+                            return `'${value.replace(/'/g, "''").replace(/\\/g, '\\\\')}'`;
+                        }
+                        return value;
+                    });
+                    return `(${rowValues.join(', ')})`;
+                });
+                
+                sqlContent += values.join(',\n') + ';\n\n';
+            }
+        }
+        
+        sqlContent += `SET FOREIGN_KEY_CHECKS=1;\n`;
+        
+        await connection.end();
+        
+        // إرسال الملف
+        const filename = `database-export-${moment().format('YYYY-MM-DD-HHmmss')}.sql`;
+        res.setHeader('Content-Type', 'application/sql');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(sqlContent);
+    } catch (error) {
+        console.error('Database export error:', error);
+        res.status(500).json({ error: 'خطأ في تصدير قاعدة البيانات' });
+    }
+});
+
+// Get list of available tables
+app.get('/api/export/tables', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const tables = [
+            { name: 'users', description: 'المستخدمين' },
+            { name: 'teams', description: 'الفرق' },
+            { name: 'team_members', description: 'أعضاء الفرق' },
+            { name: 'ticket_types', description: 'أنواع التكتات' },
+            { name: 'tickets', description: 'التكتات' },
+            { name: 'ticket_photos', description: 'صور التكتات' },
+            { name: 'quality_reviews', description: 'تقييمات الجودة' },
+            { name: 'positive_scores', description: 'النقاط الإيجابية' },
+            { name: 'negative_scores', description: 'النقاط السالبة' },
+            { name: 'followup_reports', description: 'تقارير المتابعة' },
+            { name: 'daily_summaries', description: 'الملخصات اليومية' },
+            { name: 'monthly_summaries', description: 'الملخصات الشهرية' },
+            { name: 'message_templates', description: 'قوالب الرسائل' },
+            { name: 'notifications', description: 'الإشعارات' },
+            { name: 'rewards', description: 'المكافآت' }
+        ];
+        
+        res.json({ success: true, tables });
+    } catch (error) {
+        console.error('Get tables error:', error);
+        res.status(500).json({ error: 'خطأ في جلب قائمة الجداول' });
+    }
 });
 

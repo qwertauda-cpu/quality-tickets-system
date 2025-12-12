@@ -41,6 +41,8 @@ if (loginForm) {
                 window.location.href = '/quality-staff.html';
             } else if (role === 'team_leader' || role === 'technician') {
                 window.location.href = '/technician-dashboard.html';
+            } else if (role === 'accountant') {
+                window.location.href = '/accountant-dashboard.html';
             } else {
                 window.location.href = '/index.html';
             }

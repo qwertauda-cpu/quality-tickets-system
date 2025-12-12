@@ -122,7 +122,59 @@ const api = {
         if (date) params.append('date', date);
         return apiRequest(`/team-rankings?${params}`);
     },
-    getMyTeam: () => apiRequest('/my-team')
+    getMyTeam: () => apiRequest('/my-team'),
+    
+    // Notifications
+    getNotifications: (unreadOnly = false) => {
+        const params = unreadOnly ? '?unread_only=true' : '';
+        return apiRequest(`/notifications${params}`);
+    },
+    markNotificationRead: (id) => apiRequest(`/notifications/${id}/read`, {
+        method: 'PUT'
+    }),
+    markAllNotificationsRead: () => apiRequest('/notifications/read-all', {
+        method: 'PUT'
+    }),
+    
+    // Rewards (Accountant)
+    getRewards: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return apiRequest(`/rewards?${queryString}`);
+    },
+    calculateRewards: (data) => apiRequest('/rewards/calculate', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    updateReward: (id, data) => apiRequest(`/rewards/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    }),
+    
+    // Database Export
+    getExportTables: () => apiRequest('/export/tables'),
+    exportDatabase: (tables = []) => {
+        const params = tables.length > 0 ? `?tables=${tables.join(',')}` : '';
+        return fetch(`${window.API_BASE}/export/database${params}`, {
+            headers: {
+                'Authorization': localStorage.getItem('token') || ''
+            }
+        }).then(res => {
+            if (res.ok) {
+                return res.blob().then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `database-export-${new Date().toISOString().split('T')[0]}.sql`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    return { success: true };
+                });
+            }
+            return res.json();
+        });
+    }
 };
 
 // Make API available globally

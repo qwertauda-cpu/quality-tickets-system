@@ -30,9 +30,22 @@
             <div class="header">
                 <h1 id="pageTitle">لوحة التحكم</h1>
                 <div class="user-info">
+                    <div class="notifications-bell" id="notificationsBell" onclick="showNotifications()" style="position: relative; cursor: pointer; margin-left: 15px; font-size: 20px;">
+                        🔔
+                        <span class="notification-badge" id="notificationBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 12px; display: flex; align-items: center; justify-content: center;">0</span>
+                    </div>
                     <span id="currentUser"></span>
                     <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
                 </div>
+            </div>
+            
+            <!-- Notifications Dropdown -->
+            <div id="notificationsDropdown" class="notifications-dropdown" style="display: none;">
+                <div class="notifications-header">
+                    <h3>الإشعارات</h3>
+                    <button onclick="markAllNotificationsRead()" class="btn btn-sm">تعليم الكل كمقروء</button>
+                </div>
+                <div id="notificationsList" class="notifications-list"></div>
             </div>
 
             <div id="dashboard-page" class="page-content">
@@ -111,28 +124,74 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>التكتات</h2>
-                        <div>
-                            <input type="date" id="ticketsDateFilter" style="margin-left: 10px;">
-                            <select id="ticketsStatusFilter" style="margin-left: 10px;">
-                                <option value="">جميع الحالات</option>
-                                <option value="pending">معلقة</option>
-                                <option value="in_progress">قيد التنفيذ</option>
-                                <option value="completed">مكتملة</option>
-                            </select>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label>
+                                <input type="checkbox" id="autoRefreshTickets" checked> تحديث تلقائي (30 ثانية)
+                            </label>
                         </div>
                     </div>
                     <div class="card-body">
+                        <div class="filters-bar" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>البحث:</label>
+                                <input type="text" id="ticketsSearch" placeholder="ابحث في رقم التكت، النوع، الفريق..." onkeyup="filterTickets()" style="width: 250px;">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>التاريخ:</label>
+                                <input type="date" id="ticketsDateFilter" onchange="filterTickets()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>الفريق:</label>
+                                <select id="ticketsTeamFilter" onchange="filterTickets()">
+                                    <option value="">جميع الفرق</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>النوع:</label>
+                                <select id="ticketsTypeFilter" onchange="filterTickets()">
+                                    <option value="">جميع الأنواع</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>الحالة:</label>
+                                <select id="ticketsStatusFilter" onchange="filterTickets()">
+                                    <option value="">جميع الحالات</option>
+                                    <option value="pending">معلقة</option>
+                                    <option value="in_progress">قيد التنفيذ</option>
+                                    <option value="completed">مكتملة</option>
+                                    <option value="postponed">مؤجلة</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>ترتيب حسب:</label>
+                                <select id="ticketsSortBy" onchange="filterTickets()">
+                                    <option value="created_at">التاريخ</option>
+                                    <option value="ticket_number">رقم التكت</option>
+                                    <option value="team_name">الفريق</option>
+                                    <option value="net_points">النقاط</option>
+                                    <option value="actual_time_minutes">الوقت الفعلي</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>الاتجاه:</label>
+                                <select id="ticketsSortOrder" onchange="filterTickets()">
+                                    <option value="DESC">تنازلي</option>
+                                    <option value="ASC">تصاعدي</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary" onclick="resetFilters()">إعادة تعيين</button>
+                        </div>
                         <div class="table-container">
                             <table id="ticketsTable">
                                 <thead>
                                     <tr>
-                                        <th>رقم التكت</th>
-                                        <th>النوع</th>
-                                        <th>الفريق</th>
-                                        <th>الحالة</th>
-                                        <th>الوقت الفعلي</th>
-                                        <th>النقاط</th>
-                                        <th>التاريخ</th>
+                                        <th onclick="sortTickets('ticket_number')" style="cursor: pointer;">رقم التكت ↕</th>
+                                        <th onclick="sortTickets('ticket_type_name')" style="cursor: pointer;">النوع ↕</th>
+                                        <th onclick="sortTickets('team_name')" style="cursor: pointer;">الفريق ↕</th>
+                                        <th onclick="sortTickets('status')" style="cursor: pointer;">الحالة ↕</th>
+                                        <th onclick="sortTickets('actual_time_minutes')" style="cursor: pointer;">الوقت الفعلي ↕</th>
+                                        <th onclick="sortTickets('net_points')" style="cursor: pointer;">النقاط ↕</th>
+                                        <th onclick="sortTickets('created_at')" style="cursor: pointer;">التاريخ ↕</th>
                                     </tr>
                                 </thead>
                                 <tbody id="ticketsTableBody">
@@ -142,14 +201,15 @@
                                 </tbody>
                             </table>
                         </div>
+                        <div id="ticketsPagination" style="margin-top: 20px; text-align: center;"></div>
                     </div>
                 </div>
             </div>
 
             <div id="reports-page" class="page-content" style="display: none;">
-                <div class="card">
+                <div class="card" style="margin-bottom: 20px;">
                     <div class="card-header">
-                        <h2>التقارير</h2>
+                        <h2>التقارير اليومية</h2>
                     </div>
                     <div class="card-body">
                         <div class="form-group">
@@ -158,6 +218,18 @@
                             <button class="btn btn-primary" onclick="generateDailyReport()" style="margin-right: 10px;">توليد تقرير PDF</button>
                         </div>
                         <div id="reportResult" style="margin-top: 20px;"></div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>تصدير قاعدة البيانات</h2>
+                    </div>
+                    <div class="card-body">
+                        <p>اختر الجداول التي تريد تصديرها:</p>
+                        <div id="exportTablesList" style="margin: 20px 0;"></div>
+                        <button class="btn btn-primary" onclick="exportDatabase()">تصدير قاعدة البيانات</button>
+                        <div id="exportResult" style="margin-top: 20px;"></div>
                     </div>
                 </div>
             </div>
