@@ -775,50 +775,20 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
         
         // دالة مساعدة لكتابة النص العربي
         const writeArabicText = (doc, text, options = {}) => {
-            // استخدام الخط العربي المسجل إذا كان موجوداً
-            if (fs.existsSync(arabicFontRegular) || fs.existsSync(arabicFontBold)) {
-                try {
-                    if (options.bold && fs.existsSync(arabicFontBold)) {
-                        doc.font('ArabicBold');
-                    } else if (fs.existsSync(arabicFontRegular)) {
-                        doc.font('Arabic');
-                    } else {
-                        doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
-                    }
-                } catch (e) {
-                    // إذا فشل استخدام الخط المسجل، استخدم مسار الملف مباشرة
-                    try {
-                        if (options.bold && fs.existsSync(arabicFontBold)) {
-                            doc.font(arabicFontBold);
-                        } else if (fs.existsSync(arabicFontRegular)) {
-                            doc.font(arabicFontRegular);
-                        } else {
-                            doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
-                        }
-                    } catch (e2) {
-                        doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
-                    }
-                }
+            // استخدام مسار الملف مباشرة (أفضل طريقة مع PDFKit)
+            if (options.bold && fs.existsSync(arabicFontBold)) {
+                doc.font(arabicFontBold);
+            } else if (fs.existsSync(arabicFontRegular)) {
+                doc.font(arabicFontRegular);
             } else {
                 doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
             }
             
             // كتابة النص
-            try {
-                if (options.x !== undefined && options.y !== undefined) {
-                    doc.text(text, options.x, options.y, options);
-                } else {
-                    doc.text(text, options);
-                }
-            } catch (error) {
-                console.error('Error writing text to PDF:', error);
-                // إعادة المحاولة مع خط افتراضي
-                doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
-                if (options.x !== undefined && options.y !== undefined) {
-                    doc.text(text, options.x, options.y, options);
-                } else {
-                    doc.text(text, options);
-                }
+            if (options.x !== undefined && options.y !== undefined) {
+                doc.text(text, options.x, options.y, options);
+            } else {
+                doc.text(text, options);
             }
         };
         
@@ -857,12 +827,13 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             
             // العنوان الرئيسي
             doc.fontSize(24);
-            if (hasArabicFont) {
-                doc.font('ArabicBold');
+            // استخدام الخط العربي مباشرة
+            if (fs.existsSync(arabicFontBold)) {
+                doc.font(arabicFontBold);
             } else {
                 doc.font('Helvetica-Bold');
             }
-            writeArabicText(doc, 'تقرير يومي - إدارة التكتات والجودة', { align: 'center', bold: true });
+            doc.text('تقرير يومي - إدارة التكتات والجودة', { align: 'center' });
             doc.moveDown();
             doc.fontSize(16);
             writeArabicText(doc, `التاريخ: ${moment(reportDate).format('YYYY-MM-DD')}`, { align: 'center' });
