@@ -775,20 +775,41 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
         
         // دالة مساعدة لكتابة النص العربي
         const writeArabicText = (doc, text, options = {}) => {
-            // استخدام مسار الملف مباشرة (أفضل طريقة مع PDFKit)
-            if (options.bold && fs.existsSync(arabicFontBold)) {
-                doc.font(arabicFontBold);
-            } else if (fs.existsSync(arabicFontRegular)) {
-                doc.font(arabicFontRegular);
-            } else {
+            try {
+                // استخدام مسار الملف مباشرة (أفضل طريقة مع PDFKit)
+                if (options.bold && fs.existsSync(arabicFontBold)) {
+                    try {
+                        doc.font(arabicFontBold);
+                    } catch (e) {
+                        console.error('Error using Arabic Bold font, falling back to Helvetica:', e.message);
+                        doc.font('Helvetica-Bold');
+                    }
+                } else if (fs.existsSync(arabicFontRegular)) {
+                    try {
+                        doc.font(arabicFontRegular);
+                    } catch (e) {
+                        console.error('Error using Arabic Regular font, falling back to Helvetica:', e.message);
+                        doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+                    }
+                } else {
+                    doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+                }
+                
+                // كتابة النص
+                if (options.x !== undefined && options.y !== undefined) {
+                    doc.text(text, options.x, options.y, options);
+                } else {
+                    doc.text(text, options);
+                }
+            } catch (error) {
+                console.error('Error in writeArabicText:', error);
+                // استخدام خط افتراضي في حالة الخطأ
                 doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
-            }
-            
-            // كتابة النص
-            if (options.x !== undefined && options.y !== undefined) {
-                doc.text(text, options.x, options.y, options);
-            } else {
-                doc.text(text, options);
+                if (options.x !== undefined && options.y !== undefined) {
+                    doc.text(text, options.x, options.y, options);
+                } else {
+                    doc.text(text, options);
+                }
             }
         };
         
@@ -827,10 +848,15 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             
             // العنوان الرئيسي
             doc.fontSize(24);
-            // استخدام الخط العربي مباشرة
-            if (fs.existsSync(arabicFontBold)) {
-                doc.font(arabicFontBold);
-            } else {
+            // استخدام الخط العربي مباشرة مع معالجة الأخطاء
+            try {
+                if (fs.existsSync(arabicFontBold)) {
+                    doc.font(arabicFontBold);
+                } else {
+                    doc.font('Helvetica-Bold');
+                }
+            } catch (e) {
+                console.error('Error setting font for title:', e.message);
                 doc.font('Helvetica-Bold');
             }
             doc.text('تقرير يومي - إدارة التكتات والجودة', { align: 'center' });
