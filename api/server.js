@@ -420,10 +420,20 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         }
         
         // حساب النقاط
-        await scoring.calculateTicketScores(ticketId);
+        try {
+            await scoring.calculateTicketScores(ticketId);
+        } catch (scoreError) {
+            console.error('Error calculating scores:', scoreError);
+            // لا نوقف العملية إذا فشل حساب النقاط
+        }
         
         // تحديث daily_summary
-        await scoring.updateDailySummary(teamId, ticketDate);
+        try {
+            await scoring.updateDailySummary(teamId, ticketDate);
+        } catch (summaryError) {
+            console.error('Error updating daily summary:', summaryError);
+            // لا نوقف العملية إذا فشل تحديث الملخص
+        }
         
         res.json({
             success: true,
