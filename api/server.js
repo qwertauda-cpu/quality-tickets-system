@@ -775,34 +775,44 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
         
         // دالة مساعدة لكتابة النص العربي
         const writeArabicText = (doc, text, options = {}) => {
-            try {
-                // محاولة استخدام خط عربي إذا كان موجوداً ومسجلاً
-                if (fs.existsSync(arabicFontRegular) && !options.bold) {
-                    try {
-                        doc.font('Arabic');
-                    } catch (e) {
-                        doc.font(arabicFontRegular);
-                    }
-                } else if (fs.existsSync(arabicFontBold) && options.bold) {
-                    try {
+            // استخدام الخط العربي المسجل إذا كان موجوداً
+            if (fs.existsSync(arabicFontRegular) || fs.existsSync(arabicFontBold)) {
+                try {
+                    if (options.bold && fs.existsSync(arabicFontBold)) {
                         doc.font('ArabicBold');
-                    } catch (e) {
-                        doc.font(arabicFontBold);
+                    } else if (fs.existsSync(arabicFontRegular)) {
+                        doc.font('Arabic');
+                    } else {
+                        doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
                     }
-                } else {
-                    // استخدام خط افتراضي
-                    doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+                } catch (e) {
+                    // إذا فشل استخدام الخط المسجل، استخدم مسار الملف مباشرة
+                    try {
+                        if (options.bold && fs.existsSync(arabicFontBold)) {
+                            doc.font(arabicFontBold);
+                        } else if (fs.existsSync(arabicFontRegular)) {
+                            doc.font(arabicFontRegular);
+                        } else {
+                            doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+                        }
+                    } catch (e2) {
+                        doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+                    }
                 }
-                
-                // كتابة النص
+            } else {
+                doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
+            }
+            
+            // كتابة النص
+            try {
                 if (options.x !== undefined && options.y !== undefined) {
                     doc.text(text, options.x, options.y, options);
                 } else {
                     doc.text(text, options);
                 }
             } catch (error) {
-                // في حالة الخطأ، استخدم خط افتراضي
-                console.error('Error writing Arabic text:', error);
+                console.error('Error writing text to PDF:', error);
+                // إعادة المحاولة مع خط افتراضي
                 doc.font(options.bold ? 'Helvetica-Bold' : 'Helvetica');
                 if (options.x !== undefined && options.y !== undefined) {
                     doc.text(text, options.x, options.y, options);
@@ -828,15 +838,30 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             doc.pipe(stream);
             
             // تسجيل الخطوط العربية إذا كانت موجودة
+            let hasArabicFont = false;
             if (fs.existsSync(arabicFontRegular)) {
-                doc.registerFont('Arabic', arabicFontRegular);
+                try {
+                    doc.registerFont('Arabic', arabicFontRegular);
+                    hasArabicFont = true;
+                } catch (e) {
+                    console.error('Error registering Arabic font:', e);
+                }
             }
             if (fs.existsSync(arabicFontBold)) {
-                doc.registerFont('ArabicBold', arabicFontBold);
+                try {
+                    doc.registerFont('ArabicBold', arabicFontBold);
+                } catch (e) {
+                    console.error('Error registering Arabic Bold font:', e);
+                }
             }
             
             // العنوان الرئيسي
             doc.fontSize(24);
+            if (hasArabicFont) {
+                doc.font('ArabicBold');
+            } else {
+                doc.font('Helvetica-Bold');
+            }
             writeArabicText(doc, 'تقرير يومي - إدارة التكتات والجودة', { align: 'center', bold: true });
             doc.moveDown();
             doc.fontSize(16);
