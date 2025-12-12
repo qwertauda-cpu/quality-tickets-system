@@ -338,14 +338,17 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         
         // التحقق من الحقول المطلوبة
         if (!ticket_number || !ticket_number.trim()) {
+            console.log('Validation error: ticket_number is missing');
             return res.status(400).json({ error: 'رقم التكت مطلوب' });
         }
         
         if (!ticket_type_id || isNaN(parseInt(ticket_type_id))) {
+            console.log('Validation error: ticket_type_id is invalid:', ticket_type_id, typeof ticket_type_id);
             return res.status(400).json({ error: 'نوع التكت مطلوب' });
         }
         
         if (!team_id || isNaN(parseInt(team_id))) {
+            console.log('Validation error: team_id is invalid:', team_id, typeof team_id);
             return res.status(400).json({ error: 'الفريق مطلوب' });
         }
         
@@ -353,11 +356,15 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         const ticketTypeId = parseInt(ticket_type_id);
         const teamId = parseInt(team_id);
         
+        console.log('Parsed values - ticketTypeId:', ticketTypeId, 'teamId:', teamId);
+        
         if (isNaN(ticketTypeId) || ticketTypeId <= 0) {
+            console.log('Validation error: ticketTypeId is invalid:', ticketTypeId);
             return res.status(400).json({ error: 'نوع التكت غير صحيح' });
         }
         
         if (isNaN(teamId) || teamId <= 0) {
+            console.log('Validation error: teamId is invalid:', teamId);
             return res.status(400).json({ error: 'الفريق غير صحيح' });
         }
         
@@ -443,6 +450,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         // لا نحسب النقاط أو نحدث الملخص عند إنشاء التكت
         // سيتم حساب النقاط عند إضافة تقييم الجودة أو رفع الصور
         
+        console.log('Ticket created successfully. ID:', ticketId);
         res.json({
             success: true,
             ticketId: ticketId,
@@ -450,7 +458,11 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Create ticket error:', error);
-        res.status(500).json({ error: 'خطأ في إدخال التكت' });
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ 
+            error: 'خطأ في إدخال التكت',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
