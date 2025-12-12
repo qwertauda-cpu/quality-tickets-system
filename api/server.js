@@ -293,6 +293,18 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         const loadFactor = await scoring.calculateLoadFactor(team_id, ticketDate);
         const adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
         
+        // التحقق من الحقول المطلوبة
+        if (!ticket_number || !ticket_type_id || !team_id) {
+            return res.status(400).json({ error: 'الحقول المطلوبة: رقم التكت، نوع التكت، الفريق' });
+        }
+        
+        // تحديد quality_staff_id حسب دور المستخدم
+        let quality_staff_id = req.user.id;
+        if (req.user.role === 'call_center') {
+            // إذا كان كول سنتر، نحتاج quality_staff_id من الفريق أو نستخدم المستخدم الحالي
+            quality_staff_id = req.user.id;
+        }
+        
         // إدراج التكت
         const result = await db.query(`
             INSERT INTO tickets (
@@ -300,14 +312,15 @@ app.post('/api/tickets', authenticate, async (req, res) => {
                 time_received, time_first_contact, time_completed,
                 actual_time_minutes, adjusted_time_minutes, load_factor,
                 subscriber_name, subscriber_phone, subscriber_address, notes,
-                status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                status, call_center_id
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
-            ticket_number, ticket_type_id, team_id, req.user.id,
+            ticket_number, ticket_type_id, team_id, quality_staff_id,
             cleanedTimeReceived || null, cleanedTimeFirstContact || null, cleanedTimeCompleted || null,
             actual_time_minutes, adjusted_time_minutes, loadFactor,
             subscriber_name || null, subscriber_phone || null, subscriber_address || null, notes || null,
-            ticketStatus
+            ticketStatus,
+            req.user.role === 'call_center' ? req.user.id : null
         ]);
         
         const ticketId = result.insertId;

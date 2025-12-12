@@ -455,8 +455,7 @@ async function updateDailySummary(teamId, date) {
                 total_tickets = VALUES(total_tickets),
                 total_positive_points = VALUES(total_positive_points),
                 total_negative_points = VALUES(total_negative_points),
-                net_points = VALUES(net_points),
-                updated_at = NOW()
+                net_points = VALUES(net_points)
         `, [
             teamId, date, stats.total_tickets,
             totalPositive, stats.total_negative_points, netPoints
