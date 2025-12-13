@@ -286,38 +286,57 @@ document.getElementById('addCompanyForm').addEventListener('submit', async (e) =
 // ==================== Employees Management ====================
 async function loadEmployees() {
     try {
-        const companyId = document.getElementById('filterCompanyEmployees').value;
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        const companyIdEl = document.getElementById('filterCompanyEmployees');
+        const companyId = companyIdEl ? companyIdEl.value : '';
         const params = companyId ? { company_id: companyId } : {};
         
         const data = await window.api.getOwnerEmployees(params);
         if (data && data.success) {
             const tbody = document.getElementById('employeesTableBody');
+            if (!tbody) {
+                console.error('employeesTableBody element not found');
+                return;
+            }
             tbody.innerHTML = '';
             
-            if (data.employees.length === 0) {
+            if (!data.employees || data.employees.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="text-center">لا يوجد موظفين</td></tr>';
+                // Load companies for filter even if no employees
+                await loadCompaniesForFilter('filterCompanyEmployees');
                 return;
             }
             
             data.employees.forEach(emp => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${emp.username}</td>
-                    <td>${emp.full_name}</td>
+                    <td>${emp.username || '-'}</td>
+                    <td>${emp.full_name || '-'}</td>
                     <td>${getRoleName(emp.role)}</td>
-                    <td>${emp.company_name ? `${emp.company_name} (@${emp.domain})` : '-'}</td>
+                    <td>${emp.company_name ? `${emp.company_name} (@${emp.domain || '-'})` : '-'}</td>
                     <td>${emp.team_name || '-'}</td>
                     <td><span class="badge ${emp.is_active ? 'badge-success' : 'badge-danger'}">${emp.is_active ? 'نشط' : 'غير نشط'}</span></td>
                 `;
                 tbody.appendChild(row);
             });
+        } else {
+            const tbody = document.getElementById('employeesTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            }
         }
         
         // Load companies for filter
         await loadCompaniesForFilter('filterCompanyEmployees');
     } catch (error) {
         console.error('Error loading employees:', error);
-        document.getElementById('employeesTableBody').innerHTML = '<tr><td colspan="6" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        const tbody = document.getElementById('employeesTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        }
     }
 }
 
@@ -346,8 +365,14 @@ async function loadCompaniesForFilter(selectId) {
 // ==================== Invoices Management ====================
 async function loadInvoices() {
     try {
-        const companyId = document.getElementById('filterCompanyInvoices').value;
-        const status = document.getElementById('filterStatusInvoices').value;
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        const companyIdEl = document.getElementById('filterCompanyInvoices');
+        const statusEl = document.getElementById('filterStatusInvoices');
+        const companyId = companyIdEl ? companyIdEl.value : '';
+        const status = statusEl ? statusEl.value : '';
         
         const params = {};
         if (companyId) params.company_id = companyId;
@@ -356,21 +381,27 @@ async function loadInvoices() {
         const data = await window.api.getOwnerInvoices(params);
         if (data && data.success) {
             const tbody = document.getElementById('invoicesTableBody');
+            if (!tbody) {
+                console.error('invoicesTableBody element not found');
+                return;
+            }
             tbody.innerHTML = '';
             
-            if (data.invoices.length === 0) {
+            if (!data.invoices || data.invoices.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center">لا توجد فواتير</td></tr>';
+                // Load companies for filter even if no invoices
+                await loadCompaniesForFilter('filterCompanyInvoices');
                 return;
             }
             
             data.invoices.forEach(invoice => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${invoice.invoice_number}</td>
-                    <td>${invoice.company_name} (@${invoice.domain})</td>
+                    <td>${invoice.invoice_number || '-'}</td>
+                    <td>${invoice.company_name || '-'} (@${invoice.domain || '-'})</td>
                     <td>${formatDate(invoice.period_start)} - ${formatDate(invoice.period_end)}</td>
-                    <td>${invoice.employee_count}</td>
-                    <td>${formatCurrency(invoice.total)}</td>
+                    <td>${invoice.employee_count || 0}</td>
+                    <td>${formatCurrency(invoice.total || 0)}</td>
                     <td>${invoice.due_date ? formatDate(invoice.due_date) : '-'}</td>
                     <td><span class="badge badge-${getInvoiceStatusClass(invoice.status)}">${getInvoiceStatusName(invoice.status)}</span></td>
                     <td>
@@ -380,13 +411,21 @@ async function loadInvoices() {
                 `;
                 tbody.appendChild(row);
             });
+        } else {
+            const tbody = document.getElementById('invoicesTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            }
         }
         
         // Load companies for filter
         await loadCompaniesForFilter('filterCompanyInvoices');
     } catch (error) {
         console.error('Error loading invoices:', error);
-        document.getElementById('invoicesTableBody').innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        const tbody = document.getElementById('invoicesTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        }
     }
 }
 
@@ -467,15 +506,24 @@ document.getElementById('createInvoiceForm').addEventListener('submit', async (e
 // ==================== Purchase Requests ====================
 async function loadPurchaseRequests() {
     try {
-        const status = document.getElementById('filterStatusRequests').value;
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        const statusEl = document.getElementById('filterStatusRequests');
+        const status = statusEl ? statusEl.value : '';
         const params = status ? { status } : {};
         
         const data = await window.api.getOwnerPurchaseRequests(params);
         if (data && data.success) {
             const tbody = document.getElementById('purchaseRequestsTableBody');
+            if (!tbody) {
+                console.error('purchaseRequestsTableBody element not found');
+                return;
+            }
             tbody.innerHTML = '';
             
-            if (data.requests.length === 0) {
+            if (!data.requests || data.requests.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" class="text-center">لا توجد طلبات</td></tr>';
                 return;
             }
@@ -483,11 +531,11 @@ async function loadPurchaseRequests() {
             data.requests.forEach(request => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${request.company_name}</td>
-                    <td>${request.contact_name}</td>
-                    <td>${request.contact_email}</td>
-                    <td>${request.contact_phone}</td>
-                    <td>${request.expected_employees}</td>
+                    <td>${request.company_name || '-'}</td>
+                    <td>${request.contact_name || '-'}</td>
+                    <td>${request.contact_email || '-'}</td>
+                    <td>${request.contact_phone || '-'}</td>
+                    <td>${request.expected_employees || 0}</td>
                     <td>${formatDateTime(request.created_at)}</td>
                     <td><span class="badge badge-${getRequestStatusClass(request.status)}">${getRequestStatusName(request.status)}</span></td>
                     <td>
@@ -496,10 +544,18 @@ async function loadPurchaseRequests() {
                 `;
                 tbody.appendChild(row);
             });
+        } else {
+            const tbody = document.getElementById('purchaseRequestsTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            }
         }
     } catch (error) {
         console.error('Error loading purchase requests:', error);
-        document.getElementById('purchaseRequestsTableBody').innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        const tbody = document.getElementById('purchaseRequestsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        }
     }
 }
 
@@ -639,12 +695,20 @@ window.exportTable = function(tableName) {
 // ==================== Database Management ====================
 async function loadDatabaseTables() {
     try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
         const data = await window.api.getExportTables();
         if (data && data.success) {
             const tbody = document.getElementById('databaseTablesTableBody');
+            if (!tbody) {
+                console.error('databaseTablesTableBody element not found');
+                return;
+            }
             tbody.innerHTML = '';
             
-            if (data.tables.length === 0) {
+            if (!data.tables || data.tables.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="4" class="text-center">لا توجد جداول</td></tr>';
                 return;
             }
@@ -652,19 +716,27 @@ async function loadDatabaseTables() {
             data.tables.forEach(table => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${table.name}</td>
-                    <td>${table.description}</td>
+                    <td>${table.name || '-'}</td>
+                    <td>${table.description || '-'}</td>
                     <td>-</td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="exportTable('${table.name}')">تصدير</button>
+                        <button class="btn btn-sm btn-primary" onclick="exportTable('${table.name || ''}')">تصدير</button>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+        } else {
+            const tbody = document.getElementById('databaseTablesTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            }
         }
     } catch (error) {
         console.error('Error loading database tables:', error);
-        document.getElementById('databaseTablesTableBody').innerHTML = '<tr><td colspan="4" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        const tbody = document.getElementById('databaseTablesTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        }
     }
 }
 
