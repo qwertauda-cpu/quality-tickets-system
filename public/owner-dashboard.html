@@ -213,6 +213,16 @@
                         <button class="btn btn-primary" onclick="openAddCompanyModal()">➕ إضافة شركة جديدة</button>
                     </div>
                     <div class="card-body">
+                        <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                            <label for="sortCompanies" style="font-weight: 600; color: var(--text-primary); font-size: 14px;">ترتيب حسب:</label>
+                            <select id="sortCompanies" class="form-control" style="min-width: 220px; padding: 10px 14px; font-size: 14px;" onchange="applyCompanySort()">
+                                <option value="default">الترتيب الافتراضي</option>
+                                <option value="employees_asc">عدد الموظفين (تصاعدي)</option>
+                                <option value="employees_desc">عدد الموظفين (تنازلي)</option>
+                                <option value="expiring_soon">القريبة على الانتهاء</option>
+                                <option value="expiring_later">البعيدة على الاشتراك</option>
+                            </select>
+                        </div>
                         <div class="table-container">
                             <table id="companiesTable">
                                 <thead>

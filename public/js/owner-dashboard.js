@@ -296,6 +296,8 @@ function getInvoiceStatusName(status) {
 }
 
 // ==================== Companies Management ====================
+let allCompaniesData = []; // Store all companies data for sorting
+
 async function loadCompanies() {
     try {
         if (!window.api) {
@@ -304,33 +306,11 @@ async function loadCompanies() {
         }
         const data = await window.api.getOwnerCompanies();
         if (data && data.success) {
-            const tbody = document.getElementById('companiesTableBody');
-            if (!tbody) {
-                console.error('companiesTableBody element not found');
-                return;
-            }
-            tbody.innerHTML = '';
+            // Store companies data for sorting
+            allCompaniesData = data.companies || [];
             
-            if (!data.companies || data.companies.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد شركات</td></tr>';
-                return;
-            }
-            
-            data.companies.forEach(company => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${company.name || '-'}</td>
-                    <td><strong>@${company.domain || '-'}</strong></td>
-                    <td>${company.admin_name || company.admin_username || '-'}</td>
-                    <td>${company.current_employees || 0} / ${company.max_employees || '∞'}</td>
-                    <td>${formatCurrency(company.price_per_employee || 0)}</td>
-                    <td><span class="badge ${company.is_active ? 'badge-success' : 'badge-danger'}">${company.is_active ? 'نشطة' : 'غير نشطة'}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})">تعديل</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+            // Apply current sort if any
+            applyCompanySort();
         } else {
             const tbody = document.getElementById('companiesTableBody');
             if (tbody) {
@@ -344,6 +324,138 @@ async function loadCompanies() {
             tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
         }
     }
+}
+
+window.applyCompanySort = function() {
+    const sortSelect = document.getElementById('sortCompanies');
+    const sortValue = sortSelect ? sortSelect.value : 'default';
+    
+    const tbody = document.getElementById('companiesTableBody');
+    if (!tbody) {
+        console.error('companiesTableBody element not found');
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    
+    if (!allCompaniesData || allCompaniesData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد شركات</td></tr>';
+        return;
+    }
+    
+    // Create a copy of companies array for sorting
+    let sortedCompanies = [...allCompaniesData];
+    
+    // Apply sorting based on selected option
+    switch (sortValue) {
+        case 'employees_asc':
+            sortedCompanies.sort((a, b) => {
+                const aEmployees = a.current_employees || 0;
+                const bEmployees = b.current_employees || 0;
+                return aEmployees - bEmployees;
+            });
+            break;
+            
+        case 'employees_desc':
+            sortedCompanies.sort((a, b) => {
+                const aEmployees = a.current_employees || 0;
+                const bEmployees = b.current_employees || 0;
+                return bEmployees - aEmployees;
+            });
+            break;
+            
+        case 'expiring_soon':
+            sortedCompanies.sort((a, b) => {
+                // Companies with subscription_end_date closer to today come first
+                const aDate = a.subscription_end_date ? new Date(a.subscription_end_date) : null;
+                const bDate = b.subscription_end_date ? new Date(b.subscription_end_date) : null;
+                
+                if (!aDate && !bDate) return 0;
+                if (!aDate) return 1; // Put companies without date at the end
+                if (!bDate) return -1;
+                
+                const today = new Date();
+                const aDiff = Math.abs(aDate - today);
+                const bDiff = Math.abs(bDate - today);
+                
+                // Only show companies with dates in the future (not expired)
+                if (aDate < today && bDate < today) return 0;
+                if (aDate < today) return 1;
+                if (bDate < today) return -1;
+                
+                return aDiff - bDiff;
+            });
+            break;
+            
+        case 'expiring_later':
+            sortedCompanies.sort((a, b) => {
+                // Companies with subscription_end_date further from today come first
+                const aDate = a.subscription_end_date ? new Date(a.subscription_end_date) : null;
+                const bDate = b.subscription_end_date ? new Date(b.subscription_end_date) : null;
+                
+                if (!aDate && !bDate) return 0;
+                if (!aDate) return 1; // Put companies without date at the end
+                if (!bDate) return -1;
+                
+                const today = new Date();
+                const aDiff = Math.abs(aDate - today);
+                const bDiff = Math.abs(bDate - today);
+                
+                // Only show companies with dates in the future (not expired)
+                if (aDate < today && bDate < today) return 0;
+                if (aDate < today) return 1;
+                if (bDate < today) return -1;
+                
+                return bDiff - aDiff;
+            });
+            break;
+            
+        case 'default':
+        default:
+            // Keep original order (usually by creation date DESC from API)
+            break;
+    }
+    
+    // Render sorted companies
+    sortedCompanies.forEach(company => {
+        const row = document.createElement('tr');
+        
+        // Calculate days remaining for subscription
+        let daysRemaining = null;
+        if (company.subscription_end_date) {
+            const endDate = new Date(company.subscription_end_date);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            endDate.setHours(0, 0, 0, 0);
+            const diffTime = endDate - today;
+            daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        // Add subscription info if available
+        let subscriptionInfo = '';
+        if (daysRemaining !== null) {
+            if (daysRemaining < 0) {
+                subscriptionInfo = ` <span class="badge badge-danger" style="margin-right: 8px;">منتهي</span>`;
+            } else if (daysRemaining <= 30) {
+                subscriptionInfo = ` <span class="badge badge-warning" style="margin-right: 8px;">${daysRemaining} يوم متبقي</span>`;
+            } else {
+                subscriptionInfo = ` <span class="badge badge-info" style="margin-right: 8px;">${daysRemaining} يوم متبقي</span>`;
+            }
+        }
+        
+        row.innerHTML = `
+            <td>${company.name || '-'}${subscriptionInfo}</td>
+            <td><strong>@${company.domain || '-'}</strong></td>
+            <td>${company.admin_name || company.admin_username || '-'}</td>
+            <td>${company.current_employees || 0} / ${company.max_employees || '∞'}</td>
+            <td>${formatCurrency(company.price_per_employee || 0)}</td>
+            <td><span class="badge ${company.is_active ? 'badge-success' : 'badge-danger'}">${company.is_active ? 'نشطة' : 'غير نشطة'}</span></td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})">تعديل</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
 }
 
 // Helper function to setup thousands input field

@@ -3828,6 +3828,8 @@ app.get('/api/owner/companies', authenticate, async (req, res) => {
                    u.username as admin_username,
                    u.full_name as admin_name,
                    c.current_employees,
+                   c.subscription_end_date,
+                   DATEDIFF(c.subscription_end_date, CURDATE()) as days_remaining,
                    (SELECT COUNT(*) FROM users WHERE company_id = c.id AND role != 'admin' AND role != 'owner') as employee_count
             FROM companies c
             LEFT JOIN users u ON c.owner_user_id = u.id
