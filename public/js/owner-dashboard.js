@@ -1490,19 +1490,32 @@ function displayQRCode(qrCodeString) {
     qrCodeDiv.innerHTML = '';
     
     // Wait for QRCode library to load if not already loaded
-    if (typeof QRCode === 'undefined') {
+    if (typeof QRCode === 'undefined' && !window.QRCodeLoaded) {
         console.warn('QRCode library not loaded yet, waiting...');
-        // Wait a bit and try again
-        setTimeout(() => {
-            if (typeof QRCode !== 'undefined') {
-                generateQRCodeCanvas(qrCodeString, qrCodeDiv);
-            } else {
-                console.error('QRCode library still not loaded, using fallback');
+        // Wait and retry multiple times
+        let attempts = 0;
+        const maxAttempts = 10;
+        const checkInterval = setInterval(() => {
+            attempts++;
+            if (typeof QRCode !== 'undefined' || window.QRCodeLoaded) {
+                clearInterval(checkInterval);
+                if (typeof QRCode !== 'undefined') {
+                    generateQRCodeCanvas(qrCodeString, qrCodeDiv);
+                } else {
+                    console.error('QRCode library still not available, using fallback');
+                    generateQRCodeImage(qrCodeString, qrCodeDiv);
+                }
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                console.error('QRCode library failed to load after ' + maxAttempts + ' attempts, using fallback');
                 generateQRCodeImage(qrCodeString, qrCodeDiv);
             }
-        }, 500);
-    } else {
+        }, 300);
+    } else if (typeof QRCode !== 'undefined') {
         generateQRCodeCanvas(qrCodeString, qrCodeDiv);
+    } else {
+        console.warn('QRCode library not available, using fallback');
+        generateQRCodeImage(qrCodeString, qrCodeDiv);
     }
     
     // Show container
