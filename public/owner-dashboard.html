@@ -74,10 +74,6 @@
             <div class="sidebar-header">
                 <h2>👑 لوحة المالك</h2>
                 <p id="userName"></p>
-                <div id="whatsappStatusIndicator" style="margin-top: 12px; padding: 8px 12px; background: rgba(255,255,255,0.1); border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px;">
-                    <span id="whatsappStatusIcon">⏳</span>
-                    <span id="whatsappStatusText">جاري التحقق...</span>
-                </div>
             </div>
             <ul class="sidebar-menu">
                 <li><a href="#" class="active" data-page="dashboard"><i>📊</i> لوحة التحكم</a></li>
@@ -478,6 +474,12 @@
                                 <span class="accordion-icon" id="whatsappAccordionIcon">▼</span>
                             </button>
                             <div class="accordion-content" id="whatsappAccordionContent">
+                                <!-- WhatsApp Connection Status Indicator -->
+                                <div id="whatsappStatusIndicator" style="margin-bottom: 20px; padding: 12px 16px; background: rgba(255,255,255,0.1); border-radius: 6px; display: flex; align-items: center; gap: 8px; font-size: 14px; border: 1px solid var(--border-color);">
+                                    <span id="whatsappStatusIcon">⏳</span>
+                                    <span id="whatsappStatusText">جاري التحقق من حالة الاتصال...</span>
+                                </div>
+                                
                                 <form id="whatsappSettingsForm">
                                     <div class="form-group">
                                         <label for="whatsapp_phone">رقم الواتساب <span class="required">*</span></label>
