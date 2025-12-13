@@ -1308,7 +1308,7 @@ function showPage(pageName) {
     
     // Update page title
     const titles = {
-        'tickets-management': 'إدارة التذكرةات',
+        'tickets-management': 'إدارة التذاكر',
         'tickets-management-new': 'إدارة تذكرةات',
         'tickets-list': 'إدارة جودة',
         'followup': 'المتابعة',
@@ -1326,7 +1326,7 @@ function showPage(pageName) {
     }
 }
 
-// إدارة التذكرةات - تحميل التذكرةات مع الفلترة
+// إدارة التذاكر - تحميل التذاكر مع الفلترة
 let currentTicketFilter = 'NEW'; // Default: معلقة
 
 async function loadTicketsManagement(filterStatus = 'NEW') {
@@ -1337,7 +1337,7 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
             return;
         }
         
-        // جلب جميع التذكرةات ثم فلترتها
+        // جلب جميع التذاكر ثم فلترتها
         const data = await window.api.getTickets({ limit: 1000 });
         if (data && data.success) {
             const tbody = document.getElementById('ticketsManagementTableBody');
@@ -1345,7 +1345,7 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
             
             tbody.innerHTML = '';
             
-            // فلترة التذكرةات حسب الحالة
+            // فلترة التذاكر حسب الحالة
             let filteredTickets = data.tickets || [];
             if (filterStatus !== 'all') {
                 filteredTickets = filteredTickets.filter(ticket => ticket.status === filterStatus);
@@ -1411,12 +1411,12 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
     }
 }
 
-// دالة فلترة التذكرةات
+// دالة فلترة التذاكر
 function filterTicketsByStatus(status) {
     loadTicketsManagement(status);
 }
 
-// إدارة التذكرةات الجديدة - تحميل التذكرةات مع الفلترة
+// إدارة التذاكر الجديدة - تحميل التذاكر مع الفلترة
 let currentTicketFilterNew = 'NEW'; // Default: معلقة
 
 async function loadTicketsManagementNew(filterStatus = 'NEW') {
@@ -1427,7 +1427,7 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
             return;
         }
         
-        // جلب جميع التذكرةات ثم فلترتها
+        // جلب جميع التذاكر ثم فلترتها
         const data = await window.api.getTickets({ limit: 1000 });
         if (data && data.success) {
             const tbody = document.getElementById('ticketsManagementNewTableBody');
@@ -1435,7 +1435,7 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
             
             tbody.innerHTML = '';
             
-            // فلترة التذكرةات حسب الحالة
+            // فلترة التذاكر حسب الحالة
             let filteredTickets = data.tickets || [];
             if (filterStatus !== 'all') {
                 filteredTickets = filteredTickets.filter(ticket => ticket.status === filterStatus);
@@ -1502,7 +1502,7 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
     }
 }
 
-// دالة فلترة التذكرةات للصفحة الجديدة
+// دالة فلترة التذاكر للصفحة الجديدة
 function filterTicketsByStatusNew(status) {
     loadTicketsManagementNew(status);
 }
@@ -1514,7 +1514,7 @@ async function loadTicketsList() {
             return;
         }
         
-        // جلب التذكرةات المكتملة من الفني (جاهزة للمراجعة) أو الجديدة
+        // جلب التذاكر المكتملة من الفني (جاهزة للمراجعة) أو الجديدة
         const data = await window.api.getTickets();
         if (data && data.success) {
             const tbody = document.getElementById('ticketsTableBody');
@@ -3101,7 +3101,7 @@ function toggleExplainedServices(ticketTypeKey) {
     
     if (!wrapper || !container) return;
     
-    // التذكرةات التي يجب إظهار الخدمات المشروحة لها: 1 (FTTH_NEW), 2 (REACTIVATE_SERVICE), 7 (ONU_CHANGE)
+    // التذاكر التي يجب إظهار الخدمات المشروحة لها: 1 (FTTH_NEW), 2 (REACTIVATE_SERVICE), 7 (ONU_CHANGE)
     const allowedTypes = ['FTTH_NEW', 'REACTIVATE_SERVICE', 'ONU_CHANGE'];
     
     if (allowedTypes.includes(ticketTypeKey)) {
@@ -3717,7 +3717,7 @@ async function openCreateTicketModal() {
     // Check permissions - only admin and call_center can create tickets
     const user = getCurrentUser();
     if (!user || (user.role !== 'admin' && user.role !== 'call_center')) {
-        showAlertModal('غير مصرح', 'غير مصرح لك بإنشاء التذكرةات. فقط Admin و Call Center يمكنهم إنشاء التذكرةات.', 'warning');
+        showAlertModal('غير مصرح', 'غير مصرح لك بإنشاء التذاكر. فقط Admin و Call Center يمكنهم إنشاء التذاكر.', 'warning');
         return;
     }
     

@@ -66,8 +66,8 @@ function showPage(pageName) {
     
     // Update page title
     const titles = {
-        'active-tickets': 'لوحة التذكرةات',
-        'completed-tickets': 'لوحة التذكرةات المنجزة',
+        'active-tickets': 'لوحة التذاكر',
+        'completed-tickets': 'لوحة التذاكر المنجزة',
         'dashboard': 'لوحة التحكم',
         'rankings': 'تصنيف الفرق',
         'my-team': 'فريقي'
@@ -279,7 +279,7 @@ async function loadActiveTickets() {
     } catch (error) {
         console.error('Error loading active tickets:', error);
         const tbody = document.getElementById('activeTicketsTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التذكرةات</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التذاكر</td></tr>';
     }
 }
 
@@ -341,7 +341,7 @@ async function loadCompletedTickets() {
     } catch (error) {
         console.error('Error loading completed tickets:', error);
         const tbody = document.getElementById('completedTicketsTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التذكرةات</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التذاكر</td></tr>';
     }
 }
 
@@ -476,7 +476,7 @@ async function startWork(ticketId) {
         const data = await window.api.startTechnicianWork(ticketId);
         if (data && data.success) {
             alert('✅ ' + (data.message || 'تم بدء العمل بنجاح'));
-            // تحديث قائمة التذكرةات النشطة
+            // تحديث قائمة التذاكر النشطة
             if (document.getElementById('active-tickets-page').style.display !== 'none') {
                 loadActiveTickets();
             }
@@ -514,11 +514,11 @@ async function completeTicket(ticketId) {
         if (data && data.success) {
             alert('✅ ' + (data.message || 'تم إنهاء التذكرة بنجاح'));
             closeTicketDetailsModal();
-            // تحديث قائمة التذكرةات النشطة
+            // تحديث قائمة التذاكر النشطة
             if (document.getElementById('active-tickets-page').style.display !== 'none') {
                 loadActiveTickets();
             }
-            // تحديث قائمة التذكرةات المنجزة
+            // تحديث قائمة التذاكر المنجزة
             if (document.getElementById('completed-tickets-page').style.display !== 'none') {
                 loadCompletedTickets();
             }

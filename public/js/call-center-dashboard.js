@@ -62,7 +62,7 @@ function showPage(pageName) {
         targetPage.style.display = 'block';
     }
     
-    document.getElementById('pageTitle').textContent = 'التذكرةات';
+    document.getElementById('pageTitle').textContent = 'التذاكر';
     
     document.querySelectorAll('.sidebar-menu a').forEach(link => {
         link.classList.remove('active');
@@ -235,11 +235,11 @@ async function loadTickets() {
         if (response && response.success) {
             displayTickets(response.tickets || []);
         } else {
-            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
+            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذاكر</p>';
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
-        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
+        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذاكر</p>';
     }
 }
 

@@ -85,11 +85,11 @@ async function loadTickets() {
         if (response && response.success) {
             displayTickets(response.tickets || []);
         } else {
-            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
+            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذاكر</p>';
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
-        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
+        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذاكر</p>';
     }
 }
 

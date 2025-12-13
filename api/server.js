@@ -1,6 +1,6 @@
 /**
  * Quality & Tickets Management System - Main Server
- * نظام إدارة التذكرةات والجودة
+ * نظام إدارة التذاكر والجودة
  */
 
 const express = require('express');
@@ -313,16 +313,16 @@ app.get('/api/ticket-types', authenticate, async (req, res) => {
         res.json({ success: true, types });
     } catch (error) {
         console.error('Ticket types error:', error);
-        res.status(500).json({ error: 'خطأ في جلب أنواع التذكرةات' });
+        res.status(500).json({ error: 'خطأ في جلب أنواع التذاكر' });
     }
 });
 
 // ==================== Create Ticket (Manual Entry) ====================
 app.post('/api/tickets', authenticate, async (req, res) => {
     try {
-        // التحقق من الصلاحيات - فقط admin و call_center يمكنهم إنشاء التذكرةات
+        // التحقق من الصلاحيات - فقط admin و call_center يمكنهم إنشاء التذاكر
         if (req.user.role !== 'admin' && req.user.role !== 'call_center') {
-            return res.status(403).json({ error: 'غير مصرح لك بإنشاء التذكرةات' });
+            return res.status(403).json({ error: 'غير مصرح لك بإنشاء التذاكر' });
         }
         
         console.log('Create ticket request body:', JSON.stringify(req.body, null, 2));
@@ -734,7 +734,7 @@ app.get('/api/tickets/assigned', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Get assigned tickets error:', error);
-        res.status(500).json({ error: 'خطأ في جلب التذكرةات' });
+        res.status(500).json({ error: 'خطأ في جلب التذاكر' });
     }
 });
 
@@ -1095,10 +1095,10 @@ app.get('/api/tickets', authenticate, async (req, res) => {
         let whereClause = '1=1';
         const params = [];
         
-        // إذا كان المستخدم موظف جودة، اعرض التذكرةات المكتملة من الفني افتراضياً
+        // إذا كان المستخدم موظف جودة، اعرض التذاكر المكتملة من الفني افتراضياً
         if (req.user.role === 'quality_staff' && !status) {
-            // عرض التذكرةات المكتملة من الفني (جاهزة للمراجعة)
-            // أو التذكرةات الجديدة التي لم يتم إرسالها للفني بعد
+            // عرض التذاكر المكتملة من الفني (جاهزة للمراجعة)
+            // أو التذاكر الجديدة التي لم يتم إرسالها للفني بعد
             whereClause += ` AND (
                 t.status IN ('COMPLETED', 'UNDER_REVIEW') 
                 OR (t.status = 'NEW' AND t.assigned_technician_id IS NULL)
@@ -1173,7 +1173,7 @@ app.get('/api/tickets', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Get tickets error:', error);
-        res.status(500).json({ error: 'خطأ في جلب التذكرةات' });
+        res.status(500).json({ error: 'خطأ في جلب التذاكر' });
     }
 });
 
@@ -1432,7 +1432,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                });
             
             doc.fontSize(22);
-            doc.text('تقرير يومي - إدارة التذكرةات والجودة', { 
+            doc.text('تقرير يومي - إدارة التذاكر والجودة', { 
                 x: 297.5, 
                 y: 85, 
                 align: 'center',
@@ -1490,9 +1490,9 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             }
             
             const summaryData = [
-                { ar: 'إجمالي التذكرةات', en: 'Total Tickets', value: totalTickets, color: '#3b82f6' },
-                { ar: 'التذكرةات المكتملة', en: 'Completed', value: completedTickets, color: '#10b981' },
-                { ar: 'التذكرةات المؤجلة', en: 'Postponed', value: postponedTickets, color: '#f59e0b' },
+                { ar: 'إجمالي التذاكر', en: 'Total Tickets', value: totalTickets, color: '#3b82f6' },
+                { ar: 'التذاكر المكتملة', en: 'Completed', value: completedTickets, color: '#10b981' },
+                { ar: 'التذاكر المؤجلة', en: 'Postponed', value: postponedTickets, color: '#f59e0b' },
                 { ar: 'النقاط الإيجابية', en: 'Positive Points', value: totalPositivePoints, color: '#10b981' },
                 { ar: 'النقاط السالبة', en: 'Negative Points', value: totalNegativePoints, color: '#ef4444' },
                 { ar: 'النقاط الصافية', en: 'Net Points', value: totalNetPoints, color: '#6366f1', bold: true }
@@ -1576,7 +1576,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             const headers = [
                 { text: 'Rank', ar: 'الترتيب', x: tableStartX + 10 },
                 { text: 'Team | الفريق', x: tableStartX + 60 },
-                { text: 'Tickets', ar: 'التذكرةات', x: tableStartX + 260 },
+                { text: 'Tickets', ar: 'التذاكر', x: tableStartX + 260 },
                 { text: 'Positive', ar: 'إيجابية', x: tableStartX + 340 },
                 { text: 'Negative', ar: 'سالبة', x: tableStartX + 420 },
                 { text: 'Net', ar: 'صافية', x: tableStartX + 500 }
@@ -1642,7 +1642,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             doc.moveTo(tableStartX, doc.y).lineTo(tableStartX + 495, doc.y).stroke();
             doc.moveDown();
             
-            // ========== تفاصيل التذكرةات (Ticket Details) ==========
+            // ========== تفاصيل التذاكر (Ticket Details) ==========
             // عنوان القسم
             doc.fontSize(18);
             if (fs.existsSync(arabicFontBold)) {
@@ -1651,11 +1651,11 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 doc.font('Helvetica-Bold');
             }
             doc.fillColor('#1e40af');
-            writeArabicText(doc, 'تفاصيل التذكرةات | Ticket Details', { align: 'right', bold: true });
+            writeArabicText(doc, 'تفاصيل التذاكر | Ticket Details', { align: 'right', bold: true });
             doc.fillColor('#000000');
             doc.moveDown(0.5);
             
-            // تجميع التذكرةات حسب الفريق
+            // تجميع التذاكر حسب الفريق
             const ticketsByTeam = {};
             tickets.forEach(ticket => {
                 if (!ticketsByTeam[ticket.team_name]) {
@@ -1689,7 +1689,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 doc.fillColor('#000000');
                 doc.moveDown(1);
                 
-                // جدول التذكرةات
+                // جدول التذاكر
                 const ticketTableY = doc.y;
                 const ticketColWidths = [40, 80, 150, 60, 60, 60, 55]; // #, Ticket#, Type, Status, Time, Points, Net
                 
@@ -2415,11 +2415,11 @@ app.get('/api/technician/tickets', authenticate, async (req, res) => {
         const params = [technicianId];
         
         if (status === 'active') {
-            // عرض التذكرةات المخصصة أو قيد العمل
+            // عرض التذاكر المخصصة أو قيد العمل
             whereClause += ' AND t.status IN (?, ?)';
             params.push('ASSIGNED', 'IN_PROGRESS');
         } else if (status === 'completed') {
-            // عرض التذكرةات المكتملة
+            // عرض التذاكر المكتملة
             whereClause += ' AND t.status = ?';
             params.push('COMPLETED');
         }
@@ -2440,7 +2440,7 @@ app.get('/api/technician/tickets', authenticate, async (req, res) => {
         res.json({ success: true, tickets });
     } catch (error) {
         console.error('Get technician tickets error:', error);
-        res.status(500).json({ error: 'خطأ في جلب التذكرةات' });
+        res.status(500).json({ error: 'خطأ في جلب التذاكر' });
     }
 });
 
@@ -2540,7 +2540,7 @@ app.post('/api/technician/tickets/:id/complete', authenticate, async (req, res) 
 app.post('/api/tickets/:id/assign-to-technician', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'quality_staff') {
-            return res.status(403).json({ error: 'غير مصرح - فقط موظف الجودة يمكنه إرسال التذكرةات' });
+            return res.status(403).json({ error: 'غير مصرح - فقط موظف الجودة يمكنه إرسال التذاكر' });
         }
         
         const ticketId = parseInt(req.params.id);
@@ -2976,7 +2976,7 @@ app.post('/api/admin/tickets/:ticketId/points', authenticate, async (req, res) =
             ]);
         }
         
-        // تحديث النقاط في جدول التذكرةات
+        // تحديث النقاط في جدول التذاكر
         await db.query(
             'UPDATE tickets SET points = ? WHERE id = ?',
             [final_points, ticketId]
@@ -3029,7 +3029,7 @@ app.get('/api/admin/tickets/:ticketId/calculate-time-points', authenticate, asyn
         const t0Date = new Date(ticket.time_received);
         const dateKey = t0Date.toISOString().split('T')[0]; // YYYY-MM-DD
         
-        // حساب Daily Load Factor (عدد التذكرةات لنفس الفريق في نفس اليوم)
+        // حساب Daily Load Factor (عدد التذاكر لنفس الفريق في نفس اليوم)
         const dailyLoadResult = await db.queryOne(`
             SELECT COUNT(*) as count
             FROM tickets
@@ -3129,7 +3129,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('==========================================');
     console.log(`✅ Server running on port ${PORT}`);
     // ==================== Start Background Jobs ====================
-    // فحص التذكرةات المتأخرة كل 5 دقائق
+    // فحص التذاكر المتأخرة كل 5 دقائق
     setInterval(checkDelayedTickets, 5 * 60 * 1000); // 5 minutes
     checkDelayedTickets(); // Run immediately on startup
     
@@ -3535,9 +3535,9 @@ app.get('/api/export/tables', authenticate, async (req, res) => {
             { name: 'users', description: 'المستخدمين' },
             { name: 'teams', description: 'الفرق' },
             { name: 'team_members', description: 'أعضاء الفرق' },
-            { name: 'ticket_types', description: 'أنواع التذكرةات' },
-            { name: 'tickets', description: 'التذكرةات' },
-            { name: 'ticket_photos', description: 'صور التذكرةات' },
+            { name: 'ticket_types', description: 'أنواع التذاكر' },
+            { name: 'tickets', description: 'التذاكر' },
+            { name: 'ticket_photos', description: 'صور التذاكر' },
             { name: 'quality_reviews', description: 'تقييمات الجودة' },
             { name: 'positive_scores', description: 'النقاط الإيجابية' },
             { name: 'negative_scores', description: 'النقاط السالبة' },

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>واجهة موظف الجودة - نظام إدارة التذكرةات</title>
+    <title>واجهة موظف الجودة - نظام إدارة التذاكر</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -17,7 +17,7 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="tickets-management"><i>📝</i> إدارة التذكرةات</a></li>
+                <li><a href="#" class="active" data-page="tickets-management"><i>📝</i> إدارة التذاكر</a></li>
                 <li><a href="#" data-page="tickets-management-new"><i>📋</i> إدارة تذكرةات</a></li>
                 <li><a href="#" data-page="tickets-list"><i>📋</i> إدارة جودة</a></li>
                 <li><a href="#" data-page="followup"><i>🔔</i> المتابعة</a></li>
@@ -29,7 +29,7 @@
         <!-- Main Content -->
         <main class="main-content">
             <div class="header">
-                <h1 id="pageTitle">إدارة التذكرةات</h1>
+                <h1 id="pageTitle">إدارة التذاكر</h1>
                 <div class="user-info">
                     <span id="currentUser"></span>
                     <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
@@ -208,17 +208,17 @@
             <div id="tickets-management-page" class="page-content">
                 <div class="card">
                     <div class="card-header">
-                        <h2>إدارة التذكرةات</h2>
+                        <h2>إدارة التذاكر</h2>
                         <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تذكرة</button>
                     </div>
                     <div class="card-body">
                         <!-- Tabs/Filters -->
                         <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap;">
-                            <button class="btn btn-tab active" onclick="filterTicketsByStatus('NEW')" data-status="NEW">التذكرةات المعلقة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('COMPLETED')" data-status="COMPLETED">التذكرةات المنجزة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('FOLLOW_UP')" data-status="FOLLOW_UP">التذكرةات المؤجلة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('CLOSED')" data-status="CLOSED">التذكرةات المنتهية</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('all')" data-status="all">جميع التذكرةات</button>
+                            <button class="btn btn-tab active" onclick="filterTicketsByStatus('NEW')" data-status="NEW">التذاكر المعلقة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('COMPLETED')" data-status="COMPLETED">التذاكر المنجزة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('FOLLOW_UP')" data-status="FOLLOW_UP">التذاكر المؤجلة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('CLOSED')" data-status="CLOSED">التذاكر المنتهية</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('all')" data-status="all">جميع التذاكر</button>
                         </div>
                         
                         <div class="table-container">
@@ -255,11 +255,11 @@
                     <div class="card-body">
                         <!-- Tabs/Filters -->
                         <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap;">
-                            <button class="btn btn-tab active" onclick="filterTicketsByStatusNew('NEW')" data-status="NEW">التذكرةات المعلقة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('COMPLETED')" data-status="COMPLETED">التذكرةات المنجزة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('FOLLOW_UP')" data-status="FOLLOW_UP">التذكرةات المؤجلة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('CLOSED')" data-status="CLOSED">التذكرةات المنتهية</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('all')" data-status="all">جميع التذكرةات</button>
+                            <button class="btn btn-tab active" onclick="filterTicketsByStatusNew('NEW')" data-status="NEW">التذاكر المعلقة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('COMPLETED')" data-status="COMPLETED">التذاكر المنجزة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('FOLLOW_UP')" data-status="FOLLOW_UP">التذاكر المؤجلة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('CLOSED')" data-status="CLOSED">التذاكر المنتهية</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('all')" data-status="all">جميع التذاكر</button>
                         </div>
                         
                         <div class="table-container">

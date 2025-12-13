@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>لوحة الكول سنتر - نظام إدارة التذكرةات</title>
+    <title>لوحة الكول سنتر - نظام إدارة التذاكر</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -16,14 +16,14 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التذكرةات</a></li>
+                <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التذاكر</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
             </ul>
         </aside>
 
         <main class="main-content">
             <div class="header">
-                <h1 id="pageTitle">التذكرةات</h1>
+                <h1 id="pageTitle">التذاكر</h1>
                 <div class="user-info">
                     <div class="notifications-bell" id="notificationsBell" onclick="showNotifications()" style="position: relative; cursor: pointer; margin-left: 15px; font-size: 20px;">
                         🔔
@@ -59,7 +59,7 @@
             <div id="tickets-page" class="page-content">
                 <div class="card">
                     <div class="card-header">
-                        <h2>التذكرةات</h2>
+                        <h2>التذاكر</h2>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <button class="btn btn-primary" onclick="openCreateTicketModal()">➕ إنشاء تذكرة</button>
                             <label>

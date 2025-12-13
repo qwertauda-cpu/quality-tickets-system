@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>لوحة الإدارة - نظام إدارة التذكرةات</title>
+    <title>لوحة الإدارة - نظام إدارة التذاكر</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -20,7 +20,7 @@
                 <li><a href="#" data-page="add-ticket"><i>➕</i> إضافة تذكرة</a></li>
                 <li><a href="#" data-page="users"><i>👤</i> إدارة المستخدمين</a></li>
                 <li><a href="#" data-page="teams"><i>👥</i> الفرق</a></li>
-                <li><a href="#" data-page="tickets"><i>🎫</i> التذكرةات</a></li>
+                <li><a href="#" data-page="tickets"><i>🎫</i> التذاكر</a></li>
                 <li><a href="#" data-page="scoring-rules"><i>⚙️</i> قواعد النقاط</a></li>
                 <li><a href="#" data-page="reports"><i>📄</i> التقارير</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
@@ -64,15 +64,15 @@
             <div id="dashboard-page" class="page-content">
                 <div class="stats-grid" id="statsGrid">
                     <div class="stat-card">
-                        <h3>إجمالي التذكرةات اليوم</h3>
+                        <h3>إجمالي التذاكر اليوم</h3>
                         <div class="value" id="totalTickets">0</div>
                     </div>
                     <div class="stat-card secondary">
-                        <h3>التذكرةات المكتملة</h3>
+                        <h3>التذاكر المكتملة</h3>
                         <div class="value" id="completedTickets">0</div>
                     </div>
                     <div class="stat-card warning">
-                        <h3>التذكرةات المعلقة</h3>
+                        <h3>التذاكر المعلقة</h3>
                         <div class="value" id="pendingTickets">0</div>
                     </div>
                 </div>
@@ -89,7 +89,7 @@
                                         <th>الترتيب</th>
                                         <th>اسم الفريق</th>
                                         <th>النقاط الإجمالية</th>
-                                        <th>عدد التذكرةات</th>
+                                        <th>عدد التذاكر</th>
                                         <th>النقاط الصافية</th>
                                     </tr>
                                 </thead>
@@ -136,7 +136,7 @@
             <div id="tickets-page" class="page-content" style="display: none;">
                 <div class="card">
                     <div class="card-header">
-                        <h2>التذكرةات</h2>
+                        <h2>التذاكر</h2>
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تذكرة</button>
                             <label>
@@ -279,7 +279,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>⚙️ قواعد النقاط (Scoring Rules)</h2>
-                        <p style="color: var(--text-muted); margin-top: 10px;">هذه القواعد تطبق تلقائياً على جميع التذكرةات. تعديل القواعد يؤثر على التذكرةات الجديدة فقط.</p>
+                        <p style="color: var(--text-muted); margin-top: 10px;">هذه القواعد تطبق تلقائياً على جميع التذاكر. تعديل القواعد يؤثر على التذاكر الجديدة فقط.</p>
                     </div>
                     <div class="card-body">
                         <!-- النقاط الأساسية حسب نوع التذكرة -->
@@ -480,11 +480,11 @@
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
                                     <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
                                         <input type="checkbox" id="perm_create_tickets" onchange="updatePermissions()">
-                                        <label for="perm_create_tickets" style="margin: 0; cursor: pointer; flex: 1;">إنشاء التذكرةات</label>
+                                        <label for="perm_create_tickets" style="margin: 0; cursor: pointer; flex: 1;">إنشاء التذاكر</label>
                                     </div>
                                     <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
                                         <input type="checkbox" id="perm_manage_tickets" onchange="updatePermissions()">
-                                        <label for="perm_manage_tickets" style="margin: 0; cursor: pointer; flex: 1;">إدارة التذكرةات</label>
+                                        <label for="perm_manage_tickets" style="margin: 0; cursor: pointer; flex: 1;">إدارة التذاكر</label>
                                     </div>
                                     <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
                                         <input type="checkbox" id="perm_review_quality" onchange="updatePermissions()">
@@ -492,7 +492,7 @@
                                     </div>
                                     <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
                                         <input type="checkbox" id="perm_execute_tickets" onchange="updatePermissions()">
-                                        <label for="perm_execute_tickets" style="margin: 0; cursor: pointer; flex: 1;">تنفيذ التذكرةات</label>
+                                        <label for="perm_execute_tickets" style="margin: 0; cursor: pointer; flex: 1;">تنفيذ التذاكر</label>
                                     </div>
                                     <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
                                         <input type="checkbox" id="perm_manage_teams" onchange="updatePermissions()">

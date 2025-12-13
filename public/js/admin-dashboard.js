@@ -114,7 +114,7 @@ function showPage(pageName) {
         'add-ticket': 'إضافة تذكرة',
         'users': 'إدارة المستخدمين',
         'teams': 'الفرق',
-        'tickets': 'التذكرةات',
+        'tickets': 'التذاكر',
         'scoring-rules': 'قواعد النقاط',
         'points-management': 'قواعد النقاط',
         'reports': 'التقارير'
@@ -220,14 +220,14 @@ async function loadTickets() {
         } else {
             const tbody = document.getElementById('ticketsTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذكرةات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذاكر</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
         const tbody = document.getElementById('ticketsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذكرةات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذاكر</td></tr>';
         }
     }
 }
@@ -2032,7 +2032,7 @@ async function loadScoringRules() {
         
         const rules = response.rules;
         
-        // تحميل النقاط الأساسية لأنواع التذكرةات
+        // تحميل النقاط الأساسية لأنواع التذاكر
         await loadTicketTypeBasePoints(rules);
         
         // تحميل قواعد الوقت
@@ -2052,10 +2052,10 @@ async function loadScoringRules() {
     }
 }
 
-// تحميل النقاط الأساسية لأنواع التذكرةات
+// تحميل النقاط الأساسية لأنواع التذاكر
 async function loadTicketTypeBasePoints(rules) {
     try {
-        // جلب أنواع التذكرةات
+        // جلب أنواع التذاكر
         const ticketTypesResponse = await window.api.getTicketTypes();
         let ticketTypes = [];
         
@@ -2344,7 +2344,7 @@ async function loadPointsManagementPage() {
     }
 }
 
-// تحميل التذكرةات لقائمة النقاط
+// تحميل التذاكر لقائمة النقاط
 async function loadPointsTickets() {
     try {
         const response = await window.api.getTickets({ limit: 1000 });
@@ -2363,12 +2363,12 @@ async function loadPointsTickets() {
         console.error('Error loading tickets:', error);
         const tbody = document.getElementById('pointsTicketsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="9" class="error">❌ خطأ في تحميل التذكرةات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="error">❌ خطأ في تحميل التذاكر</td></tr>';
         }
     }
 }
 
-// عرض التذكرةات في الجدول
+// عرض التذاكر في الجدول
 function displayPointsTickets(tickets) {
     const tbody = document.getElementById('pointsTicketsTableBody');
     if (!tbody) return;
@@ -2428,7 +2428,7 @@ async function loadTeamsForPointsFilter() {
     }
 }
 
-// فلترة التذكرةات
+// فلترة التذاكر
 function filterPointsTickets() {
     const search = document.getElementById('pointsSearch')?.value.toLowerCase() || '';
     const dateFilter = document.getElementById('pointsDateFilter')?.value || '';
@@ -2508,7 +2508,7 @@ async function openPointsManagementModal(ticketId) {
                 if (timeInfoDiv) {
                     timeInfoDiv.innerHTML = `
                         <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; margin-top: 10px;">
-                            <div><strong>عدد التذكرةات في اليوم:</strong> ${calculatedTimeData.dailyLoad}</div>
+                            <div><strong>عدد التذاكر في اليوم:</strong> ${calculatedTimeData.dailyLoad}</div>
                             <div><strong>الوقت الفعلي:</strong> ${calculatedTimeData.actualMinutes} دقيقة</div>
                             <div><strong>الوقت المعدل (Adjusted):</strong> ${calculatedTimeData.adjustedMinutes.toFixed(2)} دقيقة</div>
                             <div><strong>نقاط الوقت المقترحة:</strong> ${calculatedTimeData.suggestedSpeedPoints} / 10</div>
@@ -2601,7 +2601,7 @@ function renderChecklistItemsForPoints(items) {
     if (!container) return;
     
     if (!items || items.length === 0) {
-        container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 20px;">لا توجد تاسكات لهذا النوع من التذكرةات</p>';
+        container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 20px;">لا توجد تاسكات لهذا النوع من التذاكر</p>';
         return;
     }
     
@@ -2783,7 +2783,7 @@ async function saveTicketPoints() {
         if (response && response.success) {
             alert('تم حفظ النقاط بنجاح');
             closePointsManagementModal();
-            // إعادة تحميل قائمة التذكرةات
+            // إعادة تحميل قائمة التذاكر
             await loadPointsTickets();
         } else {
             alert('خطأ في حفظ النقاط: ' + (response?.message || 'خطأ غير معروف'));
