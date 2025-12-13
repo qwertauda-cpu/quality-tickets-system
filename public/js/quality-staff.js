@@ -109,7 +109,8 @@ if (typeof ticketChecklists === 'undefined') {
         "Speed Test",
         "الأجهزة"
     ]
-};
+    };
+}
 
 // Mapping between Arabic ticket type names and English keys
 const ticketTypeMapping = {
