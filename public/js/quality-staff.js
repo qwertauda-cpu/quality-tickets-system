@@ -113,7 +113,8 @@ if (typeof ticketChecklists === 'undefined') {
 }
 
 // Mapping between Arabic ticket type names and English keys
-const ticketTypeMapping = {
+if (typeof ticketTypeMapping === 'undefined') {
+    var ticketTypeMapping = {
     'ربط مشترك جديد FTTH': 'FTTH_NEW',
     'ربط جديد FTTH': 'FTTH_NEW',
     'تبديل او صيانه راوتر/ONU': 'ONU_CHANGE',
@@ -135,7 +136,8 @@ const ticketTypeMapping = {
     'قطع فايبر': 'FIBER_CUT',
     'تفعيل بدون سحب كيبل': 'ACTIVATION_NO_CABLE',
     'عبث مشترك / كهرباء': 'SUBSCRIBER_TAMPERING'
-};
+    };
+}
 
 // Store checklist state
 let checklistState = {};
