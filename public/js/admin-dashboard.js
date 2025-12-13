@@ -1146,43 +1146,84 @@ async function setupUsernameDomainAutoComplete() {
     
     // Get current user's company domain
     const user = getCurrentUser();
-    if (!user || !user.company_id) {
-        // No company - remove any existing listeners
+    if (!user) {
+        return;
+    }
+    
+    let domain = null;
+    
+    // Try to extract domain from current user's username (admin@domain)
+    if (user.username && user.username.includes('@')) {
+        const parts = user.username.split('@');
+        if (parts.length === 2) {
+            domain = parts[1];
+        }
+    }
+    
+    // If no domain from username, try to get from company_id
+    if (!domain && user.company_id) {
+        try {
+            // Try to get domain from company
+            if (window.api && window.api.getOwnerCompanies) {
+                const companiesData = await window.api.getOwnerCompanies();
+                if (companiesData && companiesData.success) {
+                    const company = companiesData.companies.find(c => c.id === user.company_id);
+                    if (company && company.domain) {
+                        domain = company.domain;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error getting company domain:', error);
+        }
+    }
+    
+    // If still no domain, try from user.domain (if available from login)
+    if (!domain && user.domain) {
+        domain = user.domain;
+    }
+    
+    if (!domain) {
+        // No domain available - remove any existing listeners
         const newInput = usernameInput.cloneNode(true);
         usernameInput.parentNode.replaceChild(newInput, usernameInput);
         return;
     }
     
-    try {
-        // Get company domain
-        const companiesData = await window.api.getOwnerCompanies();
-        if (companiesData && companiesData.success) {
-            const company = companiesData.companies.find(c => c.id === user.company_id);
-            if (company && company.domain) {
-                const domain = company.domain;
-                
-                // Add blur event to auto-add @domain
-                usernameInput.addEventListener('blur', function() {
-                    const value = this.value.trim();
-                    if (value && !value.includes('@')) {
-                        this.value = `${value}@${domain}`;
-                    } else if (value.includes('@')) {
-                        // Check if domain matches
-                        const parts = value.split('@');
-                        if (parts.length === 2 && parts[1] !== domain) {
-                            // Wrong domain, fix it
-                            this.value = `${parts[0]}@${domain}`;
-                        }
-                    }
-                });
-                
-                // Add placeholder
-                usernameInput.placeholder = `مثال: ahmed@${domain}`;
+    // Add blur event to auto-add @domain
+    usernameInput.addEventListener('blur', function() {
+        const value = this.value.trim();
+        if (value && !value.includes('@')) {
+            this.value = `${value}@${domain}`;
+        } else if (value.includes('@')) {
+            // Check if domain matches
+            const parts = value.split('@');
+            if (parts.length === 2 && parts[1] !== domain) {
+                // Wrong domain, fix it
+                this.value = `${parts[0]}@${domain}`;
             }
         }
-    } catch (error) {
-        console.error('Error setting up domain auto-complete:', error);
-    }
+    });
+    
+    // Add input event to show hint while typing
+    usernameInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        if (value && !value.includes('@')) {
+            // Show hint
+            if (!this.dataset.originalPlaceholder) {
+                this.dataset.originalPlaceholder = this.placeholder || '';
+            }
+            this.placeholder = `${value}@${domain}`;
+        } else if (value.includes('@')) {
+            // Restore original placeholder
+            if (this.dataset.originalPlaceholder) {
+                this.placeholder = this.dataset.originalPlaceholder;
+            }
+        }
+    });
+    
+    // Add placeholder
+    usernameInput.placeholder = `مثال: ahmed@${domain}`;
 }
 
 async function editUser(userId) {
