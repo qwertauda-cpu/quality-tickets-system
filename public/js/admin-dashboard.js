@@ -1441,7 +1441,8 @@ window.copyAdminMessage = copyAdminMessage;
 window.resetAdminTicketForm = resetAdminTicketForm;
 window.showAddUserForm = showAddUserForm;
 window.editUser = editUser;
-window.deleteUser = deleteUser;
+// Keep deleteUser for backward compatibility (now it freezes the account)
+window.deleteUser = freezeUser;
 window.freezeUser = freezeUser;
 window.unfreezeUser = unfreezeUser;
 window.permanentlyDeleteUser = permanentlyDeleteUser;
