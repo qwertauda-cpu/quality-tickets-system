@@ -151,12 +151,77 @@ async function loadCompanies() {
     }
 }
 
+// Helper function to setup thousands input field
+function setupThousandsInput(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    let timeoutId = null;
+    
+    // Convert value back to thousands for editing on focus
+    input.addEventListener('focus', function(e) {
+        const currentValue = e.target.value;
+        if (currentValue && !isNaN(currentValue)) {
+            const numValue = parseFloat(currentValue);
+            // If value is >= 1000, it's already converted, so convert back for editing
+            if (numValue >= 1000) {
+                e.target.value = (numValue / 1000).toString();
+            }
+        }
+    });
+    
+    // Only allow numbers and decimal point
+    input.addEventListener('input', function(e) {
+        const value = e.target.value;
+        // Remove any non-numeric characters except decimal point
+        const cleaned = value.replace(/[^0-9.]/g, '');
+        // Only allow one decimal point
+        const parts = cleaned.split('.');
+        const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+        
+        if (value !== finalValue) {
+            e.target.value = finalValue;
+        }
+        
+        // Clear previous timeout
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+        
+        // Convert to thousands after user stops typing (500ms delay)
+        timeoutId = setTimeout(function() {
+            const currentValue = e.target.value;
+            if (currentValue && currentValue.trim() !== '' && !isNaN(parseFloat(currentValue))) {
+                const numValue = parseFloat(currentValue);
+                if (numValue > 0) {
+                    const convertedValue = (numValue * 1000).toString();
+                    e.target.value = convertedValue;
+                }
+            }
+        }, 500);
+    });
+    
+    // Also convert on blur (when user leaves the field)
+    input.addEventListener('blur', function(e) {
+        const currentValue = e.target.value;
+        if (currentValue && currentValue.trim() !== '' && !isNaN(parseFloat(currentValue))) {
+            const numValue = parseFloat(currentValue);
+            if (numValue > 0 && numValue < 1000) {
+                const convertedValue = (numValue * 1000).toString();
+                e.target.value = convertedValue;
+            }
+        }
+    });
+}
+
 // Make functions globally available
 window.openAddCompanyModal = function() {
     const modal = document.getElementById('addCompanyModal');
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('active'), 10);
     document.getElementById('addCompanyForm').reset();
+    // Setup thousands input for price field
+    setupThousandsInput('company_price_per_employee');
 };
 
 window.closeAddCompanyModal = function() {
@@ -306,6 +371,9 @@ window.openCreateInvoiceModal = function() {
     setTimeout(() => modal.classList.add('active'), 10);
     document.getElementById('createInvoiceForm').reset();
     loadCompaniesForInvoice();
+    // Setup thousands input for price fields
+    setupThousandsInput('invoice_price_per_employee');
+    setupThousandsInput('invoice_tax');
 };
 
 window.closeCreateInvoiceModal = function() {
@@ -333,7 +401,15 @@ async function loadCompaniesForInvoice() {
             select.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
                 if (selectedOption.dataset.pricePerEmployee) {
-                    document.getElementById('invoice_price_per_employee').value = selectedOption.dataset.pricePerEmployee;
+                    const priceValue = parseFloat(selectedOption.dataset.pricePerEmployee);
+                    // Convert from full amount to thousands for display
+                    const priceInThousands = (priceValue / 1000).toString();
+                    document.getElementById('invoice_price_per_employee').value = priceInThousands;
+                    // Trigger conversion to thousands
+                    const input = document.getElementById('invoice_price_per_employee');
+                    if (input) {
+                        input.dispatchEvent(new Event('blur'));
+                    }
                 }
             });
         }
