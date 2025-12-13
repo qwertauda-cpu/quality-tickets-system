@@ -1430,6 +1430,77 @@ async function loadDatabaseTables() {
     }
 }
 
+// ==================== Settings Management ====================
+async function loadSettings() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getSettings();
+        if (data && data.success) {
+            const settings = data.settings || {};
+            
+            // Fill WhatsApp settings
+            const whatsappPhoneEl = document.getElementById('whatsapp_phone');
+            const whatsappApiKeyEl = document.getElementById('whatsapp_api_key');
+            const whatsappApiUrlEl = document.getElementById('whatsapp_api_url');
+            const whatsappEnabledEl = document.getElementById('whatsapp_enabled');
+            
+            if (whatsappPhoneEl) whatsappPhoneEl.value = settings.whatsapp_phone || '';
+            if (whatsappApiKeyEl) whatsappApiKeyEl.value = settings.whatsapp_api_key || '';
+            if (whatsappApiUrlEl) whatsappApiUrlEl.value = settings.whatsapp_api_url || '';
+            if (whatsappEnabledEl) whatsappEnabledEl.checked = settings.whatsapp_enabled === '1' || settings.whatsapp_enabled === true || settings.whatsapp_enabled === 'true';
+        }
+    } catch (error) {
+        console.error('Error loading settings:', error);
+        showAlertModal('خطأ', 'خطأ في تحميل الإعدادات');
+    }
+}
+
+// Make loadSettings globally accessible
+window.loadSettings = loadSettings;
+
+// Setup settings form submission
+document.addEventListener('DOMContentLoaded', function() {
+    const whatsappSettingsForm = document.getElementById('whatsappSettingsForm');
+    if (whatsappSettingsForm) {
+        whatsappSettingsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                whatsapp_phone: document.getElementById('whatsapp_phone').value.trim(),
+                whatsapp_api_key: document.getElementById('whatsapp_api_key').value.trim(),
+                whatsapp_api_url: document.getElementById('whatsapp_api_url').value.trim(),
+                whatsapp_enabled: document.getElementById('whatsapp_enabled').checked ? '1' : '0'
+            };
+            
+            if (!formData.whatsapp_phone) {
+                showAlertModal('خطأ', 'يرجى إدخال رقم الواتساب');
+                return;
+            }
+            
+            try {
+                if (!window.api) {
+                    showAlertModal('خطأ', 'API غير متاح');
+                    return;
+                }
+                
+                const data = await window.api.saveSettings(formData);
+                if (data && data.success) {
+                    showAlertModal('نجح', 'تم حفظ الإعدادات بنجاح!');
+                } else {
+                    showAlertModal('خطأ', data?.error || 'حدث خطأ في حفظ الإعدادات');
+                }
+            } catch (error) {
+                console.error('Error saving settings:', error);
+                showAlertModal('خطأ', error.message || 'حدث خطأ في حفظ الإعدادات');
+            }
+        });
+    }
+});
+
 // ==================== Helper Functions ====================
 function formatCurrency(amount) {
     return new Intl.NumberFormat('ar-IQ', { style: 'currency', currency: 'IQD' }).format(amount);
