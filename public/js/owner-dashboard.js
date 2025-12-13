@@ -2453,13 +2453,28 @@ window.onclick = function(event) {
 // ==================== Owner Templates Management ====================
 // Toggle templates accordion
 function toggleOwnerTemplatesAccordion() {
+    // Find the accordion section that contains this button
+    const accordionSections = document.querySelectorAll('.form-section.accordion-section');
+    let accordionSection = null;
+    
+    // Find the section that contains the ownerTemplatesAccordionContent
+    accordionSections.forEach(section => {
+        const content = section.querySelector('#ownerTemplatesAccordionContent');
+        if (content) {
+            accordionSection = section;
+        }
+    });
+    
     const content = document.getElementById('ownerTemplatesAccordionContent');
     const icon = document.getElementById('ownerTemplatesAccordionIcon');
-    if (content && icon) {
-        const isOpen = content.style.display !== 'none';
-        content.style.display = isOpen ? 'none' : 'block';
-        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-        if (!isOpen) {
+    
+    if (accordionSection && content && icon) {
+        const isOpen = accordionSection.classList.contains('active');
+        
+        if (isOpen) {
+            accordionSection.classList.remove('active');
+        } else {
+            accordionSection.classList.add('active');
             loadOwnerTemplates();
         }
     }
