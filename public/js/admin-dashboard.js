@@ -2847,10 +2847,10 @@ function closePointsManagementModal() {
 async function loadNotifications() {
     await loadAdminWhatsAppSettings();
     checkAdminWhatsAppStatus();
-    await loadQualityStaffPermissions();
+    await loadUsersPermissions();
 }
 
-// Toggle Quality Staff Permissions accordion
+// Toggle Quality Staff Permissions accordion (updated to use loadUsersPermissions)
 function toggleQualityStaffPermissionsAccordion() {
     const content = document.getElementById('qualityStaffPermissionsAccordionContent');
     const icon = document.getElementById('qualityStaffPermissionsAccordionIcon');
@@ -2858,6 +2858,9 @@ function toggleQualityStaffPermissionsAccordion() {
         const isOpen = content.style.display !== 'none';
         content.style.display = isOpen ? 'none' : 'block';
         icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        if (!isOpen) {
+            loadUsersPermissions();
+        }
     }
 }
 
@@ -3189,9 +3192,350 @@ window.toggleAdminWhatsAppAccordion = toggleAdminWhatsAppAccordion;
 window.generateAdminWhatsAppQR = generateAdminWhatsAppQR;
 window.logoutAdminWhatsApp = logoutAdminWhatsApp;
 
+// ==================== Templates Management ====================
+// Toggle templates accordion
+function toggleTemplatesAccordion() {
+    const content = document.getElementById('templatesAccordionContent');
+    const icon = document.getElementById('templatesAccordionIcon');
+    if (content && icon) {
+        const isOpen = content.style.display !== 'none';
+        content.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        if (!isOpen) {
+            loadTemplates();
+        }
+    }
+}
+window.toggleTemplatesAccordion = toggleTemplatesAccordion;
+
+// Load templates
+async function loadTemplates() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const tbody = document.getElementById('templatesTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري التحميل...</td></tr>';
+        
+        const data = await window.api.getAdminTemplates();
+        if (data && data.success && data.templates) {
+            if (data.templates.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">لا توجد قوالب. اضغط "إضافة قالب جديد" لإنشاء قالب</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.templates.map(template => {
+                const categoryNames = {
+                    'subscription_expiry': 'انتهاء اشتراك الشركة',
+                    'subscriber_expiry': 'انتهاء اشتراك المشترك',
+                    'ticket_notification': 'إشعارات التذاكر',
+                    'custom': 'مخصص'
+                };
+                
+                return `
+                    <tr>
+                        <td style="padding: 12px;">${template.title || '-'}</td>
+                        <td style="padding: 12px;">${categoryNames[template.template_category] || template.template_category}</td>
+                        <td style="padding: 12px;">${template.template_type || 'custom'}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <button onclick="editTemplate(${template.id})" class="btn btn-sm btn-primary">✏️ تعديل</button>
+                            <button onclick="deleteTemplate(${template.id})" class="btn btn-sm btn-danger">🗑️ حذف</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل القوالب</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading templates:', error);
+        const tbody = document.getElementById('templatesTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل القوالب</td></tr>';
+        }
+    }
+}
+
+// Open create template modal
+function openCreateTemplateModal() {
+    const modal = document.getElementById('template-modal');
+    const title = document.getElementById('template-modal-title');
+    const form = document.getElementById('templateForm');
+    
+    if (modal && title && form) {
+        title.textContent = 'إضافة قالب جديد';
+        form.reset();
+        document.getElementById('template_id').value = '';
+        modal.style.display = 'flex';
+    }
+}
+window.openCreateTemplateModal = openCreateTemplateModal;
+
+// Close template modal
+function closeTemplateModal() {
+    const modal = document.getElementById('template-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+window.closeTemplateModal = closeTemplateModal;
+
+// Edit template
+async function editTemplate(templateId) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.getTemplate(templateId);
+        if (data && data.success && data.template) {
+            const template = data.template;
+            const modal = document.getElementById('template-modal');
+            const title = document.getElementById('template-modal-title');
+            
+            if (modal && title) {
+                title.textContent = 'تعديل القالب';
+                document.getElementById('template_id').value = template.id;
+                document.getElementById('template_title').value = template.title || '';
+                document.getElementById('template_category').value = template.template_category || 'custom';
+                document.getElementById('template_type').value = template.template_type || 'custom';
+                document.getElementById('template_description').value = template.description || '';
+                document.getElementById('template_text').value = template.template_text || '';
+                
+                modal.style.display = 'flex';
+            }
+        } else {
+            showAlertModal('خطأ', data.error || 'فشل جلب القالب');
+        }
+    } catch (error) {
+        console.error('Error editing template:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء جلب القالب');
+    }
+}
+window.editTemplate = editTemplate;
+
+// Delete template
+async function deleteTemplate(templateId) {
+    if (!confirm('هل أنت متأكد من حذف هذا القالب؟')) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.deleteTemplate(templateId);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم حذف القالب بنجاح', 'success');
+            loadTemplates();
+        } else {
+            showAlertModal('خطأ', data.error || 'فشل حذف القالب');
+        }
+    } catch (error) {
+        console.error('Error deleting template:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء حذف القالب');
+    }
+}
+window.deleteTemplate = deleteTemplate;
+
+// Insert variable into template text
+function insertVariable(variable) {
+    const textarea = document.getElementById('template_text');
+    if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const newText = text.substring(0, start) + variable + text.substring(end);
+        textarea.value = newText;
+        textarea.focus();
+        textarea.setSelectionRange(start + variable.length, start + variable.length);
+    }
+}
+window.insertVariable = insertVariable;
+
+// Setup template form submission
+function setupTemplateForm() {
+    const form = document.getElementById('templateForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const templateId = document.getElementById('template_id').value;
+        const formData = {
+            title: document.getElementById('template_title').value.trim(),
+            template_text: document.getElementById('template_text').value.trim(),
+            template_type: document.getElementById('template_type').value,
+            template_category: document.getElementById('template_category').value,
+            description: document.getElementById('template_description').value.trim()
+        };
+        
+        if (!formData.title || !formData.template_text || !formData.template_category) {
+            showAlertModal('خطأ', 'يرجى ملء جميع الحقول المطلوبة');
+            return;
+        }
+        
+        try {
+            if (!window.api) {
+                showAlertModal('خطأ', 'API غير متاح');
+                return;
+            }
+            
+            let data;
+            if (templateId) {
+                // Update
+                data = await window.api.updateTemplate(templateId, formData);
+            } else {
+                // Create
+                data = await window.api.createTemplate(formData);
+            }
+            
+            if (data && data.success) {
+                showAlertModal('نجح', templateId ? 'تم تحديث القالب بنجاح' : 'تم إنشاء القالب بنجاح', 'success');
+                closeTemplateModal();
+                loadTemplates();
+            } else {
+                showAlertModal('خطأ', data.error || 'فشل حفظ القالب');
+            }
+        } catch (error) {
+            console.error('Error saving template:', error);
+            showAlertModal('خطأ', 'حدث خطأ أثناء حفظ القالب');
+        }
+    });
+}
+
+// Load users permissions
+async function loadUsersPermissions() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const tbody = document.getElementById('usersPermissionsTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري التحميل...</td></tr>';
+        
+        const data = await window.api.getUsersPermissions();
+        if (data && data.success && data.users) {
+            if (data.users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">لا توجد موظفين</td></tr>';
+                return;
+            }
+            
+            const roleNames = {
+                'call_center': 'كول سنتر',
+                'quality_staff': 'جودة'
+            };
+            
+            tbody.innerHTML = data.users.map(user => {
+                return `
+                    <tr>
+                        <td style="padding: 12px;">${user.full_name || '-'}</td>
+                        <td style="padding: 12px;">${roleNames[user.role] || user.role}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <label style="display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <input type="checkbox" 
+                                       class="permission-checkbox" 
+                                       data-user-id="${user.id}" 
+                                       data-permission="can_notify_technicians"
+                                       ${user.can_notify_technicians ? 'checked' : ''}
+                                       onchange="updateUserPermission(${user.id}, 'can_notify_technicians', this.checked)">
+                            </label>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <label style="display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <input type="checkbox" 
+                                       class="permission-checkbox" 
+                                       data-user-id="${user.id}" 
+                                       data-permission="can_notify_subscribers"
+                                       ${user.can_notify_subscribers ? 'checked' : ''}
+                                       onchange="updateUserPermission(${user.id}, 'can_notify_subscribers', this.checked)">
+                            </label>
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <label style="display: flex; align-items: center; justify-content: center; cursor: pointer;">
+                                <input type="checkbox" 
+                                       class="permission-checkbox" 
+                                       data-user-id="${user.id}" 
+                                       data-permission="can_send_messages"
+                                       ${user.can_send_messages ? 'checked' : ''}
+                                       onchange="updateUserPermission(${user.id}, 'can_send_messages', this.checked)">
+                            </label>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل الموظفين</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading users permissions:', error);
+        const tbody = document.getElementById('usersPermissionsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل الموظفين</td></tr>';
+        }
+    }
+}
+
+// Update user permission
+async function updateUserPermission(userId, permission, value) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.updateUserPermission(userId, { [permission]: value });
+        if (data && data.success) {
+            // Success - checkbox already updated
+        } else {
+            // Revert checkbox
+            const checkbox = document.querySelector(`.permission-checkbox[data-user-id="${userId}"][data-permission="${permission}"]`);
+            if (checkbox) {
+                checkbox.checked = !value;
+            }
+            showAlertModal('خطأ', data.error || 'فشل تحديث الصلاحية');
+        }
+    } catch (error) {
+        console.error('Error updating permission:', error);
+        // Revert checkbox
+        const checkbox = document.querySelector(`.permission-checkbox[data-user-id="${userId}"][data-permission="${permission}"]`);
+        if (checkbox) {
+            checkbox.checked = !value;
+        }
+        showAlertModal('خطأ', 'حدث خطأ أثناء تحديث الصلاحية');
+    }
+}
+window.updateUserPermission = updateUserPermission;
+
+// Toggle quality staff permissions accordion
+function toggleQualityStaffPermissionsAccordion() {
+    const content = document.getElementById('qualityStaffPermissionsAccordionContent');
+    const icon = document.getElementById('qualityStaffPermissionsAccordionIcon');
+    if (content && icon) {
+        const isOpen = content.style.display !== 'none';
+        content.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        if (!isOpen) {
+            loadUsersPermissions();
+        }
+    }
+}
+window.toggleQualityStaffPermissionsAccordion = toggleQualityStaffPermissionsAccordion;
+
 // Setup admin WhatsApp settings form on DOM ready
 document.addEventListener('DOMContentLoaded', function() {
     setupAdminWhatsAppSettingsForm();
+    setupTemplateForm();
 });
 
 // إغلاق modal عند النقر خارجها

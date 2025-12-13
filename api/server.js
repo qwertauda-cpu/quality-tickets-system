@@ -104,7 +104,8 @@ async function authenticate(req, res, next) {
 app.get('/api/me', authenticate, async (req, res) => {
     try {
         const user = await db.queryOne(`
-            SELECT id, username, full_name, role, company_id, can_notify_technicians, is_active
+            SELECT id, username, full_name, role, company_id, 
+                   can_notify_technicians, can_notify_subscribers, can_send_messages, is_active
             FROM users
             WHERE id = ?
         `, [req.user.id]);
@@ -5267,7 +5268,7 @@ app.get('/api/admin/quality-staff', authenticate, async (req, res) => {
     }
 });
 
-// Update user permission
+// Update user permissions
 app.put('/api/admin/users/:id/permission', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -5279,7 +5280,7 @@ app.put('/api/admin/users/:id/permission', authenticate, async (req, res) => {
         }
         
         const userId = req.params.id;
-        const { can_notify_technicians } = req.body;
+        const { can_notify_technicians, can_notify_subscribers, can_send_messages } = req.body;
         
         // التحقق من أن المستخدم ينتمي لنفس الشركة
         const user = await db.queryOne(`
@@ -5292,20 +5293,739 @@ app.put('/api/admin/users/:id/permission', authenticate, async (req, res) => {
             return res.status(404).json({ error: 'المستخدم غير موجود أو لا ينتمي لشركتك' });
         }
         
-        // تحديث الصلاحية
+        // تحديث الصلاحيات
+        const updates = [];
+        const params = [];
+        
+        if (can_notify_technicians !== undefined) {
+            updates.push('can_notify_technicians = ?');
+            params.push(can_notify_technicians ? 1 : 0);
+        }
+        if (can_notify_subscribers !== undefined) {
+            updates.push('can_notify_subscribers = ?');
+            params.push(can_notify_subscribers ? 1 : 0);
+        }
+        if (can_send_messages !== undefined) {
+            updates.push('can_send_messages = ?');
+            params.push(can_send_messages ? 1 : 0);
+        }
+        
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'لا توجد صلاحيات للتحديث' });
+        }
+        
+        params.push(userId);
         await db.query(`
             UPDATE users
-            SET can_notify_technicians = ?
+            SET ${updates.join(', ')}
             WHERE id = ?
-        `, [can_notify_technicians ? 1 : 0, userId]);
+        `, params);
         
         res.json({
             success: true,
-            message: 'تم تحديث الصلاحية بنجاح'
+            message: 'تم تحديث الصلاحيات بنجاح'
         });
     } catch (error) {
         console.error('Update user permission error:', error);
-        res.status(500).json({ error: 'خطأ في تحديث الصلاحية' });
+        res.status(500).json({ error: 'خطأ في تحديث الصلاحيات' });
+    }
+});
+
+// Get all users with permissions (for admin)
+app.get('/api/admin/users/permissions', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        if (!req.user.company_id) {
+            return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+        }
+        
+        const users = await db.query(`
+            SELECT id, username, full_name, role, 
+                   can_notify_technicians, can_notify_subscribers, can_send_messages
+            FROM users
+            WHERE company_id = ? AND role IN ('call_center', 'quality_staff')
+            ORDER BY full_name ASC
+        `, [req.user.company_id]);
+        
+        res.json({
+            success: true,
+            users: users || []
+        });
+    } catch (error) {
+        console.error('Get users permissions error:', error);
+        res.status(500).json({ error: 'خطأ في جلب صلاحيات المستخدمين' });
+    }
+});
+
+// ==================== Subscribers CRUD API ====================
+// Get all subscribers
+app.get('/api/subscribers', authenticate, async (req, res) => {
+    try {
+        if (!req.user.company_id && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        let subscribers;
+        if (req.user.role === 'owner') {
+            subscribers = await db.query(`
+                SELECT s.*, c.name as company_name, c.domain
+                FROM subscribers s
+                JOIN companies c ON s.company_id = c.id
+                ORDER BY s.created_at DESC
+            `);
+        } else {
+            subscribers = await db.query(`
+                SELECT * FROM subscribers
+                WHERE company_id = ?
+                ORDER BY created_at DESC
+            `, [req.user.company_id]);
+        }
+        
+        res.json({
+            success: true,
+            subscribers: subscribers || []
+        });
+    } catch (error) {
+        console.error('Get subscribers error:', error);
+        res.status(500).json({ error: 'خطأ في جلب المشتركين' });
+    }
+});
+
+// Create subscriber
+app.post('/api/subscribers', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        const { username, full_name, phone, subscription_type, subscription_start_date, subscription_end_date, amount, company_id } = req.body;
+        
+        if (!username || !full_name) {
+            return res.status(400).json({ error: 'اسم المستخدم والاسم الكامل مطلوبان' });
+        }
+        
+        let finalCompanyId = company_id;
+        if (req.user.role === 'admin') {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            finalCompanyId = req.user.company_id;
+        }
+        
+        // التحقق من صيغة username@domain
+        if (!username.includes('@')) {
+            const company = await db.queryOne('SELECT domain FROM companies WHERE id = ?', [finalCompanyId]);
+            if (!company) {
+                return res.status(400).json({ error: 'الشركة غير موجودة' });
+            }
+            const finalUsername = `${username}@${company.domain}`;
+            
+            // التحقق من عدم وجود username
+            const existing = await db.queryOne('SELECT id FROM subscribers WHERE username = ?', [finalUsername]);
+            if (existing) {
+                return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
+            }
+            
+            const result = await db.query(`
+                INSERT INTO subscribers (username, full_name, phone, subscription_type, 
+                                       subscription_start_date, subscription_end_date, amount, company_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [finalUsername, full_name, phone || null, subscription_type || null,
+                subscription_start_date || null, subscription_end_date || null, amount || null, finalCompanyId]);
+            
+            res.json({
+                success: true,
+                subscriber_id: result.insertId,
+                message: 'تم إنشاء المشترك بنجاح'
+            });
+        } else {
+            // username يحتوي على @
+            const existing = await db.queryOne('SELECT id FROM subscribers WHERE username = ?', [username]);
+            if (existing) {
+                return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
+            }
+            
+            const result = await db.query(`
+                INSERT INTO subscribers (username, full_name, phone, subscription_type, 
+                                       subscription_start_date, subscription_end_date, amount, company_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `, [username, full_name, phone || null, subscription_type || null,
+                subscription_start_date || null, subscription_end_date || null, amount || null, finalCompanyId]);
+            
+            res.json({
+                success: true,
+                subscriber_id: result.insertId,
+                message: 'تم إنشاء المشترك بنجاح'
+            });
+        }
+    } catch (error) {
+        console.error('Create subscriber error:', error);
+        res.status(500).json({ error: 'خطأ في إنشاء المشترك' });
+    }
+});
+
+// Update subscriber
+app.put('/api/subscribers/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        const subscriberId = req.params.id;
+        const { full_name, phone, subscription_type, subscription_start_date, subscription_end_date, amount, is_active } = req.body;
+        
+        // التحقق من أن المشترك ينتمي للشركة الصحيحة
+        let subscriber;
+        if (req.user.role === 'owner') {
+            subscriber = await db.queryOne('SELECT id FROM subscribers WHERE id = ?', [subscriberId]);
+        } else {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            subscriber = await db.queryOne('SELECT id FROM subscribers WHERE id = ? AND company_id = ?', 
+                [subscriberId, req.user.company_id]);
+        }
+        
+        if (!subscriber) {
+            return res.status(404).json({ error: 'المشترك غير موجود' });
+        }
+        
+        const updates = [];
+        const params = [];
+        
+        if (full_name !== undefined) {
+            updates.push('full_name = ?');
+            params.push(full_name);
+        }
+        if (phone !== undefined) {
+            updates.push('phone = ?');
+            params.push(phone);
+        }
+        if (subscription_type !== undefined) {
+            updates.push('subscription_type = ?');
+            params.push(subscription_type);
+        }
+        if (subscription_start_date !== undefined) {
+            updates.push('subscription_start_date = ?');
+            params.push(subscription_start_date);
+        }
+        if (subscription_end_date !== undefined) {
+            updates.push('subscription_end_date = ?');
+            params.push(subscription_end_date);
+        }
+        if (amount !== undefined) {
+            updates.push('amount = ?');
+            params.push(amount);
+        }
+        if (is_active !== undefined) {
+            updates.push('is_active = ?');
+            params.push(is_active ? 1 : 0);
+        }
+        
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'لا توجد تعديلات' });
+        }
+        
+        params.push(subscriberId);
+        await db.query(`
+            UPDATE subscribers
+            SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, params);
+        
+        res.json({
+            success: true,
+            message: 'تم تحديث المشترك بنجاح'
+        });
+    } catch (error) {
+        console.error('Update subscriber error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث المشترك' });
+    }
+});
+
+// Delete subscriber
+app.delete('/api/subscribers/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        const subscriberId = req.params.id;
+        
+        // التحقق من أن المشترك ينتمي للشركة الصحيحة
+        let subscriber;
+        if (req.user.role === 'owner') {
+            subscriber = await db.queryOne('SELECT id FROM subscribers WHERE id = ?', [subscriberId]);
+        } else {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            subscriber = await db.queryOne('SELECT id FROM subscribers WHERE id = ? AND company_id = ?', 
+                [subscriberId, req.user.company_id]);
+        }
+        
+        if (!subscriber) {
+            return res.status(404).json({ error: 'المشترك غير موجود' });
+        }
+        
+        // حذف منطقي
+        await db.query('UPDATE subscribers SET is_active = 0 WHERE id = ?', [subscriberId]);
+        
+        res.json({
+            success: true,
+            message: 'تم حذف المشترك بنجاح'
+        });
+    } catch (error) {
+        console.error('Delete subscriber error:', error);
+        res.status(500).json({ error: 'خطأ في حذف المشترك' });
+    }
+});
+
+// ==================== Templates API ====================
+// Get templates (admin only - company-specific, or owner - global)
+app.get('/api/admin/templates', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        let templates;
+        if (req.user.role === 'owner') {
+            // المالك: جلب القوالب العامة (company_id IS NULL)
+            templates = await db.query(`
+                SELECT t.*, u.full_name as created_by_name
+                FROM message_templates t
+                LEFT JOIN users u ON t.created_by = u.id
+                WHERE t.company_id IS NULL AND t.is_active = 1
+                ORDER BY t.created_at DESC
+            `);
+        } else {
+            // المدير: جلب قوالب شركته
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            templates = await db.query(`
+                SELECT t.*, u.full_name as created_by_name
+                FROM message_templates t
+                LEFT JOIN users u ON t.created_by = u.id
+                WHERE t.company_id = ? AND t.is_active = 1
+                ORDER BY t.created_at DESC
+            `, [req.user.company_id]);
+        }
+        
+        res.json({
+            success: true,
+            templates: templates || []
+        });
+    } catch (error) {
+        console.error('Get templates error:', error);
+        res.status(500).json({ error: 'خطأ في جلب القوالب' });
+    }
+});
+
+// Get available templates (read-only for employees with permissions)
+app.get('/api/templates', authenticate, async (req, res) => {
+    try {
+        let templates;
+        
+        if (req.user.role === 'owner') {
+            // المالك: جلب القوالب العامة
+            templates = await db.query(`
+                SELECT id, title, template_category, description, available_variables
+                FROM message_templates
+                WHERE company_id IS NULL AND is_active = 1
+                ORDER BY template_category, title
+            `);
+        } else if (req.user.role === 'admin') {
+            // المدير: جلب قوالب شركته
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            templates = await db.query(`
+                SELECT id, title, template_category, description, available_variables
+                FROM message_templates
+                WHERE company_id = ? AND is_active = 1
+                ORDER BY template_category, title
+            `, [req.user.company_id]);
+        } else {
+            // الموظفون: جلب قوالب شركتهم (read-only)
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'الموظف غير مرتبط بشركة' });
+            }
+            templates = await db.query(`
+                SELECT id, title, template_category, description, available_variables
+                FROM message_templates
+                WHERE company_id = ? AND is_active = 1
+                ORDER BY template_category, title
+            `, [req.user.company_id]);
+        }
+        
+        res.json({
+            success: true,
+            templates: templates || []
+        });
+    } catch (error) {
+        console.error('Get available templates error:', error);
+        res.status(500).json({ error: 'خطأ في جلب القوالب' });
+    }
+});
+
+// Get single template
+app.get('/api/admin/templates/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const templateId = req.params.id;
+        
+        let template;
+        if (req.user.role === 'owner') {
+            template = await db.queryOne(`
+                SELECT t.*, u.full_name as created_by_name
+                FROM message_templates t
+                LEFT JOIN users u ON t.created_by = u.id
+                WHERE t.id = ? AND t.company_id IS NULL
+            `, [templateId]);
+        } else {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            template = await db.queryOne(`
+                SELECT t.*, u.full_name as created_by_name
+                FROM message_templates t
+                LEFT JOIN users u ON t.created_by = u.id
+                WHERE t.id = ? AND t.company_id = ?
+            `, [templateId, req.user.company_id]);
+        }
+        
+        if (!template) {
+            return res.status(404).json({ error: 'القالب غير موجود' });
+        }
+        
+        res.json({
+            success: true,
+            template: template
+        });
+    } catch (error) {
+        console.error('Get template error:', error);
+        res.status(500).json({ error: 'خطأ في جلب القالب' });
+    }
+});
+
+// Create template (admin only)
+app.post('/api/admin/templates', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        const { title, template_text, template_type, template_category, description, available_variables } = req.body;
+        
+        if (!title || !template_text || !template_category) {
+            return res.status(400).json({ error: 'العنوان ونص القالب والفئة مطلوبة' });
+        }
+        
+        let companyId = null;
+        if (req.user.role === 'admin') {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            companyId = req.user.company_id;
+        }
+        // owner: companyId = null (قوالب عامة)
+        
+        const result = await db.query(`
+            INSERT INTO message_templates (
+                title, template_text, template_type, template_category, 
+                description, available_variables, company_id, created_by, is_active
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+        `, [
+            title,
+            template_text,
+            template_type || 'custom',
+            template_category,
+            description || null,
+            available_variables ? JSON.stringify(available_variables) : null,
+            companyId,
+            req.user.id
+        ]);
+        
+        res.json({
+            success: true,
+            template_id: result.insertId,
+            message: 'تم إنشاء القالب بنجاح'
+        });
+    } catch (error) {
+        console.error('Create template error:', error);
+        res.status(500).json({ error: 'خطأ في إنشاء القالب' });
+    }
+});
+
+// Update template (admin only)
+app.put('/api/admin/templates/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        const templateId = req.params.id;
+        const { title, template_text, template_type, template_category, description, available_variables, is_active } = req.body;
+        
+        // التحقق من أن القالب ينتمي للشركة الصحيحة
+        let template;
+        if (req.user.role === 'owner') {
+            template = await db.queryOne(`
+                SELECT id FROM message_templates WHERE id = ? AND company_id IS NULL
+            `, [templateId]);
+        } else {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            template = await db.queryOne(`
+                SELECT id FROM message_templates WHERE id = ? AND company_id = ?
+            `, [templateId, req.user.company_id]);
+        }
+        
+        if (!template) {
+            return res.status(404).json({ error: 'القالب غير موجود أو لا ينتمي لشركتك' });
+        }
+        
+        const updates = [];
+        const params = [];
+        
+        if (title !== undefined) {
+            updates.push('title = ?');
+            params.push(title);
+        }
+        if (template_text !== undefined) {
+            updates.push('template_text = ?');
+            params.push(template_text);
+        }
+        if (template_type !== undefined) {
+            updates.push('template_type = ?');
+            params.push(template_type);
+        }
+        if (template_category !== undefined) {
+            updates.push('template_category = ?');
+            params.push(template_category);
+        }
+        if (description !== undefined) {
+            updates.push('description = ?');
+            params.push(description);
+        }
+        if (available_variables !== undefined) {
+            updates.push('available_variables = ?');
+            params.push(available_variables ? JSON.stringify(available_variables) : null);
+        }
+        if (is_active !== undefined) {
+            updates.push('is_active = ?');
+            params.push(is_active ? 1 : 0);
+        }
+        
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'لا توجد تعديلات' });
+        }
+        
+        params.push(templateId);
+        await db.query(`
+            UPDATE message_templates
+            SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, params);
+        
+        res.json({
+            success: true,
+            message: 'تم تحديث القالب بنجاح'
+        });
+    } catch (error) {
+        console.error('Update template error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث القالب' });
+    }
+});
+
+// Delete template (admin only)
+app.delete('/api/admin/templates/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        const templateId = req.params.id;
+        
+        // التحقق من أن القالب ينتمي للشركة الصحيحة
+        let template;
+        if (req.user.role === 'owner') {
+            template = await db.queryOne(`
+                SELECT id FROM message_templates WHERE id = ? AND company_id IS NULL
+            `, [templateId]);
+        } else {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            template = await db.queryOne(`
+                SELECT id FROM message_templates WHERE id = ? AND company_id = ?
+            `, [templateId, req.user.company_id]);
+        }
+        
+        if (!template) {
+            return res.status(404).json({ error: 'القالب غير موجود أو لا ينتمي لشركتك' });
+        }
+        
+        // حذف منطقي (تعطيل)
+        await db.query(`
+            UPDATE message_templates
+            SET is_active = 0, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [templateId]);
+        
+        res.json({
+            success: true,
+            message: 'تم حذف القالب بنجاح'
+        });
+    } catch (error) {
+        console.error('Delete template error:', error);
+        res.status(500).json({ error: 'خطأ في حذف القالب' });
+    }
+});
+
+// ==================== Subscribers API ====================
+// Get expiring subscribers
+app.get('/api/subscribers/expiring', authenticate, async (req, res) => {
+    try {
+        if (!req.user.company_id && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const { days = 30 } = req.query;
+        const daysFromNow = moment().add(parseInt(days), 'days').format('YYYY-MM-DD');
+        const today = moment().format('YYYY-MM-DD');
+        
+        let subscribers;
+        if (req.user.role === 'owner') {
+            // المالك: جلب جميع المشتركين
+            subscribers = await db.query(`
+                SELECT s.*, c.name as company_name, c.domain
+                FROM subscribers s
+                JOIN companies c ON s.company_id = c.id
+                WHERE s.is_active = 1
+                AND s.subscription_end_date IS NOT NULL
+                AND s.subscription_end_date BETWEEN ? AND ?
+                ORDER BY s.subscription_end_date ASC
+            `, [today, daysFromNow]);
+        } else {
+            // المدير/الموظف: جلب مشتركي شركته فقط
+            subscribers = await db.query(`
+                SELECT s.*, c.name as company_name, c.domain
+                FROM subscribers s
+                JOIN companies c ON s.company_id = c.id
+                WHERE s.company_id = ? AND s.is_active = 1
+                AND s.subscription_end_date IS NOT NULL
+                AND s.subscription_end_date BETWEEN ? AND ?
+                ORDER BY s.subscription_end_date ASC
+            `, [req.user.company_id, today, daysFromNow]);
+        }
+        
+        // حساب الأيام المتبقية
+        subscribers = subscribers.map(sub => ({
+            ...sub,
+            days_remaining: moment(sub.subscription_end_date).diff(moment(), 'days')
+        }));
+        
+        res.json({
+            success: true,
+            subscribers: subscribers || []
+        });
+    } catch (error) {
+        console.error('Get expiring subscribers error:', error);
+        res.status(500).json({ error: 'خطأ في جلب المشتركين' });
+    }
+});
+
+// Send message using template
+app.post('/api/templates/:id/send', authenticate, async (req, res) => {
+    try {
+        const templateId = req.params.id;
+        const { recipient_type, recipient_id, variables } = req.body;
+        
+        // جلب القالب
+        let template;
+        if (req.user.role === 'owner') {
+            template = await db.queryOne(`
+                SELECT * FROM message_templates
+                WHERE id = ? AND (company_id IS NULL OR company_id = 0) AND is_active = 1
+            `, [templateId]);
+        } else {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'الموظف غير مرتبط بشركة' });
+            }
+            template = await db.queryOne(`
+                SELECT * FROM message_templates
+                WHERE id = ? AND company_id = ? AND is_active = 1
+            `, [templateId, req.user.company_id]);
+        }
+        
+        if (!template) {
+            return res.status(404).json({ error: 'القالب غير موجود' });
+        }
+        
+        // التحقق من الصلاحيات
+        if (recipient_type === 'subscriber' && !req.user.can_notify_subscribers && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'ليس لديك صلاحية إرسال رسائل للمشتركين' });
+        }
+        
+        if (recipient_type === 'technician' && !req.user.can_notify_technicians && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'ليس لديك صلاحية إرسال رسائل للفنيين' });
+        }
+        
+        // استبدال المتغيرات في القالب
+        let message = template.template_text;
+        if (variables && typeof variables === 'object') {
+            Object.keys(variables).forEach(key => {
+                const value = variables[key] || '';
+                message = message.replace(new RegExp(`{${key}}`, 'g'), value);
+            });
+        }
+        
+        // جلب معلومات المستقبل
+        let phoneNumber = null;
+        if (recipient_type === 'subscriber') {
+            const subscriber = await db.queryOne(`
+                SELECT phone, full_name FROM subscribers WHERE id = ? AND company_id = ?
+            `, [recipient_id, req.user.company_id]);
+            if (!subscriber) {
+                return res.status(404).json({ error: 'المشترك غير موجود' });
+            }
+            phoneNumber = subscriber.phone;
+        } else if (recipient_type === 'technician') {
+            const technician = await db.queryOne(`
+                SELECT phone, full_name FROM users WHERE id = ? AND company_id = ?
+            `, [recipient_id, req.user.company_id]);
+            if (!technician) {
+                return res.status(404).json({ error: 'الفني غير موجود' });
+            }
+            phoneNumber = technician.phone;
+        }
+        
+        if (!phoneNumber) {
+            return res.status(400).json({ error: 'رقم الهاتف غير متوفر' });
+        }
+        
+        // إرسال الرسالة
+        const sendResult = await sendWhatsAppMessage(phoneNumber, message, req.user.company_id);
+        
+        res.json({
+            success: sendResult.success || false,
+            message: 'تم إرسال الرسالة بنجاح',
+            result: sendResult
+        });
+    } catch (error) {
+        console.error('Send message using template error:', error);
+        res.status(500).json({ error: 'خطأ في إرسال الرسالة' });
     }
 });
 

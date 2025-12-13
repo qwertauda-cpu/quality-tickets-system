@@ -62,7 +62,12 @@ function showPage(pageName) {
         targetPage.style.display = 'block';
     }
     
-    document.getElementById('pageTitle').textContent = 'التذاكر';
+    const titles = {
+        'tickets': 'التذاكر',
+        'followup': 'المتابعة اليومية'
+    };
+    
+    document.getElementById('pageTitle').textContent = titles[pageName] || 'التذاكر';
     
     document.querySelectorAll('.sidebar-menu a').forEach(link => {
         link.classList.remove('active');
@@ -73,6 +78,8 @@ function showPage(pageName) {
     
     if (pageName === 'tickets') {
         loadTickets();
+    } else if (pageName === 'followup') {
+        loadExpiringSubscribers();
     }
 }
 
@@ -495,10 +502,295 @@ function toggleMobileMenu() {
     overlay.classList.toggle('active');
 }
 
+// ==================== Follow-up Daily Management ====================
+// Load expiring subscribers
+async function loadExpiringSubscribers() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const tbody = document.getElementById('expiringSubscribersTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري التحميل...</td></tr>';
+        
+        const daysFilter = document.getElementById('followupDaysFilter');
+        const days = daysFilter ? parseInt(daysFilter.value) || 30 : 30;
+        
+        const data = await window.api.getExpiringSubscribers(days);
+        if (data && data.success && data.subscribers) {
+            if (data.subscribers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: var(--text-muted);">لا يوجد مشتركين قريبين على الانتهاء</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.subscribers.map(sub => {
+                const daysRemaining = sub.days_remaining || 0;
+                const daysClass = daysRemaining <= 7 ? 'text-danger' : daysRemaining <= 15 ? 'text-warning' : '';
+                
+                return `
+                    <tr>
+                        <td style="padding: 12px;">${sub.full_name || '-'}</td>
+                        <td style="padding: 12px;">${sub.username || '-'}</td>
+                        <td style="padding: 12px;">${sub.phone || '-'}</td>
+                        <td style="padding: 12px;">${sub.subscription_type || '-'}</td>
+                        <td style="padding: 12px;">${sub.subscription_end_date || '-'}</td>
+                        <td style="padding: 12px; text-align: center; font-weight: 600;" class="${daysClass}">${daysRemaining} يوم</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <button onclick="openSendMessageModal(${sub.id}, '${sub.full_name || ''}', '${sub.phone || ''}', '${sub.subscription_end_date || ''}', ${daysRemaining})" 
+                                    class="btn btn-sm btn-primary" ${!sub.phone ? 'disabled title="لا يوجد رقم هاتف"' : ''}>
+                                📱 إرسال رسالة
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل المشتركين</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading expiring subscribers:', error);
+        const tbody = document.getElementById('expiringSubscribersTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل المشتركين</td></tr>';
+        }
+    }
+}
+
+// Open send message modal
+async function openSendMessageModal(subscriberId, subscriberName, phone, endDate, daysRemaining) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        // التحقق من الصلاحية
+        const currentUser = getCurrentUser();
+        if (!currentUser) {
+            showAlertModal('خطأ', 'غير قادر على تحديد المستخدم');
+            return;
+        }
+        
+        // جلب معلومات المستخدم للتحقق من الصلاحية
+        const userData = await window.api.getCurrentUser();
+        if (!userData || !userData.success || !userData.user) {
+            showAlertModal('خطأ', 'غير قادر على جلب معلومات المستخدم');
+            return;
+        }
+        
+        const canNotify = (userData.user.can_notify_subscribers === 1 || userData.user.can_notify_subscribers === true) || currentUser.role === 'admin';
+        if (!canNotify) {
+            showAlertModal('تحذير', 'ليس لديك صلاحية لإرسال رسائل للمشتركين. يرجى التواصل مع المدير.', 'warning');
+            return;
+        }
+        
+        const modal = document.getElementById('send-message-modal');
+        const templateSelect = document.getElementById('send_message_template_id');
+        const messageText = document.getElementById('send_message_text');
+        
+        if (!modal || !templateSelect || !messageText) {
+            showAlertModal('خطأ', 'عناصر الواجهة غير متاحة');
+            return;
+        }
+        
+        // تعبئة البيانات
+        document.getElementById('send_message_subscriber_id').value = subscriberId;
+        document.getElementById('send_message_subscriber_name').value = subscriberName;
+        
+        // جلب القوالب المتاحة
+        const templatesData = await window.api.getTemplates();
+        if (templatesData && templatesData.success && templatesData.templates) {
+            templateSelect.innerHTML = '<option value="">اختر قالب...</option>';
+            templatesData.templates.forEach(template => {
+                if (template.template_category === 'subscriber_expiry' || template.template_category === 'custom') {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.title || 'قالب بدون عنوان';
+                    templateSelect.appendChild(option);
+                }
+            });
+        }
+        
+        // تعبئة نص افتراضي
+        messageText.value = `عزيزي/عزيزتي ${subscriberName}\n\nاشتراكك سينتهي خلال ${daysRemaining} يوم.\nتاريخ الانتهاء: ${endDate}\n\nيرجى التواصل معنا لتجديد الاشتراك.`;
+        
+        modal.style.display = 'flex';
+    } catch (error) {
+        console.error('Error opening send message modal:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء فتح نافذة الإرسال');
+    }
+}
+window.openSendMessageModal = openSendMessageModal;
+
+// Close send message modal
+function closeSendMessageModal() {
+    const modal = document.getElementById('send-message-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+window.closeSendMessageModal = closeSendMessageModal;
+
+// Load template preview
+async function loadTemplatePreview() {
+    try {
+        const templateId = document.getElementById('send_message_template_id').value;
+        const messageText = document.getElementById('send_message_text');
+        const subscriberId = document.getElementById('send_message_subscriber_id').value;
+        
+        if (!templateId || !messageText) return;
+        
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getTemplate(templateId);
+        if (data && data.success && data.template) {
+            const template = data.template;
+            let text = template.template_text;
+            
+            // جلب بيانات المشترك لملء المتغيرات
+            if (subscriberId) {
+                const subscriberData = await window.api.getSubscribers();
+                if (subscriberData && subscriberData.success && subscriberData.subscribers) {
+                    const subscriber = subscriberData.subscribers.find(s => s.id == subscriberId);
+                    if (subscriber) {
+                        // استبدال المتغيرات
+                        text = text.replace(/{full_name}/g, subscriber.full_name || '');
+                        text = text.replace(/{name}/g, subscriber.full_name || '');
+                        text = text.replace(/{username}/g, subscriber.username || '');
+                        text = text.replace(/{phone}/g, subscriber.phone || '');
+                        text = text.replace(/{subscription_end_date}/g, subscriber.subscription_end_date || '');
+                        text = text.replace(/{subscription_type}/g, subscriber.subscription_type || '');
+                        text = text.replace(/{amount}/g, subscriber.amount || '');
+                        
+                        // حساب الأيام المتبقية
+                        if (subscriber.subscription_end_date) {
+                            const endDate = new Date(subscriber.subscription_end_date);
+                            const today = new Date();
+                            const diffTime = endDate - today;
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            text = text.replace(/{days_remaining}/g, diffDays.toString());
+                        }
+                    }
+                }
+            }
+            
+            messageText.value = text;
+        }
+    } catch (error) {
+        console.error('Error loading template preview:', error);
+    }
+}
+window.loadTemplatePreview = loadTemplatePreview;
+
+// Setup send message form
+function setupSendMessageForm() {
+    const form = document.getElementById('sendMessageForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const subscriberId = document.getElementById('send_message_subscriber_id').value;
+        const templateId = document.getElementById('send_message_template_id').value;
+        const messageText = document.getElementById('send_message_text').value.trim();
+        
+        if (!messageText) {
+            showAlertModal('خطأ', 'يرجى إدخال نص الرسالة');
+            return;
+        }
+        
+        if (!subscriberId) {
+            showAlertModal('خطأ', 'المشترك غير محدد');
+            return;
+        }
+        
+        try {
+            if (!window.api) {
+                showAlertModal('خطأ', 'API غير متاح');
+                return;
+            }
+            
+            // إذا كان هناك قالب محدد، استخدمه
+            if (templateId) {
+                // جلب بيانات المشترك لملء المتغيرات
+                const subscriberData = await window.api.getSubscribers();
+                if (subscriberData && subscriberData.success && subscriberData.subscribers) {
+                    const subscriber = subscriberData.subscribers.find(s => s.id == subscriberId);
+                    if (subscriber) {
+                        const variables = {
+                            full_name: subscriber.full_name || '',
+                            name: subscriber.full_name || '',
+                            username: subscriber.username || '',
+                            phone: subscriber.phone || '',
+                            subscription_end_date: subscriber.subscription_end_date || '',
+                            subscription_type: subscriber.subscription_type || '',
+                            amount: subscriber.amount || ''
+                        };
+                        
+                        if (subscriber.subscription_end_date) {
+                            const endDate = new Date(subscriber.subscription_end_date);
+                            const today = new Date();
+                            const diffTime = endDate - today;
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            variables.days_remaining = diffDays.toString();
+                        }
+                        
+                        const data = await window.api.sendTemplateMessage(templateId, {
+                            recipient_type: 'subscriber',
+                            recipient_id: subscriberId,
+                            variables: variables
+                        });
+                        
+                        if (data && data.success) {
+                            showAlertModal('نجح', 'تم إرسال الرسالة بنجاح', 'success');
+                            closeSendMessageModal();
+                        } else {
+                            showAlertModal('خطأ', data.error || 'فشل إرسال الرسالة');
+                        }
+                        return;
+                    }
+                }
+            }
+            
+            // إرسال مباشر بدون قالب
+            if (!subscriberId) {
+                showAlertModal('خطأ', 'المشترك غير محدد');
+                return;
+            }
+            
+            // جلب رقم هاتف المشترك
+            const subscriberData = await window.api.getSubscribers();
+            if (subscriberData && subscriberData.success && subscriberData.subscribers) {
+                const subscriber = subscriberData.subscribers.find(s => s.id == subscriberId);
+                if (!subscriber || !subscriber.phone) {
+                    showAlertModal('خطأ', 'رقم الهاتف غير متوفر للمشترك');
+                    return;
+                }
+                
+                // إرسال مباشر (يمكن إضافة API endpoint للإرسال المباشر)
+                showAlertModal('معلومات', 'يرجى استخدام قالب لإرسال الرسالة', 'info');
+            }
+        } catch (error) {
+            console.error('Error sending message:', error);
+            showAlertModal('خطأ', 'حدث خطأ أثناء إرسال الرسالة');
+        }
+    });
+}
+
 // Initialize on load
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCallCenterDashboard);
+    document.addEventListener('DOMContentLoaded', function() {
+        initCallCenterDashboard();
+        setupSendMessageForm();
+    });
 } else {
     initCallCenterDashboard();
+    setupSendMessageForm();
 }
 

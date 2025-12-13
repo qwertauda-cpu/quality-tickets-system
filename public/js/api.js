@@ -116,6 +116,8 @@ const api = {
     
     // Users Management (Admin only)
     getUsers: () => apiRequest('/users'),
+    getUser: (id) => apiRequest(`/users/${id}`),
+    getCurrentUser: () => apiRequest('/me'),
     createUser: (data) => apiRequest('/users', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -351,6 +353,42 @@ api.getQualityStaffUsers = () => apiRequest('/admin/quality-staff');
 api.updateUserPermission = (userId, data) => apiRequest(`/admin/users/${userId}/permission`, {
     method: 'PUT',
     body: JSON.stringify(data)
+});
+api.getUsersPermissions = () => apiRequest('/admin/users/permissions');
+
+// Templates API
+api.getTemplates = () => apiRequest('/templates');
+api.getAdminTemplates = () => apiRequest('/admin/templates');
+api.getTemplate = (id) => apiRequest(`/admin/templates/${id}`);
+api.createTemplate = (data) => apiRequest('/admin/templates', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+api.updateTemplate = (id, data) => apiRequest(`/admin/templates/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
+api.deleteTemplate = (id) => apiRequest(`/admin/templates/${id}`, {
+    method: 'DELETE'
+});
+api.sendTemplateMessage = (templateId, data) => apiRequest(`/templates/${templateId}/send`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+
+// Subscribers API
+api.getSubscribers = () => apiRequest('/subscribers');
+api.getExpiringSubscribers = (days = 30) => apiRequest(`/subscribers/expiring?days=${days}`);
+api.createSubscriber = (data) => apiRequest('/subscribers', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+api.updateSubscriber = (id, data) => apiRequest(`/subscribers/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
+api.deleteSubscriber = (id) => apiRequest(`/subscribers/${id}`, {
+    method: 'DELETE'
 });
 
 // Make API available globally

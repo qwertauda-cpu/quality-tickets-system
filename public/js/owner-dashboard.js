@@ -2450,10 +2450,236 @@ window.onclick = function(event) {
     });
 };
 
+// ==================== Owner Templates Management ====================
+// Toggle templates accordion
+function toggleOwnerTemplatesAccordion() {
+    const content = document.getElementById('ownerTemplatesAccordionContent');
+    const icon = document.getElementById('ownerTemplatesAccordionIcon');
+    if (content && icon) {
+        const isOpen = content.style.display !== 'none';
+        content.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        if (!isOpen) {
+            loadOwnerTemplates();
+        }
+    }
+}
+window.toggleOwnerTemplatesAccordion = toggleOwnerTemplatesAccordion;
+
+// Load owner templates
+async function loadOwnerTemplates() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const tbody = document.getElementById('ownerTemplatesTableBody');
+        if (!tbody) return;
+        
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري التحميل...</td></tr>';
+        
+        const data = await window.api.getAdminTemplates(); // Owner uses same endpoint
+        if (data && data.success && data.templates) {
+            if (data.templates.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">لا توجد قوالب. اضغط "إضافة قالب جديد" لإنشاء قالب</td></tr>';
+                return;
+            }
+            
+            const categoryNames = {
+                'subscription_expiry': 'انتهاء اشتراك الشركة',
+                'subscriber_expiry': 'انتهاء اشتراك المشترك',
+                'ticket_notification': 'إشعارات التذاكر',
+                'custom': 'مخصص'
+            };
+            
+            tbody.innerHTML = data.templates.map(template => {
+                return `
+                    <tr>
+                        <td style="padding: 12px;">${template.title || '-'}</td>
+                        <td style="padding: 12px;">${categoryNames[template.template_category] || template.template_category}</td>
+                        <td style="padding: 12px;">${template.template_type || 'custom'}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            <button onclick="editOwnerTemplate(${template.id})" class="btn btn-sm btn-primary">✏️ تعديل</button>
+                            <button onclick="deleteOwnerTemplate(${template.id})" class="btn btn-sm btn-danger">🗑️ حذف</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل القوالب</td></tr>';
+        }
+    } catch (error) {
+        console.error('Error loading owner templates:', error);
+        const tbody = document.getElementById('ownerTemplatesTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-danger);">خطأ في تحميل القوالب</td></tr>';
+        }
+    }
+}
+
+// Open create template modal
+function openCreateOwnerTemplateModal() {
+    const modal = document.getElementById('owner-template-modal');
+    const title = document.getElementById('owner-template-modal-title');
+    const form = document.getElementById('ownerTemplateForm');
+    
+    if (modal && title && form) {
+        title.textContent = 'إضافة قالب جديد';
+        form.reset();
+        document.getElementById('owner_template_id').value = '';
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    }
+}
+window.openCreateOwnerTemplateModal = openCreateOwnerTemplateModal;
+
+// Close template modal
+function closeOwnerTemplateModal() {
+    const modal = document.getElementById('owner-template-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+}
+window.closeOwnerTemplateModal = closeOwnerTemplateModal;
+
+// Edit template
+async function editOwnerTemplate(templateId) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.getTemplate(templateId);
+        if (data && data.success && data.template) {
+            const template = data.template;
+            const modal = document.getElementById('owner-template-modal');
+            const title = document.getElementById('owner-template-modal-title');
+            
+            if (modal && title) {
+                title.textContent = 'تعديل القالب';
+                document.getElementById('owner_template_id').value = template.id;
+                document.getElementById('owner_template_title').value = template.title || '';
+                document.getElementById('owner_template_category').value = template.template_category || 'custom';
+                document.getElementById('owner_template_type').value = template.template_type || 'custom';
+                document.getElementById('owner_template_description').value = template.description || '';
+                document.getElementById('owner_template_text').value = template.template_text || '';
+                
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('active'), 10);
+            }
+        } else {
+            showAlertModal('خطأ', data.error || 'فشل جلب القالب');
+        }
+    } catch (error) {
+        console.error('Error editing owner template:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء جلب القالب');
+    }
+}
+window.editOwnerTemplate = editOwnerTemplate;
+
+// Delete template
+async function deleteOwnerTemplate(templateId) {
+    if (!confirm('هل أنت متأكد من حذف هذا القالب؟')) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.deleteTemplate(templateId);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم حذف القالب بنجاح');
+            loadOwnerTemplates();
+        } else {
+            showAlertModal('خطأ', data.error || 'فشل حذف القالب');
+        }
+    } catch (error) {
+        console.error('Error deleting owner template:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء حذف القالب');
+    }
+}
+window.deleteOwnerTemplate = deleteOwnerTemplate;
+
+// Insert variable into template text
+function insertOwnerVariable(variable) {
+    const textarea = document.getElementById('owner_template_text');
+    if (textarea) {
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const newText = text.substring(0, start) + variable + text.substring(end);
+        textarea.value = newText;
+        textarea.focus();
+        textarea.setSelectionRange(start + variable.length, start + variable.length);
+    }
+}
+window.insertOwnerVariable = insertOwnerVariable;
+
+// Setup owner template form submission
+function setupOwnerTemplateForm() {
+    const form = document.getElementById('ownerTemplateForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const templateId = document.getElementById('owner_template_id').value;
+        const formData = {
+            title: document.getElementById('owner_template_title').value.trim(),
+            template_text: document.getElementById('owner_template_text').value.trim(),
+            template_type: document.getElementById('owner_template_type').value,
+            template_category: document.getElementById('owner_template_category').value,
+            description: document.getElementById('owner_template_description').value.trim()
+        };
+        
+        if (!formData.title || !formData.template_text || !formData.template_category) {
+            showAlertModal('خطأ', 'يرجى ملء جميع الحقول المطلوبة');
+            return;
+        }
+        
+        try {
+            if (!window.api) {
+                showAlertModal('خطأ', 'API غير متاح');
+                return;
+            }
+            
+            let data;
+            if (templateId) {
+                // Update
+                data = await window.api.updateTemplate(templateId, formData);
+            } else {
+                // Create
+                data = await window.api.createTemplate(formData);
+            }
+            
+            if (data && data.success) {
+                showAlertModal('نجح', templateId ? 'تم تحديث القالب بنجاح' : 'تم إنشاء القالب بنجاح');
+                closeOwnerTemplateModal();
+                loadOwnerTemplates();
+            } else {
+                showAlertModal('خطأ', data.error || 'فشل حفظ القالب');
+            }
+        } catch (error) {
+            console.error('Error saving owner template:', error);
+            showAlertModal('خطأ', 'حدث خطأ أثناء حفظ القالب');
+        }
+    });
+}
+
 // Initialize on page load
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initOwnerDashboard);
+    document.addEventListener('DOMContentLoaded', function() {
+        initOwnerDashboard();
+        setupOwnerTemplateForm();
+    });
 } else {
     initOwnerDashboard();
+    setupOwnerTemplateForm();
 }
 

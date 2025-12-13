@@ -948,31 +948,69 @@
                     </div>
                 </div>
                 
+                <!-- Templates Management Section -->
+                <div class="form-section" style="margin-top: 24px;">
+                    <button type="button" class="accordion-header" onclick="toggleTemplatesAccordion()" style="width: 100%; text-align: right; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                        <h3 class="form-section-title" style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                            <span>📝</span>
+                            <span>إدارة قوالب الرسائل</span>
+                        </h3>
+                        <span class="accordion-icon" id="templatesAccordionIcon" style="transition: transform 0.3s;">▼</span>
+                    </button>
+                    <div id="templatesAccordionContent" class="accordion-content" style="display: none; padding: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
+                                إنشاء وإدارة قوالب الرسائل للمشتركين والفنيين
+                            </p>
+                            <button type="button" onclick="openCreateTemplateModal()" class="btn btn-primary">➕ إضافة قالب جديد</button>
+                        </div>
+                        <div class="table-container">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">اسم القالب</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">الفئة</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">النوع</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600;">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="templatesTableBody">
+                                    <tr>
+                                        <td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري تحميل القوالب...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Quality Staff Permissions Section -->
                 <div class="form-section" style="margin-top: 24px;">
                     <button type="button" class="accordion-header" onclick="toggleQualityStaffPermissionsAccordion()" style="width: 100%; text-align: right; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
                         <h3 class="form-section-title" style="margin: 0; display: flex; align-items: center; gap: 10px;">
                             <span>👥</span>
-                            <span>إدارة صلاحيات موظفي الجودة</span>
+                            <span>إدارة صلاحيات الموظفين</span>
                         </h3>
                         <span class="accordion-icon" id="qualityStaffPermissionsAccordionIcon" style="transition: transform 0.3s;">▼</span>
                     </button>
                     <div id="qualityStaffPermissionsAccordionContent" class="accordion-content" style="display: none; padding: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
                         <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
-                            حدد من يستطيع إرسال تنبيهات للفنيين عبر الواتساب عند إنشاء التذاكر
+                            حدد صلاحيات الموظفين لإرسال الرسائل للفنيين والمشتركين
                         </p>
                         <div class="table-container">
                             <table style="width: 100%; border-collapse: collapse;">
                                 <thead>
                                     <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
                                         <th style="padding: 12px; text-align: right; font-weight: 600;">اسم الموظف</th>
-                                        <th style="padding: 12px; text-align: right; font-weight: 600;">اسم المستخدم</th>
-                                        <th style="padding: 12px; text-align: center; font-weight: 600;">صلاحية إرسال تنبيهات</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">الدور</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600;">إرسال للفنيين</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600;">إرسال للمشتركين</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600;">إرسال عام</th>
                                     </tr>
                                 </thead>
-                                <tbody id="qualityStaffPermissionsTableBody">
+                                <tbody id="usersPermissionsTableBody">
                                     <tr>
-                                        <td colspan="3" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري تحميل قائمة موظفي الجودة...</td>
+                                        <td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري تحميل قائمة الموظفين...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -1064,6 +1102,92 @@
                         <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
                         <button type="button" class="btn btn-primary" onclick="saveTicketOnly()">💾 حفظ فقط</button>
                         <button type="button" class="btn btn-success" onclick="saveTicketAndNotify()">💾 حفظ وإرسال تنبيه للفني</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template Modal (Create/Edit) -->
+    <div id="template-modal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2 id="template-modal-title">إضافة قالب جديد</h2>
+                <button class="modal-close-btn" onclick="closeTemplateModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="templateForm">
+                    <input type="hidden" id="template_id">
+                    
+                    <div class="form-section">
+                        <h3 class="form-section-title">معلومات القالب الأساسية</h3>
+                        
+                        <div class="form-group">
+                            <label for="template_title">اسم القالب <span class="required">*</span></label>
+                            <input type="text" id="template_title" required placeholder="مثال: قالب انتهاء اشتراك المشترك">
+                            <small class="form-hint">اسم واضح للقالب لتسهيل التعرف عليه</small>
+                        </div>
+                        
+                        <div class="form-grid-2">
+                            <div class="form-group">
+                                <label for="template_category">فئة القالب <span class="required">*</span></label>
+                                <select id="template_category" required>
+                                    <option value="">اختر الفئة</option>
+                                    <option value="subscription_expiry">انتهاء اشتراك الشركة</option>
+                                    <option value="subscriber_expiry">انتهاء اشتراك المشترك</option>
+                                    <option value="ticket_notification">إشعارات التذاكر</option>
+                                    <option value="custom">مخصص</option>
+                                </select>
+                                <small class="form-hint">نوع القالب والغرض منه</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="template_type">نوع القالب</label>
+                                <select id="template_type">
+                                    <option value="custom">مخصص</option>
+                                    <option value="connection">ربط</option>
+                                    <option value="maintenance">صيانة</option>
+                                    <option value="postponed">تأجيل</option>
+                                    <option value="followup">متابعة</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="template_description">وصف القالب</label>
+                            <textarea id="template_description" rows="2" placeholder="وصف مختصر للقالب (اختياري)"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <h3 class="form-section-title">نص القالب</h3>
+                        
+                        <div class="form-group">
+                            <label for="template_text">نص الرسالة <span class="required">*</span></label>
+                            <textarea id="template_text" rows="8" required placeholder="اكتب نص الرسالة هنا... يمكنك استخدام المتغيرات مثل {full_name}, {username}, {phone}"></textarea>
+                            <small class="form-hint">استخدم المتغيرات بين الأقواس المعقوفة مثل {full_name}, {username}, {phone}</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>المتغيرات المتاحة:</label>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{username}')">{username}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{full_name}')">{full_name}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{name}')">{name}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{phone}')">{phone}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{domain}')">{domain}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{subscription_end_date}')">{subscription_end_date}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{days_remaining}')">{days_remaining}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{amount}')">{amount}</button>
+                                <button type="button" class="btn btn-sm" onclick="insertVariable('{subscription_type}')">{subscription_type}</button>
+                            </div>
+                            <small class="form-hint">اضغط على المتغير لإضافته في موضع المؤشر</small>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="closeTemplateModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">💾 حفظ القالب</button>
                     </div>
                 </form>
             </div>
