@@ -1767,14 +1767,16 @@ window.generateWhatsAppQR = generateWhatsAppQR;
 async function updateWhatsAppStatusIndicator() {
     try {
         const statusIcon = document.getElementById('whatsappStatusIcon');
-        const statusText = document.getElementById('whatsappStatusIndicator');
+        const statusTextEl = document.getElementById('whatsappStatusText');
+        const statusContainer = document.getElementById('whatsappStatusIndicator');
         
-        if (!statusIcon || !statusText) return;
+        if (!statusIcon || !statusTextEl || !statusContainer) return;
         
         if (!window.api) {
             statusIcon.textContent = '❌';
-            statusText.querySelector('#whatsappStatusText').textContent = 'API غير متاح';
-            statusText.style.background = 'rgba(255, 0, 0, 0.1)';
+            statusTextEl.textContent = 'API غير متاح';
+            statusContainer.style.background = 'rgba(255, 0, 0, 0.1)';
+            statusContainer.style.border = '1px solid rgba(255, 0, 0, 0.3)';
             return;
         }
         
@@ -1782,34 +1784,36 @@ async function updateWhatsAppStatusIndicator() {
         if (data && data.success) {
             if (data.connected) {
                 statusIcon.textContent = '✅';
-                statusText.querySelector('#whatsappStatusText').textContent = 'واتساب مربوط';
-                statusText.style.background = 'rgba(37, 211, 102, 0.2)';
-                statusText.style.border = '1px solid rgba(37, 211, 102, 0.3)';
+                statusTextEl.textContent = 'واتساب مربوط';
+                statusContainer.style.background = 'rgba(37, 211, 102, 0.2)';
+                statusContainer.style.border = '1px solid rgba(37, 211, 102, 0.3)';
             } else if (data.qr_code) {
                 statusIcon.textContent = '⏳';
-                statusText.querySelector('#whatsappStatusText').textContent = 'في انتظار الربط';
-                statusText.style.background = 'rgba(255, 193, 7, 0.2)';
-                statusText.style.border = '1px solid rgba(255, 193, 7, 0.3)';
+                statusTextEl.textContent = 'في انتظار الربط';
+                statusContainer.style.background = 'rgba(255, 193, 7, 0.2)';
+                statusContainer.style.border = '1px solid rgba(255, 193, 7, 0.3)';
             } else {
                 statusIcon.textContent = '❌';
-                statusText.querySelector('#whatsappStatusText').textContent = 'واتساب غير مربوط';
-                statusText.style.background = 'rgba(255, 0, 0, 0.1)';
-                statusText.style.border = '1px solid rgba(255, 0, 0, 0.3)';
+                statusTextEl.textContent = 'واتساب غير مربوط';
+                statusContainer.style.background = 'rgba(255, 0, 0, 0.1)';
+                statusContainer.style.border = '1px solid rgba(255, 0, 0, 0.3)';
             }
         } else {
             statusIcon.textContent = '❌';
-            statusText.querySelector('#whatsappStatusText').textContent = 'واتساب غير مربوط';
-            statusText.style.background = 'rgba(255, 0, 0, 0.1)';
-            statusText.style.border = '1px solid rgba(255, 0, 0, 0.3)';
+            statusTextEl.textContent = 'واتساب غير مربوط';
+            statusContainer.style.background = 'rgba(255, 0, 0, 0.1)';
+            statusContainer.style.border = '1px solid rgba(255, 0, 0, 0.3)';
         }
     } catch (error) {
         console.error('Error updating WhatsApp status indicator:', error);
         const statusIcon = document.getElementById('whatsappStatusIcon');
-        const statusText = document.getElementById('whatsappStatusIndicator');
-        if (statusIcon && statusText) {
+        const statusTextEl = document.getElementById('whatsappStatusText');
+        const statusContainer = document.getElementById('whatsappStatusIndicator');
+        if (statusIcon && statusTextEl && statusContainer) {
             statusIcon.textContent = '❌';
-            statusText.querySelector('#whatsappStatusText').textContent = 'خطأ في التحقق';
-            statusText.style.background = 'rgba(255, 0, 0, 0.1)';
+            statusTextEl.textContent = 'خطأ في التحقق';
+            statusContainer.style.background = 'rgba(255, 0, 0, 0.1)';
+            statusContainer.style.border = '1px solid rgba(255, 0, 0, 0.3)';
         }
     }
 }
