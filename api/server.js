@@ -3243,6 +3243,7 @@ async function checkExpiringSubscriptions() {
 // ==================== WhatsApp Web Client ====================
 let whatsappClient = null;
 let whatsappReady = false;
+let currentQRCode = null; // Store current QR Code for frontend
 
 // Initialize WhatsApp Web Client
 async function initWhatsAppClient() {
@@ -3268,8 +3269,11 @@ async function initWhatsAppClient() {
             }
         });
         
-        // عرض QR Code في Terminal
+        // عرض QR Code في Terminal وحفظه للواجهة
         whatsappClient.on('qr', (qr) => {
+            // حفظ QR Code للواجهة
+            currentQRCode = qr;
+            
             console.log('');
             console.log('==========================================');
             console.log('📱 QR Code للواتساب - يرجى مسح الباركود:');
@@ -4516,10 +4520,77 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
             `, [setting.key, setting.value, setting.type]);
         }
         
+        // إعادة تهيئة WhatsApp Client إذا كان مفعّل
+        if (whatsapp_enabled === '1' || whatsapp_enabled === true || whatsapp_enabled === 'true') {
+            try {
+                // إعادة تعيين QR Code
+                currentQRCode = null;
+                
+                // إعادة تهيئة WhatsApp Client
+                if (whatsappClient) {
+                    try {
+                        await whatsappClient.destroy();
+                    } catch (e) {
+                        console.log('Error destroying old client:', e.message);
+                    }
+                    whatsappClient = null;
+                    whatsappReady = false;
+                }
+                
+                // تهيئة جديدة
+                await initWhatsAppClient();
+                
+                // انتظار QR Code (إذا كان مطلوباً)
+                if (currentQRCode) {
+                    return res.json({ 
+                        success: true, 
+                        message: 'تم حفظ الإعدادات بنجاح',
+                        qr_code: currentQRCode,
+                        needs_qr: true
+                    });
+                } else {
+                    // إذا كان متصل بالفعل
+                    return res.json({ 
+                        success: true, 
+                        message: 'تم حفظ الإعدادات بنجاح',
+                        needs_qr: false,
+                        connected: whatsappReady
+                    });
+                }
+            } catch (error) {
+                console.error('Error initializing WhatsApp Client:', error);
+                return res.json({ 
+                    success: true, 
+                    message: 'تم حفظ الإعدادات بنجاح، لكن حدث خطأ في تهيئة WhatsApp',
+                    error: error.message
+                });
+            }
+        }
+        
         res.json({ success: true, message: 'تم حفظ الإعدادات بنجاح' });
     } catch (error) {
         console.error('Save settings error:', error);
         res.status(500).json({ error: 'خطأ في حفظ الإعدادات' });
+    }
+});
+
+// Get WhatsApp QR Code (Owner only)
+app.get('/api/owner/whatsapp-qr', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        if (currentQRCode) {
+            return res.json({ success: true, qr_code: currentQRCode, needs_qr: true });
+        } else if (whatsappReady) {
+            return res.json({ success: true, connected: true, needs_qr: false });
+        } else {
+            return res.json({ success: true, needs_qr: false, connected: false });
+        }
+    } catch (error) {
+        console.error('Get QR Code error:', error);
+        res.status(500).json({ error: 'خطأ في جلب QR Code' });
     }
 });
 

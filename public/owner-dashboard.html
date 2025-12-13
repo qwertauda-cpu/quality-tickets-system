@@ -6,6 +6,7 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://136.111.97.150:3001; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://136.111.97.150:3001; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: http://136.111.97.150:3001; connect-src 'self' http://136.111.97.150:3001;">
     <title>لوحة المالك - نظام إدارة التذاكر</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 </head>
 <body>
     <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>
@@ -446,6 +447,14 @@
                                         <button type="submit" class="btn btn-primary">💾 حفظ الإعدادات</button>
                                     </div>
                                 </form>
+                                
+                                <!-- QR Code Display -->
+                                <div id="whatsappQRContainer" style="display: none; margin-top: 24px; text-align: center; padding: 24px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <h4 style="margin-bottom: 16px; color: var(--text-primary);">📱 مسح الباركود للاتصال بـ WhatsApp</h4>
+                                    <div id="whatsappQRCode" style="display: inline-block; padding: 16px; background: white; border-radius: 8px; margin-bottom: 16px;"></div>
+                                    <p style="color: var(--text-secondary); font-size: 14px; margin-top: 16px;">افتح WhatsApp على هاتفك وامسح الباركود أعلاه</p>
+                                    <button onclick="checkWhatsAppStatus()" class="btn btn-sm btn-secondary" style="margin-top: 12px;">🔄 التحقق من حالة الاتصال</button>
+                                </div>
                             </div>
                         </div>
                     </div>

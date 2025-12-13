@@ -1476,6 +1476,103 @@ function toggleWhatsAppAccordion() {
 // Make toggleWhatsAppAccordion globally accessible
 window.toggleWhatsAppAccordion = toggleWhatsAppAccordion;
 
+// Display QR Code
+function displayQRCode(qrCodeString) {
+    const qrContainer = document.getElementById('whatsappQRContainer');
+    const qrCodeDiv = document.getElementById('whatsappQRCode');
+    
+    if (qrContainer && qrCodeDiv && typeof QRCode !== 'undefined') {
+        // Clear previous QR Code
+        qrCodeDiv.innerHTML = '';
+        
+        // Generate QR Code
+        QRCode.toCanvas(qrCodeDiv, qrCodeString, {
+            width: 256,
+            margin: 2,
+            color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+            }
+        }, function (error) {
+            if (error) {
+                console.error('Error generating QR Code:', error);
+                // Fallback: use img tag
+                qrCodeDiv.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeString)}" alt="QR Code" style="max-width: 256px;">`;
+            }
+        });
+        
+        // Show container
+        qrContainer.style.display = 'block';
+        
+        // Open accordion if closed
+        const accordionSection = document.querySelector('.accordion-section');
+        if (accordionSection && !accordionSection.classList.contains('active')) {
+            accordionSection.classList.add('active');
+        }
+    }
+}
+
+// Hide QR Code
+function hideQRCode() {
+    const qrContainer = document.getElementById('whatsappQRContainer');
+    if (qrContainer) {
+        qrContainer.style.display = 'none';
+    }
+}
+
+// Check for QR Code
+async function checkForQRCode() {
+    try {
+        if (!window.api) {
+            return;
+        }
+        
+        const data = await window.api.getWhatsAppQR();
+        if (data && data.success) {
+            if (data.qr_code) {
+                displayQRCode(data.qr_code);
+            } else if (data.connected) {
+                hideQRCode();
+                showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking QR Code:', error);
+    }
+}
+
+// Check WhatsApp Status
+async function checkWhatsAppStatus() {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.getWhatsAppQR();
+        if (data && data.success) {
+            if (data.qr_code) {
+                displayQRCode(data.qr_code);
+                showAlertModal('معلومات', 'QR Code متاح، يرجى مسح الباركود');
+            } else if (data.connected) {
+                hideQRCode();
+                showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!');
+            } else {
+                showAlertModal('معلومات', 'لم يتم الاتصال بعد، يرجى المحاولة لاحقاً');
+            }
+        }
+    } catch (error) {
+        console.error('Error checking WhatsApp status:', error);
+        showAlertModal('خطأ', 'حدث خطأ في التحقق من حالة الاتصال');
+    }
+}
+
+// Make functions globally accessible
+window.displayQRCode = displayQRCode;
+window.hideQRCode = hideQRCode;
+window.checkForQRCode = checkForQRCode;
+window.checkWhatsAppStatus = checkWhatsAppStatus;
+
 // Setup settings form submission
 document.addEventListener('DOMContentLoaded', function() {
     const whatsappSettingsForm = document.getElementById('whatsappSettingsForm');
@@ -1504,6 +1601,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await window.api.saveSettings(formData);
                 if (data && data.success) {
                     showAlertModal('نجح', 'تم حفظ الإعدادات بنجاح!');
+                    
+                    // إذا كان هناك QR Code، عرضه
+                    if (data.qr_code) {
+                        displayQRCode(data.qr_code);
+                    } else if (data.needs_qr) {
+                        // انتظار QR Code
+                        setTimeout(async () => {
+                            await checkForQRCode();
+                        }, 2000);
+                    } else if (data.connected) {
+                        hideQRCode();
+                        showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!');
+                    }
                 } else {
                     showAlertModal('خطأ', data?.error || 'حدث خطأ في حفظ الإعدادات');
                 }

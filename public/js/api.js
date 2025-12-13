@@ -209,6 +209,7 @@ const api = {
     getExportTables: () => apiRequest('/export/tables'),
     getSettings: () => apiRequest('/owner/settings'),
     saveSettings: (settings) => apiRequest('/owner/settings', { method: 'POST', body: JSON.stringify(settings) }),
+    getWhatsAppQR: () => apiRequest('/owner/whatsapp-qr'),
     exportDatabase: (tables = []) => {
         const params = tables.length > 0 ? `?tables=${tables.join(',')}` : '';
         return fetch(`${window.API_BASE}/export/database${params}`, {
