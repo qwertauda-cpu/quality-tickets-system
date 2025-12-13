@@ -4510,7 +4510,7 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
         }
         
-        const { whatsapp_phone, whatsapp_api_key, whatsapp_api_url, whatsapp_enabled } = req.body;
+        const { whatsapp_phone, whatsapp_enabled } = req.body;
         
         if (!whatsapp_phone) {
             return res.status(400).json({ error: 'رقم الواتساب مطلوب' });
