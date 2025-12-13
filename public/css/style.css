@@ -2682,3 +2682,104 @@ code {
     color: var(--primary-light);
     border: 1px solid var(--border-color);
 }
+
+/* ==================== Additional Select Enhancements ==================== */
+/* Select with smooth transitions */
+select {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+select:hover {
+    transform: translateY(-1px);
+}
+
+select:active {
+    transform: translateY(0);
+}
+
+/* Select option group styling */
+select optgroup {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px;
+}
+
+select optgroup option {
+    padding-right: 20px;
+    padding-left: 20px;
+}
+
+/* Better select focus ring */
+select:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+    border-radius: 10px;
+}
+
+/* Select with error state */
+select.error,
+select.is-invalid {
+    border-color: var(--danger-color);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+select.error:focus,
+select.is-invalid:focus {
+    border-color: var(--danger-color);
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+}
+
+/* Select with success state */
+select.success,
+select.is-valid {
+    border-color: var(--success-color);
+}
+
+select.success:focus,
+select.is-valid:focus {
+    border-color: var(--success-color);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
+}
+
+/* Custom scrollbar for select dropdowns */
+select::-webkit-scrollbar {
+    width: 8px;
+}
+
+select::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+select::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+select::-webkit-scrollbar-thumb:hover {
+    background: var(--border-hover);
+}
+
+/* Firefox scrollbar for select */
+select {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
+}
+
+/* Select size variations */
+select.select-sm {
+    padding: 8px 12px;
+    padding-left: 36px;
+    font-size: 13px;
+    min-height: 36px;
+}
+
+select.select-lg {
+    padding: 16px 20px;
+    padding-left: 52px;
+    font-size: 16px;
+    min-height: 52px;
+}
