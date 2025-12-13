@@ -23,6 +23,7 @@
                 <li><a href="#" data-page="tickets"><i>🎫</i> التذاكر</a></li>
                 <li><a href="#" data-page="scoring-rules"><i>⚙️</i> قواعد النقاط</a></li>
                 <li><a href="#" data-page="reports"><i>📄</i> التقارير</a></li>
+                <li><a href="#" data-page="notifications"><i>🔔</i> الاشعارات</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
             </ul>
         </aside>
@@ -892,6 +893,64 @@
         </div>
     </div>
 
+    <!-- Notifications Page -->
+    <div id="notifications-page" class="page-content" style="display: none;">
+        <div class="card">
+            <div class="card-header">
+                <h2>🔔 الاشعارات</h2>
+                <p style="color: var(--text-muted); margin-top: 10px;">إعدادات الواتساب والإشعارات</p>
+            </div>
+            <div class="card-body">
+                <div class="form-section">
+                    <button type="button" class="accordion-header" onclick="toggleAdminWhatsAppAccordion()" style="width: 100%; text-align: right; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                        <h3 class="form-section-title" style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                            <span>📱</span>
+                            <span>إعدادات الواتساب</span>
+                        </h3>
+                        <span class="accordion-icon" id="adminWhatsAppAccordionIcon" style="transition: transform 0.3s;">▼</span>
+                    </button>
+                    <div id="adminWhatsAppAccordionContent" class="accordion-content" style="display: none; padding: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
+                        <form id="adminWhatsappSettingsForm">
+                            <div class="form-group">
+                                <label for="admin_whatsapp_phone">رقم الواتساب <span class="required">*</span></label>
+                                <input type="text" id="admin_whatsapp_phone" placeholder="مثال: 07901234567 أو 9647901234567" required>
+                                <small class="form-hint">رقم الواتساب الخاص بك لإرسال الرسائل</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" id="admin_whatsapp_enabled" style="width: auto;">
+                                    <span>تفعيل إرسال رسائل الواتساب</span>
+                                </label>
+                                <small class="form-hint">عند التفعيل، يمكنك إرسال رسائل الواتساب عبر الباركود</small>
+                            </div>
+                            
+                            <div class="form-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <button type="submit" class="btn btn-primary">💾 حفظ الإعدادات</button>
+                                <button type="button" onclick="generateAdminWhatsAppQR()" class="btn btn-success">📱 توليد QR واتساب</button>
+                            </div>
+                        </form>
+                        
+                        <div id="adminWhatsappQRContainer" style="margin-top: 24px; display: none; text-align: center; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
+                            <h4 style="margin-bottom: 16px; color: var(--text-primary);">📱 QR Code للواتساب</h4>
+                            <div id="adminQRCodeDisplay" style="display: flex; justify-content: center; align-items: center; min-height: 200px;">
+                                <p style="color: var(--text-muted);">جاري توليد QR Code...</p>
+                            </div>
+                            <button type="button" onclick="logoutAdminWhatsApp()" class="btn btn-danger" style="margin-top: 16px;">🚪 تسجيل الخروج من WhatsApp</button>
+                        </div>
+                        
+                        <div id="adminWhatsappStatusIndicator" style="margin-top: 24px; padding: 16px; background: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); display: none;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <span id="adminWhatsappStatusIcon">❌</span>
+                                <span id="adminWhatsappStatusText">واتساب غير مربوط</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Alert Modal -->
     <div id="alert-modal" class="modal-overlay" style="display: none;">
         <div class="modal" style="max-width: 500px;">
@@ -969,9 +1028,10 @@
                         </div>
                     </div>
                     
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
                         <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
-                        <button type="submit" class="btn btn-primary">إنشاء التذكرة</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTicketOnly()">💾 حفظ فقط</button>
+                        <button type="button" class="btn btn-success" onclick="saveTicketAndNotify()">💾 حفظ وإرسال تنبيه للفني</button>
                     </div>
                 </form>
             </div>

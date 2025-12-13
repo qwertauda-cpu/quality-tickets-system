@@ -340,7 +340,8 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             subscriber_phone,
             subscriber_address,
             region,
-            notes
+            notes,
+            send_notification
         } = req.body;
         
         // توليد رقم التذكرة تلقائياً إذا لم يتم إرساله
@@ -610,6 +611,48 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         `, insertParams);
         
         const ticketId = result.insertId;
+        
+        // إرسال تنبيه للفني إذا طُلب ذلك
+        if (send_notification && teamId) {
+            try {
+                // جلب معلومات الفريق والفنيين
+                const teamMembers = await db.query(`
+                    SELECT u.id, u.full_name, u.phone
+                    FROM team_members tm
+                    JOIN users u ON tm.user_id = u.id
+                    WHERE tm.team_id = ? AND u.role = 'technician' AND u.is_active = 1
+                `, [teamId]);
+                
+                // جلب نوع التذكرة للرسالة
+                let ticketTypeName = custom_ticket_type || 'غير محدد';
+                if (finalTicketTypeId && !custom_ticket_type) {
+                    const ticketType = await db.queryOne(`
+                        SELECT name_ar FROM ticket_types WHERE id = ?
+                    `, [finalTicketTypeId]);
+                    if (ticketType) {
+                        ticketTypeName = ticketType.name_ar;
+                    }
+                }
+                
+                // إرسال إشعارات للفنيين
+                for (const member of teamMembers) {
+                    // إشعار في الموقع
+                    await db.query(`
+                        INSERT INTO notifications (user_id, message, type, related_ticket_id, is_read)
+                        VALUES (?, ?, 'ticket_assigned', ?, 0)
+                    `, [member.id, `تم إنشاء تذكرة جديدة: ${finalTicketNumber}`, ticketId]);
+                    
+                    // إرسال واتساب إذا كان متاحاً
+                    if (member.phone) {
+                        const message = `تم إنشاء تذكرة جديدة\nرقم التذكرة: ${finalTicketNumber}\nاسم المشترك: ${subscriber_name || 'غير محدد'}\nنوع التذكرة: ${ticketTypeName}`;
+                        await sendWhatsAppMessage(member.phone, message, req.user.company_id);
+                    }
+                }
+            } catch (notifError) {
+                console.error('Error sending notifications:', notifError);
+                // لا نوقف العملية إذا فشل الإشعار
+            }
+        }
         
         // إرجاع رقم التذكرة المُولّد في الاستجابة
         console.log('Ticket created successfully. ID:', ticketId, 'Ticket Number:', finalTicketNumber);
@@ -3349,10 +3392,12 @@ async function initWhatsAppClient() {
 }
 
 // ==================== Send WhatsApp Message ====================
-async function sendWhatsAppMessage(phoneNumber, message) {
+async function sendWhatsAppMessage(phoneNumber, message, companyId = null) {
     try {
-        // جلب إعدادات الواتساب
-        const settings = await getWhatsAppSettings();
+        // جلب إعدادات الواتساب (company-specific إذا كان companyId محدد)
+        const settings = companyId 
+            ? await getCompanyWhatsAppSettings(companyId)
+            : await getWhatsAppSettings();
         
         if (!settings.whatsapp_enabled) {
             console.log('⚠️ إرسال الواتساب معطل في الإعدادات');
@@ -3454,13 +3499,13 @@ async function sendWhatsAppMessage(phoneNumber, message) {
     }
 }
 
-// Helper function to get WhatsApp settings
+// Helper function to get WhatsApp settings (owner/global)
 async function getWhatsAppSettings() {
     try {
         const settingsRows = await db.query(`
             SELECT setting_key, setting_value, setting_type
             FROM settings
-            WHERE category = 'whatsapp' AND is_active = 1
+            WHERE (company_id IS NULL OR company_id = 0) AND category = 'whatsapp' AND is_active = 1
         `);
         
         const settings = {
@@ -3490,6 +3535,47 @@ async function getWhatsAppSettings() {
             whatsapp_phone: '',
             whatsapp_enabled: false
         };
+    }
+}
+
+// Helper function to get company-specific WhatsApp settings
+async function getCompanyWhatsAppSettings(companyId) {
+    try {
+        if (!companyId) {
+            return await getWhatsAppSettings();
+        }
+        
+        const settingsRows = await db.query(`
+            SELECT setting_key, setting_value, setting_type
+            FROM settings
+            WHERE company_id = ? AND category = 'whatsapp' AND is_active = 1
+        `, [companyId]);
+        
+        const settings = {
+            whatsapp_phone: '',
+            whatsapp_enabled: false
+        };
+        
+        settingsRows.forEach(row => {
+            let value = row.setting_value;
+            
+            if (row.setting_type === 'boolean') {
+                value = value === '1' || value === true || value === 'true';
+            }
+            
+            settings[row.setting_key] = value;
+        });
+        
+        // Fallback to global settings if company settings are empty
+        if (!settings.whatsapp_phone) {
+            const globalSettings = await getWhatsAppSettings();
+            return globalSettings;
+        }
+        
+        return settings;
+    } catch (error) {
+        console.error('Error getting company WhatsApp settings:', error);
+        return await getWhatsAppSettings();
     }
 }
 
@@ -4527,8 +4613,8 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
         
         for (const setting of settings) {
             await db.query(`
-                INSERT INTO settings (setting_key, setting_value, setting_type, category)
-                VALUES (?, ?, ?, 'whatsapp')
+                INSERT INTO settings (setting_key, setting_value, setting_type, category, company_id)
+                VALUES (?, ?, ?, 'whatsapp', NULL)
                 ON DUPLICATE KEY UPDATE
                     setting_value = VALUES(setting_value),
                     updated_at = CURRENT_TIMESTAMP
@@ -4790,6 +4876,121 @@ app.get('/api/owner/whatsapp-qr', authenticate, async (req, res) => {
     } catch (error) {
         console.error('Get QR Code error:', error);
         res.status(500).json({ error: 'خطأ في جلب QR Code' });
+    }
+});
+
+// ==================== Admin Settings API ====================
+// Get admin settings (company-specific)
+app.get('/api/admin/settings', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        if (!req.user.company_id) {
+            return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+        }
+        
+        const settings = await db.query(`
+            SELECT setting_key, setting_value
+            FROM settings
+            WHERE company_id = ? AND is_active = 1
+        `, [req.user.company_id]);
+        
+        const settingsObj = {};
+        settings.forEach(s => {
+            settingsObj[s.setting_key] = s.setting_value;
+        });
+        
+        res.json({
+            success: true,
+            settings: settingsObj
+        });
+    } catch (error) {
+        console.error('Get admin settings error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الإعدادات' });
+    }
+});
+
+// Save admin settings (company-specific)
+app.post('/api/admin/settings', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        if (!req.user.company_id) {
+            return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+        }
+        
+        const { whatsapp_phone, whatsapp_enabled } = req.body;
+        
+        // حفظ/تحديث الإعدادات
+        await db.query(`
+            INSERT INTO settings (company_id, setting_key, setting_value, setting_type, is_active)
+            VALUES (?, 'whatsapp_phone', ?, 'string', 1),
+                   (?, 'whatsapp_enabled', ?, 'boolean', 1)
+            ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value),
+                is_active = 1
+        `, [req.user.company_id, whatsapp_phone || '', req.user.company_id, whatsapp_enabled || '0']);
+        
+        // تهيئة WhatsApp Client للشركة
+        if (whatsapp_phone && whatsapp_enabled === '1') {
+            // TODO: Initialize company-specific WhatsApp client
+            // For now, we'll use a single client with company_id in clientId
+        }
+        
+        res.json({
+            success: true,
+            message: 'تم حفظ الإعدادات بنجاح',
+            needs_qr: whatsapp_phone && whatsapp_enabled === '1'
+        });
+    } catch (error) {
+        console.error('Save admin settings error:', error);
+        res.status(500).json({ error: 'خطأ في حفظ الإعدادات' });
+    }
+});
+
+// Get admin WhatsApp QR
+app.get('/api/admin/whatsapp-qr', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        if (!req.user.company_id) {
+            return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+        }
+        
+        // TODO: Get company-specific QR code
+        // For now, return connected status
+        res.json({
+            success: true,
+            connected: false,
+            qr_code: null
+        });
+    } catch (error) {
+        console.error('Get admin WhatsApp QR error:', error);
+        res.status(500).json({ error: 'خطأ في جلب QR Code' });
+    }
+});
+
+// Logout admin WhatsApp
+app.post('/api/admin/whatsapp-logout', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        // TODO: Logout company-specific WhatsApp client
+        res.json({
+            success: true,
+            message: 'تم تسجيل الخروج بنجاح'
+        });
+    } catch (error) {
+        console.error('Logout admin WhatsApp error:', error);
+        res.status(500).json({ error: 'خطأ في تسجيل الخروج' });
     }
 });
 

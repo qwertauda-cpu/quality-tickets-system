@@ -1174,9 +1174,10 @@
                         </div>
                     </div>
                     
-                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;">
                         <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
-                        <button type="submit" class="btn btn-primary">إنشاء التذكرة</button>
+                        <button type="button" class="btn btn-primary" onclick="saveTicketOnlyQuality()">💾 حفظ فقط</button>
+                        <button type="button" class="btn btn-success" onclick="saveTicketAndNotifyQuality()">💾 حفظ وإرسال تنبيه للفني</button>
                     </div>
                 </form>
             </div>

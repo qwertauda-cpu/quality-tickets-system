@@ -337,6 +337,17 @@ api.submitPurchaseRequest = (data) => apiRequest('/purchase-request', {
     body: JSON.stringify(data)
 });
 
+// Admin Settings API
+api.getAdminSettings = () => apiRequest('/admin/settings');
+api.saveAdminSettings = (data) => apiRequest('/admin/settings', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+api.getAdminWhatsAppQR = () => apiRequest('/admin/whatsapp-qr');
+api.logoutAdminWhatsApp = () => apiRequest('/admin/whatsapp-logout', {
+    method: 'POST'
+});
+
 // Make API available globally
 window.api = api;
 

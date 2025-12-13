@@ -117,7 +117,8 @@ function showPage(pageName) {
         'tickets': 'التذاكر',
         'scoring-rules': 'قواعد النقاط',
         'points-management': 'قواعد النقاط',
-        'reports': 'التقارير'
+        'reports': 'التقارير',
+        'notifications': 'الاشعارات'
     };
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) {
@@ -144,6 +145,8 @@ function showPage(pageName) {
         return;
     } else if (pageName === 'reports') {
         loadReports();
+    } else if (pageName === 'notifications') {
+        loadNotifications();
     }
 }
 
@@ -1568,84 +1571,94 @@ function setupCreatePhoneValidation() {
     }
 }
 
-function setupCreateTicketFormSubmission() {
-    const form = document.getElementById('createTicketForm');
-    if (!form) return;
+// Save ticket only (without notification)
+async function saveTicketOnly() {
+    await createTicketWithNotification(false);
+}
+
+// Save ticket and send notification to technician
+async function saveTicketAndNotify() {
+    await createTicketWithNotification(true);
+}
+
+// Create ticket with optional notification
+async function createTicketWithNotification(sendNotification = false) {
+    const phone = document.getElementById('create_subscriber_phone')?.value?.trim() || '';
+    if (phone && phone.length !== 11) {
+        showAlertModal('تحذير', 'يجب أن يحتوي رقم الهاتف على 11 رقم بالضبط', 'warning');
+        return;
+    }
     
-    // Remove existing listeners
-    const newForm = form.cloneNode(true);
-    form.parentNode.replaceChild(newForm, form);
+    const ticketNumber = document.getElementById('create_ticket_number')?.value?.trim();
+    const ticketTypeSelect = document.getElementById('create_ticket_type_id');
+    const selectedType = ticketTypeSelect ? ticketTypeSelect.value : '';
+    let ticketTypeId = null;
+    let customTicketType = null;
     
-    newForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const phone = document.getElementById('create_subscriber_phone')?.value?.trim() || '';
-        if (phone && phone.length !== 11) {
-            showAlertModal('تحذير', 'يجب أن يحتوي رقم الهاتف على 11 رقم بالضبط', 'warning');
+    if (selectedType === 'custom') {
+        const customType = document.getElementById('create_custom_ticket_type')?.value.trim();
+        if (!customType) {
+            showAlertModal('تحذير', 'الرجاء إدخال نوع التذكرة المخصص', 'warning');
             return;
         }
+        customTicketType = customType;
+    } else if (selectedType && selectedType !== '') {
+        ticketTypeId = parseInt(selectedType);
+        if (isNaN(ticketTypeId)) {
+            showAlertModal('تحذير', 'نوع التذكرة غير صحيح', 'warning');
+            return;
+        }
+    } else {
+        showAlertModal('تحذير', 'الرجاء اختيار نوع التذكرة', 'warning');
+        return;
+    }
+    
+    const subscriberName = document.getElementById('create_subscriber_name')?.value?.trim() || '';
+    const subscriberPhone = phone;
+    const region = document.getElementById('create_region')?.value?.trim() || '';
+    const notes = document.getElementById('create_notes')?.value?.trim() || '';
+    
+    if (!ticketTypeId && !customTicketType) {
+        showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)', 'warning');
+        return;
+    }
+    
+    try {
+        const formData = {
+            ticket_number: ticketNumber,
+            ticket_type_id: ticketTypeId,
+            custom_ticket_type: customTicketType,
+            subscriber_name: subscriberName || null,
+            subscriber_phone: subscriberPhone || null,
+            region: region || null,
+            notes: notes || null,
+            send_notification: sendNotification
+        };
         
-        const ticketNumber = document.getElementById('create_ticket_number')?.value?.trim();
-        const ticketTypeSelect = document.getElementById('create_ticket_type_id');
-        const selectedType = ticketTypeSelect ? ticketTypeSelect.value : '';
-        let ticketTypeId = null;
-        let customTicketType = null;
+        const result = await window.api.createTicket(formData);
         
-        if (selectedType === 'custom') {
-            const customType = document.getElementById('create_custom_ticket_type')?.value.trim();
-            if (!customType) {
-                showAlertModal('تحذير', 'الرجاء إدخال نوع التذكرة المخصص', 'warning');
-                return;
-            }
-            customTicketType = customType;
-        } else if (selectedType && selectedType !== '') {
-            ticketTypeId = parseInt(selectedType);
-            if (isNaN(ticketTypeId)) {
-                showAlertModal('تحذير', 'نوع التذكرة غير صحيح', 'warning');
-                return;
+        if (result && result.success) {
+            const message = sendNotification 
+                ? 'تم إنشاء التذكرة بنجاح وإرسال تنبيه للفني!\nرقم التذكرة: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً')
+                : 'تم إنشاء التذكرة بنجاح!\nرقم التذكرة: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً');
+            showAlertModal('نجح', message, 'success');
+            closeCreateTicketModal();
+            // Reload tickets if on tickets page
+            if (document.getElementById('tickets-page')?.style.display !== 'none') {
+                loadTickets();
             }
         } else {
-            showAlertModal('تحذير', 'الرجاء اختيار نوع التذكرة', 'warning');
-            return;
+            showAlertModal('خطأ', result.error || 'فشل إنشاء التذكرة', 'error');
         }
-        const subscriberName = document.getElementById('create_subscriber_name')?.value?.trim() || '';
-        const subscriberPhone = phone;
-        const region = document.getElementById('create_region')?.value?.trim() || '';
-        const notes = document.getElementById('create_notes')?.value?.trim() || '';
-        
-        if (!ticketTypeId && !customTicketType) {
-            showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)', 'warning');
-            return;
-        }
-        
-        try {
-            const formData = {
-                ticket_number: ticketNumber,
-                ticket_type_id: ticketTypeId,
-                custom_ticket_type: customTicketType,
-                subscriber_name: subscriberName || null,
-                subscriber_phone: subscriberPhone || null,
-                region: region || null,
-                notes: notes || null
-            };
-            
-            const result = await window.api.createTicket(formData);
-            
-            if (result && result.success) {
-                showAlertModal('نجح', 'تم إنشاء التذكرة بنجاح!\nرقم التذكرة: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'), 'success');
-                closeCreateTicketModal();
-                // Reload tickets if on tickets page
-                if (document.getElementById('tickets-page')?.style.display !== 'none') {
-                    loadTickets();
-                }
-            } else {
-                showAlertModal('خطأ', result.error || 'فشل إنشاء التذكرة', 'error');
-            }
-        } catch (error) {
-            console.error('Error creating ticket:', error);
-            showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التذكرة: ' + (error.message || 'خطأ غير معروف'), 'error');
-        }
-    });
+    } catch (error) {
+        console.error('Error creating ticket:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التذكرة: ' + (error.message || 'خطأ غير معروف'), 'error');
+    }
+}
+
+function setupCreateTicketFormSubmission() {
+    // Form submission is now handled by saveTicketOnly() and saveTicketAndNotify()
+    // This function is kept for compatibility but form no longer has submit button
 }
 
 // Alert Modal Functions
@@ -2827,6 +2840,258 @@ function closePointsManagementModal() {
     }
     currentPointsTicketId = null;
 }
+
+// ==================== Notifications Page Functions ====================
+
+// Load notifications page
+async function loadNotifications() {
+    await loadAdminWhatsAppSettings();
+    checkAdminWhatsAppStatus();
+}
+
+// Toggle WhatsApp accordion
+function toggleAdminWhatsAppAccordion() {
+    const content = document.getElementById('adminWhatsAppAccordionContent');
+    const icon = document.getElementById('adminWhatsAppAccordionIcon');
+    if (content && icon) {
+        const isOpen = content.style.display !== 'none';
+        content.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+}
+
+// Load admin WhatsApp settings
+async function loadAdminWhatsAppSettings() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getAdminSettings();
+        if (data && data.success) {
+            const phoneEl = document.getElementById('admin_whatsapp_phone');
+            const enabledEl = document.getElementById('admin_whatsapp_enabled');
+            
+            if (phoneEl) phoneEl.value = data.settings.whatsapp_phone || '';
+            if (enabledEl) enabledEl.checked = data.settings.whatsapp_enabled === '1' || data.settings.whatsapp_enabled === 1;
+        }
+    } catch (error) {
+        console.error('Error loading admin WhatsApp settings:', error);
+    }
+}
+
+// Setup admin WhatsApp settings form
+function setupAdminWhatsAppSettingsForm() {
+    const form = document.getElementById('adminWhatsappSettingsForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = {
+            whatsapp_phone: document.getElementById('admin_whatsapp_phone').value.trim(),
+            whatsapp_enabled: document.getElementById('admin_whatsapp_enabled').checked ? '1' : '0'
+        };
+        
+        if (!formData.whatsapp_phone) {
+            showAlertModal('خطأ', 'يرجى إدخال رقم الواتساب');
+            return;
+        }
+        
+        try {
+            if (!window.api) {
+                showAlertModal('خطأ', 'API غير متاح');
+                return;
+            }
+            
+            const data = await window.api.saveAdminSettings(formData);
+            if (data && data.success) {
+                showAlertModal('نجح', 'تم حفظ الإعدادات بنجاح', 'success');
+                if (data.qr_code) {
+                    displayAdminQRCode(data.qr_code);
+                } else if (data.needs_qr) {
+                    checkAdminQRCode();
+                } else if (data.connected) {
+                    showAlertModal('معلومات', 'واتساب مربوط بالفعل', 'info');
+                    checkAdminWhatsAppStatus();
+                }
+            } else {
+                showAlertModal('خطأ', data.error || 'فشل حفظ الإعدادات', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving admin settings:', error);
+            showAlertModal('خطأ', 'حدث خطأ أثناء حفظ الإعدادات', 'error');
+        }
+    });
+}
+
+// Generate admin WhatsApp QR
+async function generateAdminWhatsAppQR() {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const whatsappPhone = document.getElementById('admin_whatsapp_phone')?.value.trim();
+        if (!whatsappPhone) {
+            showAlertModal('خطأ', 'يرجى إدخال رقم الواتساب أولاً ثم حفظ الإعدادات');
+            return;
+        }
+        
+        const whatsappEnabled = document.getElementById('admin_whatsapp_enabled')?.checked;
+        if (!whatsappEnabled) {
+            showAlertModal('خطأ', 'يرجى تفعيل "إرسال رسائل الواتساب" أولاً ثم حفظ الإعدادات');
+            return;
+        }
+        
+        showAlertModal('معلومات', 'جاري توليد QR Code... يرجى الانتظار', 'info');
+        
+        const data = await window.api.getAdminWhatsAppQR();
+        if (data && data.success) {
+            if (data.qr_code) {
+                displayAdminQRCode(data.qr_code);
+            } else if (data.connected) {
+                showAlertModal('معلومات', 'واتساب مربوط بالفعل', 'info');
+                checkAdminWhatsAppStatus();
+            } else {
+                checkAdminQRCode();
+            }
+        } else {
+            showAlertModal('خطأ', data.error || 'فشل توليد QR Code', 'error');
+        }
+    } catch (error) {
+        console.error('Error generating admin QR:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء توليد QR Code', 'error');
+    }
+}
+
+// Display admin QR code
+function displayAdminQRCode(qrCodeData) {
+    const container = document.getElementById('adminWhatsappQRContainer');
+    const display = document.getElementById('adminQRCodeDisplay');
+    
+    if (!container || !display) return;
+    
+    container.style.display = 'block';
+    
+    // Try to use QRCode library if available
+    if (typeof QRCode !== 'undefined') {
+        display.innerHTML = '';
+        const canvas = document.createElement('canvas');
+        display.appendChild(canvas);
+        QRCode.toCanvas(canvas, qrCodeData, { width: 256, margin: 2 }, (error) => {
+            if (error) {
+                console.error('Error generating QR code:', error);
+                display.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeData)}" alt="QR Code" style="max-width: 100%; height: auto;">`;
+            }
+        });
+    } else {
+        // Fallback to image API
+        display.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeData)}" alt="QR Code" style="max-width: 100%; height: auto;">`;
+    }
+}
+
+// Check for admin QR code
+async function checkAdminQRCode() {
+    const maxAttempts = 20;
+    let attempts = 0;
+    
+    const checkInterval = setInterval(async () => {
+        attempts++;
+        try {
+            const data = await window.api.getAdminWhatsAppQR();
+            if (data && data.success && data.qr_code) {
+                clearInterval(checkInterval);
+                displayAdminQRCode(data.qr_code);
+            } else if (data && data.connected) {
+                clearInterval(checkInterval);
+                showAlertModal('معلومات', 'واتساب مربوط بالفعل', 'info');
+                checkAdminWhatsAppStatus();
+            } else if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                showAlertModal('خطأ', 'انتهى الوقت المحدد لتوليد QR Code', 'error');
+            }
+        } catch (error) {
+            console.error('Error checking QR code:', error);
+            if (attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+            }
+        }
+    }, 500);
+}
+
+// Check admin WhatsApp status
+async function checkAdminWhatsAppStatus() {
+    try {
+        if (!window.api) return;
+        
+        const data = await window.api.getAdminWhatsAppQR();
+        const statusIndicator = document.getElementById('adminWhatsappStatusIndicator');
+        const statusIcon = document.getElementById('adminWhatsappStatusIcon');
+        const statusText = document.getElementById('adminWhatsappStatusText');
+        
+        if (!statusIndicator || !statusIcon || !statusText) return;
+        
+        if (data && data.success) {
+            if (data.connected) {
+                statusIcon.textContent = '✅';
+                statusText.textContent = 'واتساب مربوط';
+                statusIndicator.style.display = 'block';
+                statusIndicator.style.background = 'rgba(37, 211, 102, 0.1)';
+                statusIndicator.style.borderColor = 'rgba(37, 211, 102, 0.3)';
+            } else {
+                statusIcon.textContent = '❌';
+                statusText.textContent = 'واتساب غير مربوط';
+                statusIndicator.style.display = 'block';
+                statusIndicator.style.background = 'rgba(255, 0, 0, 0.1)';
+                statusIndicator.style.borderColor = 'rgba(255, 0, 0, 0.3)';
+            }
+        }
+    } catch (error) {
+        console.error('Error checking admin WhatsApp status:', error);
+    }
+}
+
+// Logout admin WhatsApp
+async function logoutAdminWhatsApp() {
+    if (!confirm('هل أنت متأكد من تسجيل الخروج من WhatsApp؟')) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.logoutAdminWhatsApp();
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم تسجيل الخروج بنجاح', 'success');
+            const container = document.getElementById('adminWhatsappQRContainer');
+            if (container) container.style.display = 'none';
+            checkAdminWhatsAppStatus();
+        } else {
+            showAlertModal('خطأ', data.error || 'فشل تسجيل الخروج', 'error');
+        }
+    } catch (error) {
+        console.error('Error logging out admin WhatsApp:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء تسجيل الخروج', 'error');
+    }
+}
+
+// Make functions globally accessible
+window.saveTicketOnly = saveTicketOnly;
+window.saveTicketAndNotify = saveTicketAndNotify;
+window.toggleAdminWhatsAppAccordion = toggleAdminWhatsAppAccordion;
+window.generateAdminWhatsAppQR = generateAdminWhatsAppQR;
+window.logoutAdminWhatsApp = logoutAdminWhatsApp;
+
+// Setup admin WhatsApp settings form on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+    setupAdminWhatsAppSettingsForm();
+});
 
 // إغلاق modal عند النقر خارجها
 document.addEventListener('DOMContentLoaded', function() {
