@@ -3383,8 +3383,14 @@ app.post('/api/owner/companies', authenticate, async (req, res) => {
         } = req.body;
         
         // التحقق من الحقول المطلوبة
-        if (!name || !domain || !contact_name || !contact_email || !admin_password || !price_per_employee) {
+        if (!name || !domain || !contact_name || !contact_email || !admin_password) {
             return res.status(400).json({ error: 'جميع الحقول المطلوبة يجب ملؤها' });
+        }
+        
+        // التحقق من price_per_employee
+        const finalPricePerEmployee = parseFloat(price_per_employee) || 0;
+        if (finalPricePerEmployee < 0) {
+            return res.status(400).json({ error: 'السعر لكل موظف يجب أن يكون أكبر من أو يساوي صفر' });
         }
         
         // التحقق من domain فريد
@@ -3411,7 +3417,7 @@ app.post('/api/owner/companies', authenticate, async (req, res) => {
             INSERT INTO companies (name, domain, contact_name, contact_email, contact_phone, address, 
                                  max_employees, price_per_employee, subscription_start_date)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
-        `, [name, domain, contact_name, contact_email, contact_phone || null, address || null, max_employees || 0, price_per_employee || 0]);
+        `, [name, domain, contact_name, contact_email, contact_phone || null, address || null, max_employees || 0, finalPricePerEmployee]);
         
         const companyId = companyResult.insertId;
         
