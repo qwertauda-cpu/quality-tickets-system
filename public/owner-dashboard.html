@@ -6,7 +6,22 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' http://136.111.97.150:3001; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://136.111.97.150:3001 https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: http://136.111.97.150:3001 https://api.qrserver.com https://cdn.jsdelivr.net; connect-src 'self' http://136.111.97.150:3001;">
     <title>لوحة المالك - نظام إدارة التذاكر</title>
     <link rel="stylesheet" href="/css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" onload="window.QRCodeLoaded = true;"></script>
+    <script>
+        // Load QRCode library dynamically
+        (function() {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+            script.onload = function() {
+                window.QRCodeLoaded = true;
+                console.log('✅ QRCode library loaded successfully');
+            };
+            script.onerror = function() {
+                console.warn('⚠️ Failed to load QRCode library from CDN, will use fallback');
+                window.QRCodeLoadFailed = true;
+            };
+            document.head.appendChild(script);
+        })();
+    </script>
 </head>
 <body>
     <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">☰</button>

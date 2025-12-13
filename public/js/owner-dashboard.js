@@ -1490,27 +1490,27 @@ function displayQRCode(qrCodeString) {
     qrCodeDiv.innerHTML = '';
     
     // Wait for QRCode library to load if not already loaded
-    if (typeof QRCode === 'undefined' && !window.QRCodeLoaded) {
+    if (typeof QRCode === 'undefined' && !window.QRCodeLoaded && !window.QRCodeLoadFailed) {
         console.warn('QRCode library not loaded yet, waiting...');
         // Wait and retry multiple times
         let attempts = 0;
-        const maxAttempts = 10;
+        const maxAttempts = 15; // Increased attempts
         const checkInterval = setInterval(() => {
             attempts++;
-            if (typeof QRCode !== 'undefined' || window.QRCodeLoaded) {
+            if (typeof QRCode !== 'undefined') {
                 clearInterval(checkInterval);
-                if (typeof QRCode !== 'undefined') {
-                    generateQRCodeCanvas(qrCodeString, qrCodeDiv);
+                console.log('✅ QRCode library loaded, generating canvas QR Code');
+                generateQRCodeCanvas(qrCodeString, qrCodeDiv);
+            } else if (window.QRCodeLoadFailed || attempts >= maxAttempts) {
+                clearInterval(checkInterval);
+                if (window.QRCodeLoadFailed) {
+                    console.warn('QRCode library failed to load from CDN, using fallback');
                 } else {
-                    console.error('QRCode library still not available, using fallback');
-                    generateQRCodeImage(qrCodeString, qrCodeDiv);
+                    console.warn('QRCode library timeout after ' + maxAttempts + ' attempts, using fallback');
                 }
-            } else if (attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                console.error('QRCode library failed to load after ' + maxAttempts + ' attempts, using fallback');
                 generateQRCodeImage(qrCodeString, qrCodeDiv);
             }
-        }, 300);
+        }, 400); // Increased interval
     } else if (typeof QRCode !== 'undefined') {
         generateQRCodeCanvas(qrCodeString, qrCodeDiv);
     } else {
