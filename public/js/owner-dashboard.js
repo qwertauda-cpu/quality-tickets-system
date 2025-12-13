@@ -2620,6 +2620,15 @@ function openCreateOwnerTemplateModal() {
             width: window.getComputedStyle(modal).width,
             height: window.getComputedStyle(modal).height
         });
+        
+        // Final check: if still not visible, force it one more time
+        setTimeout(() => {
+            const computedDisplay = window.getComputedStyle(modal).display;
+            if (computedDisplay !== 'flex') {
+                console.warn('⚠️ Modal still not visible, forcing display again...');
+                modal.style.display = 'flex !important';
+            }
+        }, 100);
     } catch (error) {
         console.error('Error in openCreateOwnerTemplateModal:', error);
         alert('خطأ: ' + error.message);
