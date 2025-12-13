@@ -7,19 +7,36 @@
     <title>لوحة المالك - نظام إدارة التذاكر</title>
     <link rel="stylesheet" href="/css/style.css">
     <script>
-        // Load QRCode library dynamically
+        // Load QRCode library dynamically with fallback CDN
         (function() {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
-            script.onload = function() {
-                window.QRCodeLoaded = true;
-                console.log('✅ QRCode library loaded successfully');
-            };
-            script.onerror = function() {
-                console.warn('⚠️ Failed to load QRCode library from CDN, will use fallback');
-                window.QRCodeLoadFailed = true;
-            };
-            document.head.appendChild(script);
+            let attempts = 0;
+            const maxAttempts = 2;
+            const cdnSources = [
+                'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
+                'https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js'
+            ];
+            
+            function tryLoadScript(index) {
+                if (index >= cdnSources.length) {
+                    console.warn('⚠️ All CDN sources failed, will use image fallback');
+                    window.QRCodeLoadFailed = true;
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = cdnSources[index];
+                script.onload = function() {
+                    window.QRCodeLoaded = true;
+                    console.log('✅ QRCode library loaded successfully from ' + cdnSources[index]);
+                };
+                script.onerror = function() {
+                    console.warn('⚠️ Failed to load from ' + cdnSources[index] + ', trying next source...');
+                    tryLoadScript(index + 1);
+                };
+                document.head.appendChild(script);
+            }
+            
+            tryLoadScript(0);
         })();
     </script>
 </head>

@@ -1562,6 +1562,15 @@ function generateQRCodeImage(qrCodeString, qrCodeDiv) {
     img.style.maxWidth = '256px';
     img.style.display = 'block';
     img.style.margin = '0 auto';
+    img.style.borderRadius = '8px';
+    img.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+    img.onload = function() {
+        console.log('✅ QR Code image loaded successfully');
+    };
+    img.onerror = function() {
+        console.error('❌ Failed to load QR Code image');
+        qrCodeDiv.innerHTML = '<p style="color: var(--error-color); padding: 16px;">فشل تحميل QR Code. يرجى المحاولة مرة أخرى.</p>';
+    };
     qrCodeDiv.appendChild(img);
     console.log('✅ QR Code generated using image fallback');
 }
