@@ -102,29 +102,61 @@ function showPage(pageName) {
 // ==================== Dashboard ====================
 async function loadDashboard() {
     try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
         const data = await window.api.getOwnerDashboard();
         if (data && data.success) {
-            const stats = data.stats;
-            document.getElementById('totalCompanies').textContent = stats.total_companies || 0;
-            document.getElementById('totalEmployees').textContent = stats.total_employees || 0;
-            document.getElementById('pendingInvoices').textContent = stats.pending_invoices || 0;
-            document.getElementById('pendingRequests').textContent = stats.pending_requests || 0;
-            document.getElementById('totalRevenue').textContent = formatCurrency(stats.total_revenue || 0);
+            const stats = data.stats || {};
+            const totalCompaniesEl = document.getElementById('totalCompanies');
+            const totalEmployeesEl = document.getElementById('totalEmployees');
+            const pendingInvoicesEl = document.getElementById('pendingInvoices');
+            const pendingRequestsEl = document.getElementById('pendingRequests');
+            const totalRevenueEl = document.getElementById('totalRevenue');
+            
+            if (totalCompaniesEl) totalCompaniesEl.textContent = stats.total_companies || 0;
+            if (totalEmployeesEl) totalEmployeesEl.textContent = stats.total_employees || 0;
+            if (pendingInvoicesEl) pendingInvoicesEl.textContent = stats.pending_invoices || 0;
+            if (pendingRequestsEl) pendingRequestsEl.textContent = stats.pending_requests || 0;
+            if (totalRevenueEl) totalRevenueEl.textContent = formatCurrency(stats.total_revenue || 0);
+        } else {
+            console.error('Dashboard API returned error:', data?.error);
         }
     } catch (error) {
         console.error('Error loading dashboard:', error);
+        // Show error in UI
+        const totalCompaniesEl = document.getElementById('totalCompanies');
+        const totalEmployeesEl = document.getElementById('totalEmployees');
+        const pendingInvoicesEl = document.getElementById('pendingInvoices');
+        const pendingRequestsEl = document.getElementById('pendingRequests');
+        const totalRevenueEl = document.getElementById('totalRevenue');
+        
+        if (totalCompaniesEl) totalCompaniesEl.textContent = '-';
+        if (totalEmployeesEl) totalEmployeesEl.textContent = '-';
+        if (pendingInvoicesEl) pendingInvoicesEl.textContent = '-';
+        if (pendingRequestsEl) pendingRequestsEl.textContent = '-';
+        if (totalRevenueEl) totalRevenueEl.textContent = '-';
     }
 }
 
 // ==================== Companies Management ====================
 async function loadCompanies() {
     try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
         const data = await window.api.getOwnerCompanies();
         if (data && data.success) {
             const tbody = document.getElementById('companiesTableBody');
+            if (!tbody) {
+                console.error('companiesTableBody element not found');
+                return;
+            }
             tbody.innerHTML = '';
             
-            if (data.companies.length === 0) {
+            if (!data.companies || data.companies.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد شركات</td></tr>';
                 return;
             }
@@ -132,11 +164,11 @@ async function loadCompanies() {
             data.companies.forEach(company => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td>${company.name}</td>
-                    <td><strong>@${company.domain}</strong></td>
+                    <td>${company.name || '-'}</td>
+                    <td><strong>@${company.domain || '-'}</strong></td>
                     <td>${company.admin_name || company.admin_username || '-'}</td>
                     <td>${company.current_employees || 0} / ${company.max_employees || '∞'}</td>
-                    <td>${formatCurrency(company.price_per_employee)}</td>
+                    <td>${formatCurrency(company.price_per_employee || 0)}</td>
                     <td><span class="badge ${company.is_active ? 'badge-success' : 'badge-danger'}">${company.is_active ? 'نشطة' : 'غير نشطة'}</span></td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})">تعديل</button>
@@ -144,10 +176,18 @@ async function loadCompanies() {
                 `;
                 tbody.appendChild(row);
             });
+        } else {
+            const tbody = document.getElementById('companiesTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            }
         }
     } catch (error) {
         console.error('Error loading companies:', error);
-        document.getElementById('companiesTableBody').innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        const tbody = document.getElementById('companiesTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+        }
     }
 }
 
