@@ -2564,21 +2564,30 @@ function openCreateOwnerTemplateModal() {
             templateIdInput.value = '';
         }
         
-        // Show modal - Force display with inline style to override any CSS issues
-        modal.style.display = 'flex';
-        modal.style.opacity = '1';
-        modal.style.zIndex = '10000';
-        modal.style.position = 'fixed';
-        modal.style.top = '0';
-        modal.style.left = '0';
-        modal.style.right = '0';
-        modal.style.bottom = '0';
-        modal.style.alignItems = 'center';
-        modal.style.justifyContent = 'center';
-        modal.style.padding = '20px';
-        modal.style.overflowY = 'auto';
-        modal.style.pointerEvents = 'auto';
-        modal.style.background = 'rgba(0, 0, 0, 0.75)';
+        // Show modal - Force ALL styles inline to ensure visibility
+        // Remove any conflicting styles first
+        modal.removeAttribute('style');
+        
+        // Set ALL required styles directly
+        modal.style.cssText = `
+            display: flex !important;
+            opacity: 1 !important;
+            z-index: 99999 !important;
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 20px !important;
+            overflow-y: auto !important;
+            pointer-events: auto !important;
+            background: rgba(0, 0, 0, 0.75) !important;
+            visibility: visible !important;
+        `;
         
         // Add active class for CSS transitions
         modal.classList.add('active');
@@ -2586,20 +2595,31 @@ function openCreateOwnerTemplateModal() {
         // Force the modal content to be visible
         const modalContent = modal.querySelector('.modal');
         if (modalContent) {
-            modalContent.style.transform = 'scale(1)';
-            modalContent.style.opacity = '1';
+            modalContent.style.cssText += `
+                transform: scale(1) !important;
+                opacity: 1 !important;
+                z-index: 100000 !important;
+                position: relative !important;
+                visibility: visible !important;
+            `;
         }
         
-        console.log('Modal should be visible now');
-        console.log('Modal classes:', modal.className);
-        console.log('Modal inline style display:', modal.style.display);
-        console.log('Modal inline style z-index:', modal.style.zIndex);
-        console.log('Modal computed style display:', window.getComputedStyle(modal).display);
-        console.log('Modal computed style opacity:', window.getComputedStyle(modal).opacity);
-        console.log('Modal computed style z-index:', window.getComputedStyle(modal).zIndex);
-        console.log('Modal computed style position:', window.getComputedStyle(modal).position);
-        console.log('Modal computed style visibility:', window.getComputedStyle(modal).visibility);
-        console.log('Modal content transform:', modalContent ? window.getComputedStyle(modalContent).transform : 'N/A');
+        // Ensure body doesn't scroll when modal is open
+        document.body.style.overflow = 'hidden';
+        
+        console.log('✅ Modal should be visible now');
+        console.log('Modal element:', modal);
+        console.log('Modal computed styles:', {
+            display: window.getComputedStyle(modal).display,
+            opacity: window.getComputedStyle(modal).opacity,
+            zIndex: window.getComputedStyle(modal).zIndex,
+            position: window.getComputedStyle(modal).position,
+            visibility: window.getComputedStyle(modal).visibility,
+            top: window.getComputedStyle(modal).top,
+            left: window.getComputedStyle(modal).left,
+            width: window.getComputedStyle(modal).width,
+            height: window.getComputedStyle(modal).height
+        });
     } catch (error) {
         console.error('Error in openCreateOwnerTemplateModal:', error);
         alert('خطأ: ' + error.message);
