@@ -1347,6 +1347,206 @@ window.filterTickets = filterTickets;
 window.resetFilters = resetFilters;
 window.sortTickets = sortTickets;
 
+// Create Ticket Modal Functions (for admin dashboard)
+async function openCreateTicketModal() {
+    // Admin can always create tickets
+    const modal = document.getElementById('create-ticket-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('active');
+        
+        // Generate ticket number automatically
+        generateCreateTicketNumber();
+        
+        // Load ticket types
+        await loadCreateTicketTypes();
+        
+        // Setup form submission
+        setupCreateTicketFormSubmission();
+        
+        // Setup phone validation
+        setupCreatePhoneValidation();
+    }
+}
+
+function closeCreateTicketModal() {
+    const modal = document.getElementById('create-ticket-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+        // Reset form
+        const form = document.getElementById('createTicketForm');
+        if (form) {
+            form.reset();
+        }
+    }
+}
+
+function generateCreateTicketNumber() {
+    const ticketNumberInput = document.getElementById('create_ticket_number');
+    if (ticketNumberInput) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+        
+        const ticketNumber = `TKT-${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
+        ticketNumberInput.value = ticketNumber;
+    }
+}
+
+async function loadCreateTicketTypes() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        const data = await window.api.getTicketTypes();
+        if (data && data.success && data.types) {
+            const select = document.getElementById('create_ticket_type_id');
+            if (select) {
+                select.innerHTML = '<option value="">اختر النوع</option>';
+                data.types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name_ar || type.name || 'نوع غير معروف';
+                    select.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading ticket types:', error);
+    }
+}
+
+function setupCreatePhoneValidation() {
+    const phoneInput = document.getElementById('create_subscriber_phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
+}
+
+function setupCreateTicketFormSubmission() {
+    const form = document.getElementById('createTicketForm');
+    if (!form) return;
+    
+    // Remove existing listeners
+    const newForm = form.cloneNode(true);
+    form.parentNode.replaceChild(newForm, form);
+    
+    newForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const phone = document.getElementById('create_subscriber_phone')?.value?.trim() || '';
+        if (phone && phone.length !== 11) {
+            showAlertModal('تحذير', 'يجب أن يحتوي رقم الهاتف على 11 رقم بالضبط', 'warning');
+            return;
+        }
+        
+        const ticketNumber = document.getElementById('create_ticket_number')?.value?.trim();
+        const ticketTypeId = document.getElementById('create_ticket_type_id')?.value;
+        const subscriberName = document.getElementById('create_subscriber_name')?.value?.trim() || '';
+        const subscriberPhone = phone;
+        const region = document.getElementById('create_region')?.value?.trim() || '';
+        const notes = document.getElementById('create_notes')?.value?.trim() || '';
+        
+        if (!ticketTypeId) {
+            showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)', 'warning');
+            return;
+        }
+        
+        try {
+            const formData = {
+                ticket_number: ticketNumber,
+                ticket_type_id: parseInt(ticketTypeId),
+                subscriber_name: subscriberName || null,
+                subscriber_phone: subscriberPhone || null,
+                region: region || null,
+                notes: notes || null
+            };
+            
+            const result = await window.api.createTicket(formData);
+            
+            if (result && result.success) {
+                showAlertModal('نجح', 'تم إنشاء التكت بنجاح!\nرقم التكت: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'), 'success');
+                closeCreateTicketModal();
+                // Reload tickets if on tickets page
+                if (document.getElementById('tickets-page')?.style.display !== 'none') {
+                    loadTickets();
+                }
+            } else {
+                showAlertModal('خطأ', result.error || 'فشل إنشاء التكت', 'error');
+            }
+        } catch (error) {
+            console.error('Error creating ticket:', error);
+            showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التكت: ' + (error.message || 'خطأ غير معروف'), 'error');
+        }
+    });
+}
+
+// Alert Modal Functions
+function showAlertModal(title, message, type = 'warning') {
+    const modal = document.getElementById('alert-modal');
+    const titleEl = document.getElementById('alert-title');
+    const messageEl = document.getElementById('alert-message');
+    const iconEl = document.getElementById('alert-icon');
+    const okBtn = document.getElementById('alert-ok-btn');
+    
+    if (!modal || !titleEl || !messageEl || !iconEl) return;
+    
+    titleEl.textContent = title || 'تنبيه';
+    messageEl.textContent = message || '';
+    
+    const types = {
+        'success': { icon: '✅', color: 'var(--success-color)', btnClass: 'btn-success' },
+        'error': { icon: '❌', color: 'var(--danger-color)', btnClass: 'btn-danger' },
+        'warning': { icon: '⚠️', color: 'var(--warning-color)', btnClass: 'btn-warning' },
+        'info': { icon: 'ℹ️', color: 'var(--primary-color)', btnClass: 'btn-primary' }
+    };
+    
+    const typeConfig = types[type] || types['warning'];
+    iconEl.textContent = typeConfig.icon;
+    iconEl.style.color = typeConfig.color;
+    
+    if (okBtn) {
+        okBtn.className = `btn ${typeConfig.btnClass}`;
+    }
+    
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+}
+
+function closeAlertModal() {
+    const modal = document.getElementById('alert-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
+// Make create ticket functions available globally
+window.openCreateTicketModal = openCreateTicketModal;
+window.closeCreateTicketModal = closeCreateTicketModal;
+window.showAlertModal = showAlertModal;
+window.closeAlertModal = closeAlertModal;
+window.generateDailyReport = generateDailyReport;
+window.exportDatabase = exportDatabase;
+window.selectAllExportTables = selectAllExportTables;
+window.deselectAllExportTables = deselectAllExportTables;
+window.filterTickets = filterTickets;
+window.resetFilters = resetFilters;
+window.sortTickets = sortTickets;
+
 document.addEventListener('DOMContentLoaded', () => {
     initAdminDashboard();
     setupMobileMenuClose();
