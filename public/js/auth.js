@@ -35,10 +35,14 @@ if (loginForm) {
             
             // توجيه حسب الدور
             const role = data.user.role;
-            if (role === 'admin') {
+            if (role === 'owner') {
+                window.location.href = '/owner-dashboard.html';
+            } else if (role === 'admin') {
                 window.location.href = '/admin-dashboard.html';
             } else if (role === 'quality_staff') {
                 window.location.href = '/quality-staff.html';
+            } else if (role === 'call_center') {
+                window.location.href = '/call-center-dashboard.html';
             } else if (role === 'team_leader' || role === 'technician') {
                 window.location.href = '/technician-dashboard.html';
             } else if (role === 'accountant') {
