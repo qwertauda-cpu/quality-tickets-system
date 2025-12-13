@@ -3736,6 +3736,35 @@ async function openCreateTicketModal() {
         
         // Setup phone validation
         setupCreatePhoneValidation();
+        
+        // Check notify permission and show/hide notify button
+        await checkNotifyPermission();
+    }
+}
+
+// Check if user has permission to notify technicians and show/hide the notify button
+async function checkNotifyPermission() {
+    try {
+        if (!window.api) return;
+        
+        // Get current user info from API
+        const userData = await window.api.getCurrentUser();
+        if (userData && userData.success && userData.user) {
+            const user = userData.user;
+            const canNotify = user.role === 'admin' || (user.can_notify_technicians === 1 || user.can_notify_technicians === true);
+            
+            // Show/hide the notify button
+            const notifyBtn = document.querySelector('button[onclick="saveTicketAndNotifyQuality()"]');
+            if (notifyBtn) {
+                if (!canNotify && user.role === 'quality_staff') {
+                    notifyBtn.style.display = 'none';
+                } else {
+                    notifyBtn.style.display = 'inline-block';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking notify permission:', error);
     }
 }
 

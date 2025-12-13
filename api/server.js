@@ -636,44 +636,67 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         const ticketId = result.insertId;
         
         // إرسال تنبيه للفني إذا طُلب ذلك
+        let notificationSent = false;
+        let noPermission = false;
+        
         if (send_notification && teamId) {
-            try {
-                // جلب معلومات الفريق والفنيين
-                const teamMembers = await db.query(`
-                    SELECT u.id, u.full_name, u.phone
-                    FROM team_members tm
-                    JOIN users u ON tm.user_id = u.id
-                    WHERE tm.team_id = ? AND u.role = 'technician' AND u.is_active = 1
-                `, [teamId]);
-                
-                // جلب نوع التذكرة للرسالة
-                let ticketTypeName = custom_ticket_type || 'غير محدد';
-                if (finalTicketTypeId && !custom_ticket_type) {
-                    const ticketType = await db.queryOne(`
-                        SELECT name_ar FROM ticket_types WHERE id = ?
-                    `, [finalTicketTypeId]);
-                    if (ticketType) {
-                        ticketTypeName = ticketType.name_ar;
-                    }
-                }
-                
-                // إرسال إشعارات للفنيين
-                for (const member of teamMembers) {
-                    // إشعار في الموقع
-                    await db.query(`
-                        INSERT INTO notifications (user_id, message, type, related_ticket_id, is_read)
-                        VALUES (?, ?, 'ticket_assigned', ?, 0)
-                    `, [member.id, `تم إنشاء تذكرة جديدة: ${finalTicketNumber}`, ticketId]);
+            // التحقق من الصلاحية - فقط admin أو quality_staff مع صلاحية can_notify_technicians
+            let hasPermission = false;
+            if (req.user.role === 'admin') {
+                hasPermission = true; // المدير دائماً لديه صلاحية
+            } else if (req.user.role === 'quality_staff') {
+                const user = await db.queryOne(`
+                    SELECT can_notify_technicians
+                    FROM users
+                    WHERE id = ?
+                `, [req.user.id]);
+                hasPermission = user && user.can_notify_technicians === 1;
+            }
+            
+            if (!hasPermission) {
+                console.log('⚠️ المستخدم لا يملك صلاحية إرسال التنبيهات');
+                noPermission = true;
+                // لا نوقف العملية، فقط لا نرسل التنبيهات
+            } else {
+                try {
+                    // جلب معلومات الفريق والفنيين
+                    const teamMembers = await db.query(`
+                        SELECT u.id, u.full_name, u.phone
+                        FROM team_members tm
+                        JOIN users u ON tm.user_id = u.id
+                        WHERE tm.team_id = ? AND u.role = 'technician' AND u.is_active = 1
+                    `, [teamId]);
                     
-                    // إرسال واتساب إذا كان متاحاً
-                    if (member.phone) {
-                        const message = `تم إنشاء تذكرة جديدة\nرقم التذكرة: ${finalTicketNumber}\nاسم المشترك: ${subscriber_name || 'غير محدد'}\nنوع التذكرة: ${ticketTypeName}`;
-                        await sendWhatsAppMessage(member.phone, message, req.user.company_id);
+                    // جلب نوع التذكرة للرسالة
+                    let ticketTypeName = custom_ticket_type || 'غير محدد';
+                    if (finalTicketTypeId && !custom_ticket_type) {
+                        const ticketType = await db.queryOne(`
+                            SELECT name_ar FROM ticket_types WHERE id = ?
+                        `, [finalTicketTypeId]);
+                        if (ticketType) {
+                            ticketTypeName = ticketType.name_ar;
+                        }
                     }
+                    
+                    // إرسال إشعارات للفنيين
+                    for (const member of teamMembers) {
+                        // إشعار في الموقع
+                        await db.query(`
+                            INSERT INTO notifications (user_id, message, type, related_ticket_id, is_read)
+                            VALUES (?, ?, 'ticket_assigned', ?, 0)
+                        `, [member.id, `تم إنشاء تذكرة جديدة: ${finalTicketNumber}`, ticketId]);
+                        
+                        // إرسال واتساب إذا كان متاحاً
+                        if (member.phone) {
+                            const message = `تم إنشاء تذكرة جديدة\nرقم التذكرة: ${finalTicketNumber}\nاسم المشترك: ${subscriber_name || 'غير محدد'}\nنوع التذكرة: ${ticketTypeName}`;
+                            await sendWhatsAppMessage(member.phone, message, req.user.company_id);
+                        }
+                    }
+                    notificationSent = true;
+                } catch (notifError) {
+                    console.error('Error sending notifications:', notifError);
+                    // لا نوقف العملية إذا فشل الإشعار
                 }
-            } catch (notifError) {
-                console.error('Error sending notifications:', notifError);
-                // لا نوقف العملية إذا فشل الإشعار
             }
         }
         
@@ -685,7 +708,9 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             ticket: {
                 id: ticketId,
                 ticket_number: finalTicketNumber
-            }
+            },
+            notification_sent: notificationSent,
+            no_permission: noPermission
         });
     } catch (error) {
         console.error('Create ticket error:', error);
@@ -2154,9 +2179,9 @@ app.post('/api/users', authenticate, async (req, res) => {
         
         // Create user
         const result = await db.query(`
-            INSERT INTO users (username, password_hash, full_name, role, company_id, team_id)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [finalUsername, passwordHash, full_name, finalRole, finalCompanyId, team_id || null]);
+            INSERT INTO users (username, password_hash, full_name, role, company_id, team_id, can_notify_technicians)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [finalUsername, passwordHash, full_name, finalRole, finalCompanyId, team_id || null, 0]);
         
         const userId = result.insertId;
         
