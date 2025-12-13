@@ -2565,12 +2565,17 @@ function openCreateOwnerTemplateModal() {
         }
         
         // Show modal - CSS requires active class for display
-        // First remove inline display:none style (it overrides CSS)
+        // Remove any inline display style (it overrides CSS)
         modal.style.removeProperty('display');
         // Ensure z-index is high enough
         modal.style.zIndex = '10000';
         // Then add active class - CSS will set display:flex and opacity:1
         modal.classList.add('active');
+        
+        // Double-check: if inline style still exists, force remove it
+        if (modal.style.display === 'none') {
+            modal.style.display = '';
+        }
         
         console.log('Modal should be visible now');
         console.log('Modal classes:', modal.className);
