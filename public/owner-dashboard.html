@@ -276,48 +276,68 @@
                     <h2>إضافة شركة جديدة</h2>
                     <span class="close" onclick="closeAddCompanyModal()">&times;</span>
                 </div>
-            <form id="addCompanyForm">
-                <div class="form-group">
-                    <label>اسم الشركة *</label>
-                    <input type="text" id="company_name" required>
+                <div class="modal-body">
+                    <form id="addCompanyForm">
+                        <div class="form-section">
+                            <h3 class="form-section-title">معلومات الشركة الأساسية</h3>
+                            <div class="form-group">
+                                <label for="company_name">اسم الشركة <span class="required">*</span></label>
+                                <input type="text" id="company_name" required placeholder="أدخل اسم الشركة">
+                            </div>
+                            <div class="form-group">
+                                <label for="company_domain">المجال (Domain) <span class="required">*</span></label>
+                                <input type="text" id="company_domain" required placeholder="tec" pattern="[a-z0-9]+">
+                                <small class="form-hint">مثال: tec (بدون مسافات أو أحرف كبيرة)</small>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="form-section-title">معلومات المسؤول</h3>
+                            <div class="form-group">
+                                <label for="company_contact_name">اسم المسؤول <span class="required">*</span></label>
+                                <input type="text" id="company_contact_name" required placeholder="أدخل اسم المسؤول">
+                            </div>
+                            <div class="form-group">
+                                <label for="company_contact_email">البريد الإلكتروني <span class="required">*</span></label>
+                                <input type="email" id="company_contact_email" required placeholder="example@email.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="company_contact_phone">رقم الهاتف</label>
+                                <input type="tel" id="company_contact_phone" placeholder="07XX XXX XXXX">
+                            </div>
+                            <div class="form-group">
+                                <label for="company_address">العنوان</label>
+                                <textarea id="company_address" rows="3" placeholder="أدخل عنوان الشركة"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="form-section-title">الإعدادات المالية</h3>
+                            <div class="form-group">
+                                <label for="company_max_employees">الحد الأقصى للموظفين</label>
+                                <input type="number" id="company_max_employees" min="0" value="0" placeholder="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="company_price_per_employee">السعر لكل موظف (دينار عراقي) <span class="required">*</span></label>
+                                <input type="number" id="company_price_per_employee" step="0.01" min="0" required placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="form-section-title">حساب المدير</h3>
+                            <div class="form-group">
+                                <label for="company_admin_password">كلمة مرور المدير <span class="required">*</span></label>
+                                <input type="password" id="company_admin_password" required placeholder="أدخل كلمة المرور">
+                                <small class="form-hint">سيتم إنشاء حساب المدير تلقائياً: admin@domain</small>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddCompanyModal()">إلغاء</button>
+                            <button type="submit" class="btn btn-primary">إنشاء الشركة</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label>المجال (Domain) * <small>مثل: tec</small></label>
-                    <input type="text" id="company_domain" required placeholder="tec">
-                </div>
-                <div class="form-group">
-                    <label>اسم المسؤول *</label>
-                    <input type="text" id="company_contact_name" required>
-                </div>
-                <div class="form-group">
-                    <label>البريد الإلكتروني *</label>
-                    <input type="email" id="company_contact_email" required>
-                </div>
-                <div class="form-group">
-                    <label>رقم الهاتف</label>
-                    <input type="text" id="company_contact_phone">
-                </div>
-                <div class="form-group">
-                    <label>العنوان</label>
-                    <textarea id="company_address" rows="3"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>الحد الأقصى للموظفين</label>
-                    <input type="number" id="company_max_employees" min="0" value="0">
-                </div>
-                <div class="form-group">
-                    <label>السعر لكل موظف *</label>
-                    <input type="number" id="company_price_per_employee" step="0.01" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label>كلمة مرور المدير (admin@domain) *</label>
-                    <input type="password" id="company_admin_password" required>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeAddCompanyModal()">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">إنشاء</button>
-                </div>
-            </form>
             </div>
         </div>
     </div>
