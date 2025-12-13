@@ -72,7 +72,8 @@ function showPage(pageName) {
         'employees': 'إدارة الموظفين',
         'invoices': 'إدارة الفواتير',
         'purchase-requests': 'استلام الطلبات',
-        'database': 'قاعدة البيانات'
+        'database': 'قاعدة البيانات',
+        'settings': 'الإعدادات'
     };
     document.getElementById('pageTitle').textContent = titles[pageName] || 'لوحة التحكم';
     
@@ -101,9 +102,6 @@ function showPage(pageName) {
             break;
     }
 }
-
-// Make loadSettings globally accessible
-window.loadSettings = loadSettings;
 
 // ==================== Dashboard ====================
 async function loadDashboard() {
