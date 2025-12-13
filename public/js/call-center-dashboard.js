@@ -100,23 +100,29 @@ async function loadTicketTypes() {
 }
 
 // Create Ticket Modal Functions
-function openCreateTicketModal() {
-    const modal = document.getElementById('create-ticket-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-        // Generate ticket number preview (will be generated on server)
-        document.getElementById('modal_ticket_number').value = 'جاري التوليد...';
-        // Reset form
-        document.getElementById('createTicketForm').reset();
-        document.getElementById('modal_ticket_number').value = '';
+// Use openCreateTicketModal from quality-staff.js (loaded after this file)
+// This function will be overridden by quality-staff.js which has permission checking
+async function openCreateTicketModal() {
+    // Wait for quality-staff.js to load if not already loaded
+    if (typeof window.openCreateTicketModal === 'function' && window.openCreateTicketModal.toString().includes('getCurrentUser')) {
+        await window.openCreateTicketModal();
+    } else {
+        // Fallback: show alert if quality-staff.js not loaded
+        alert('جاري تحميل الوظيفة...');
     }
 }
 
 function closeCreateTicketModal() {
-    const modal = document.getElementById('create-ticket-modal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.getElementById('createTicketForm').reset();
+    // Use quality-staff.js version if available
+    if (typeof window.closeCreateTicketModal === 'function') {
+        window.closeCreateTicketModal();
+    } else {
+        // Fallback
+        const modal = document.getElementById('create-ticket-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+        }
     }
 }
 

@@ -138,6 +138,7 @@
                     <div class="card-header">
                         <h2>التكتات</h2>
                         <div style="display: flex; align-items: center; gap: 10px;">
+                            <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تكت</button>
                             <label>
                                 <input type="checkbox" id="autoRefreshTickets" checked> تحديث تلقائي (30 ثانية)
                             </label>
@@ -909,12 +910,93 @@
         </div>
     </div>
 
+    <!-- Alert Modal -->
+    <div id="alert-modal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2 id="alert-title">تنبيه</h2>
+                <button class="modal-close-btn" onclick="closeAlertModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                    <div id="alert-icon" style="font-size: 48px; line-height: 1;">⚠️</div>
+                    <p id="alert-message" style="flex: 1; margin: 0; font-size: 16px; line-height: 1.6;"></p>
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                    <button type="button" class="btn btn-primary" onclick="closeAlertModal()" id="alert-ok-btn">موافق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Ticket Modal (Same as quality-staff) -->
+    <div id="create-ticket-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2>إنشاء تكت جديد</h2>
+                <button class="modal-close-btn" onclick="closeCreateTicketModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createTicketForm">
+                    <div class="form-grid">
+                        <!-- رقم التكت - توليد تلقائي (للعرض فقط) -->
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="create_ticket_number">رقم التكت</label>
+                            <input type="text" id="create_ticket_number" readonly style="background-color: var(--bg-tertiary); color: var(--text-secondary); cursor: not-allowed;">
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">سيتم توليده تلقائياً من النظام</small>
+                        </div>
+                        
+                        <!-- اسم المشترك -->
+                        <div class="form-group">
+                            <label for="create_subscriber_name">اسم المشترك *</label>
+                            <input type="text" id="create_subscriber_name" required placeholder="أدخل اسم المشترك">
+                        </div>
+                        
+                        <!-- رقم الهاتف -->
+                        <div class="form-group">
+                            <label for="create_subscriber_phone">رقم الهاتف *</label>
+                            <input type="text" id="create_subscriber_phone" pattern="[0-9]{11}" inputmode="numeric" maxlength="11" autocomplete="off" required placeholder="11 رقم">
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">يجب أن يحتوي على 11 رقم إنجليزي فقط (0-9)</small>
+                            <div id="create_subscriber_phone_error" class="error-message" style="display: none;"></div>
+                        </div>
+                        
+                        <!-- نوع التكت -->
+                        <div class="form-group">
+                            <label for="create_ticket_type_id">نوع التكت *</label>
+                            <select id="create_ticket_type_id" required>
+                                <option value="">اختر النوع</option>
+                            </select>
+                        </div>
+                        
+                        <!-- المنطقة -->
+                        <div class="form-group">
+                            <label for="create_region">المنطقة</label>
+                            <input type="text" id="create_region" placeholder="أدخل المنطقة">
+                        </div>
+                        
+                        <!-- الملاحظات -->
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="create_notes">ملاحظات</label>
+                            <textarea id="create_notes" rows="4" placeholder="أدخل أي ملاحظات إضافية (اختياري)" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">إنشاء التكت</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/datetime-picker.js"></script>
     <script src="/js/time-picker.js"></script>
     <script src="/js/admin-dashboard.js"></script>
+    <script src="/js/quality-staff.js"></script>
 </body>
 </html>
 
