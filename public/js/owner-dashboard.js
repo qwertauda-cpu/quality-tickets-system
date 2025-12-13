@@ -2072,8 +2072,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const formData = {
                 whatsapp_phone: document.getElementById('whatsapp_phone').value.trim(),
-                whatsapp_api_key: document.getElementById('whatsapp_api_key').value.trim(),
-                whatsapp_api_url: document.getElementById('whatsapp_api_url').value.trim(),
                 whatsapp_enabled: document.getElementById('whatsapp_enabled').checked ? '1' : '0'
             };
             

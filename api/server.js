@@ -3424,32 +3424,7 @@ async function sendWhatsAppMessage(phoneNumber, message) {
             }
         }
         
-        // المحاولة الثانية: استخدام API إذا كان متوفراً
-        if (settings.whatsapp_api_url && settings.whatsapp_api_key) {
-            try {
-                const axios = require('axios');
-                const response = await axios.post(settings.whatsapp_api_url, {
-                    phone: formattedPhone,
-                    message: message,
-                    api_key: settings.whatsapp_api_key,
-                    from: settings.whatsapp_phone
-                }, {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${settings.whatsapp_api_key}`
-                    },
-                    timeout: 10000 // 10 seconds timeout
-                });
-                
-                console.log(`✅ تم إرسال رسالة واتساب عبر API إلى ${formattedPhone}`);
-                return { success: true, method: 'api', phone: formattedPhone, from: settings.whatsapp_phone };
-            } catch (apiError) {
-                console.error('❌ خطأ في إرسال الرسالة عبر API:', apiError.message);
-                // Fallback to WhatsApp Web link
-            }
-        }
-        
-        // المحاولة الثالثة: استخدام رابط WhatsApp Web (الطريقة الافتراضية)
+        // المحاولة الثانية: استخدام رابط WhatsApp Web (الطريقة الافتراضية)
         const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
         
         // إذا كان هناك رقم واتساب محدد في الإعدادات
@@ -3510,8 +3485,6 @@ async function getWhatsAppSettings() {
         console.error('Error getting WhatsApp settings:', error);
         return {
             whatsapp_phone: '',
-            whatsapp_api_key: '',
-            whatsapp_api_url: '',
             whatsapp_enabled: false
         };
     }
