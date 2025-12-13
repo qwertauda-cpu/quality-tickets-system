@@ -3595,17 +3595,20 @@ function closeCreateTicketModal() {
 async function loadTicketTypesForCreateModal() {
     try {
         const data = await window.api.getTicketTypes();
-        if (data && data.success) {
+        if (data && data.success && data.types) {
             const select = document.getElementById('create_ticket_type_id');
             if (select) {
                 select.innerHTML = '<option value="">اختر النوع</option>';
-                data.ticketTypes.forEach(type => {
+                data.types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type.id;
-                    option.textContent = type.name;
+                    // Use name_ar if available, otherwise use name
+                    option.textContent = type.name_ar || type.name || 'نوع غير معروف';
                     select.appendChild(option);
                 });
             }
+        } else {
+            console.error('Invalid response from getTicketTypes:', data);
         }
     } catch (error) {
         console.error('Error loading ticket types:', error);
