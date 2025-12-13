@@ -3412,11 +3412,11 @@ app.post('/api/owner/companies', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
         }
         
-        // إنشاء الشركة
+        // إنشاء الشركة مع owner_user_id كـ NULL مؤقتاً
         const companyResult = await db.query(`
             INSERT INTO companies (name, domain, contact_name, contact_email, contact_phone, address, 
-                                 max_employees, price_per_employee, subscription_start_date)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
+                                 max_employees, price_per_employee, subscription_start_date, owner_user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), NULL)
         `, [name, domain, contact_name, contact_email, contact_phone || null, address || null, max_employees || 0, finalPricePerEmployee]);
         
         const companyId = companyResult.insertId;
