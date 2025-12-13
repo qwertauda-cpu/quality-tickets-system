@@ -620,9 +620,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (ticketsManagementPage) {
             ticketsManagementPage.style.display = 'none';
         }
-        
-        // Hide "إنشاء تكت" button from tickets-management-page for quality_staff and technicians
-        const createTicketButtons = document.querySelectorAll('button[onclick="openCreateTicketModal()"]');
+    }
+    
+    // Show/hide "إنشاء تكت" button based on user role (only admin and call_center can see it)
+    const createTicketButtons = document.querySelectorAll('button[onclick="openCreateTicketModal()"]');
+    if (user.role === 'admin' || user.role === 'call_center') {
+        // Show buttons for admin and call_center
+        createTicketButtons.forEach(btn => {
+            btn.style.display = '';
+        });
+    } else {
+        // Hide buttons for other roles
         createTicketButtons.forEach(btn => {
             btn.style.display = 'none';
         });
