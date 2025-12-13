@@ -4541,17 +4541,18 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
                     whatsappReady = false;
                 }
                 
-                // تهيئة جديدة (غير متزامن - لا ننتظر)
-                initWhatsAppClient().catch(err => {
+                // تهيئة جديدة
+                const initPromise = initWhatsAppClient().catch(err => {
                     console.error('Error in initWhatsAppClient:', err);
                 });
                 
-                // انتظار QR Code لمدة 5 ثوانٍ
+                // انتظار QR Code لمدة 10 ثوانٍ (20 محاولة × 500ms)
                 let qrReceived = false;
-                for (let i = 0; i < 10; i++) {
+                for (let i = 0; i < 20; i++) {
                     await new Promise(resolve => setTimeout(resolve, 500)); // انتظار 500ms
                     if (currentQRCode) {
                         qrReceived = true;
+                        console.log('✅ QR Code received after', (i + 1) * 500, 'ms');
                         break;
                     }
                 }
