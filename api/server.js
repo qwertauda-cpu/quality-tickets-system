@@ -72,10 +72,26 @@ app.post('/api/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         
-        const user = await db.queryOne(
-            'SELECT * FROM users WHERE username = ? AND is_active = 1',
-            [username]
-        );
+        // البحث عن المستخدم (يدعم username@domain أو username فقط)
+        let user;
+        if (username.includes('@')) {
+            // username@domain - البحث المباشر
+            user = await db.queryOne(`
+                SELECT u.*, c.domain, c.name as company_name, c.id as company_id
+                FROM users u
+                LEFT JOIN companies c ON u.company_id = c.id
+                WHERE u.username = ? AND u.is_active = 1
+            `, [username]);
+        } else {
+            // username فقط - البحث في حسابات owner/admin بدون domain أو البحث في جميع الشركات
+            user = await db.queryOne(`
+                SELECT u.*, c.domain, c.name as company_name, c.id as company_id
+                FROM users u
+                LEFT JOIN companies c ON u.company_id = c.id
+                WHERE u.username = ? AND (u.role = 'owner' OR u.company_id IS NULL) AND u.is_active = 1
+                LIMIT 1
+            `, [username]);
+        }
         
         if (!user) {
             return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
@@ -84,6 +100,13 @@ app.post('/api/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
             return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+        }
+        
+        // إضافة display_username مع domain إذا كان موجوداً
+        if (user.company_id && user.domain) {
+            user.display_username = `${user.username.split('@')[0]}@${user.domain}`;
+        } else {
+            user.display_username = user.username;
         }
         
         // Remove password from response
@@ -1908,23 +1931,72 @@ app.get('/api/users', authenticate, async (req, res) => {
     }
 });
 
-// Create new user (technician)
+// Create new user - يدعم @domain تلقائياً
 app.post('/api/users', authenticate, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
+        // Owner يمكنه إنشاء موظفين لأي شركة
+        // Admin يمكنه إنشاء موظفين لشركته فقط
+        if (req.user.role !== 'owner' && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'غير مصرح' });
         }
         
-        const { username, password, full_name, team_id } = req.body;
+        const { username, password, full_name, role, team_id, company_id } = req.body;
         
-        if (!username || !password || !full_name || !team_id) {
-            return res.status(400).json({ error: 'جميع الحقول مطلوبة' });
+        // تحديد company_id
+        let finalCompanyId = company_id;
+        if (req.user.role === 'admin') {
+            if (!req.user.company_id) {
+                return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+            }
+            finalCompanyId = req.user.company_id; // Admin يمكنه إنشاء موظفين لشركته فقط
         }
         
-        // Check if username exists
-        const existingUser = await db.queryOne('SELECT id FROM users WHERE username = ?', [username]);
+        // جلب domain الشركة
+        let domain = null;
+        let finalUsername = username;
+        
+        if (finalCompanyId) {
+            const company = await db.queryOne('SELECT domain FROM companies WHERE id = ?', [finalCompanyId]);
+            if (!company) {
+                return res.status(400).json({ error: 'الشركة غير موجودة' });
+            }
+            domain = company.domain;
+            
+            // إضافة @domain إذا لم يكن موجوداً
+            if (!username.includes('@')) {
+                finalUsername = `${username}@${domain}`;
+            } else {
+                // التحقق من أن @domain صحيح
+                const usernameParts = username.split('@');
+                if (usernameParts.length !== 2) {
+                    return res.status(400).json({ error: 'صيغة اسم المستخدم غير صحيحة' });
+                }
+                const usernameDomain = usernameParts[1];
+                if (usernameDomain !== domain) {
+                    return res.status(400).json({ error: `اسم المستخدم يجب أن ينتهي بـ @${domain}` });
+                }
+            }
+        } else {
+            // حساب بدون شركة (owner فقط)
+            if (req.user.role !== 'owner') {
+                return res.status(403).json({ error: 'فقط مالك الموقع يمكنه إنشاء حسابات بدون شركة' });
+            }
+            // إذا كان owner يريد إنشاء حساب بدون شركة، نستخدم username كما هو
+            finalUsername = username;
+        }
+        
+        // التحقق من عدم وجود username
+        const existingUser = await db.queryOne('SELECT id FROM users WHERE username = ?', [finalUsername]);
         if (existingUser) {
             return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
+        }
+        
+        // تحديد role افتراضي
+        const finalRole = role || 'technician';
+        
+        // التحقق من الحقول المطلوبة
+        if (!finalUsername || !password || !full_name) {
+            return res.status(400).json({ error: 'جميع الحقول مطلوبة' });
         }
         
         // Hash password
@@ -1932,23 +2004,43 @@ app.post('/api/users', authenticate, async (req, res) => {
         
         // Create user
         const result = await db.query(`
-            INSERT INTO users (username, password_hash, full_name, role, team_id)
-            VALUES (?, ?, ?, 'technician', ?)
-        `, [username, passwordHash, full_name, team_id]);
+            INSERT INTO users (username, password_hash, full_name, role, company_id, team_id)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [finalUsername, passwordHash, full_name, finalRole, finalCompanyId, team_id || null]);
         
         const userId = result.insertId;
         
-        // Add to team_members
-        await db.query(`
-            INSERT INTO team_members (team_id, user_id)
-            VALUES (?, ?)
-            ON DUPLICATE KEY UPDATE team_id = VALUES(team_id)
-        `, [team_id, userId]);
+        // Add to team_members إذا كان team_id موجود
+        if (team_id) {
+            await db.query(`
+                INSERT INTO team_members (team_id, user_id)
+                VALUES (?, ?)
+                ON DUPLICATE KEY UPDATE team_id = VALUES(team_id)
+            `, [team_id, userId]);
+        }
         
-        res.json({ success: true, userId, message: 'تم إنشاء الحساب بنجاح' });
+        // تحديث عدد الموظفين في الشركة
+        if (finalCompanyId) {
+            await db.query(`
+                UPDATE companies 
+                SET current_employees = (
+                    SELECT COUNT(*) 
+                    FROM users 
+                    WHERE company_id = ? AND role != 'admin' AND role != 'owner'
+                )
+                WHERE id = ?
+            `, [finalCompanyId, finalCompanyId]);
+        }
+        
+        res.json({
+            success: true,
+            userId: userId,
+            username: finalUsername,
+            message: 'تم إنشاء الحساب بنجاح'
+        });
     } catch (error) {
         console.error('Create user error:', error);
-        res.status(500).json({ error: 'خطأ في إنشاء الحساب' });
+        res.status(500).json({ error: 'خطأ في إنشاء الحساب', details: error.message });
     }
 });
 
@@ -3128,7 +3220,7 @@ app.put('/api/rewards/:id', authenticate, async (req, res) => {
 // ==================== Database Export API ====================
 app.get('/api/export/database', authenticate, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
             return res.status(403).json({ error: 'غير مصرح' });
         }
         
@@ -3140,7 +3232,8 @@ app.get('/api/export/database', authenticate, async (req, res) => {
             'users', 'teams', 'team_members', 'ticket_types', 'tickets',
             'ticket_photos', 'quality_reviews', 'positive_scores', 'negative_scores',
             'followup_reports', 'daily_summaries', 'monthly_summaries',
-            'message_templates', 'notifications', 'rewards'
+            'message_templates', 'notifications', 'rewards',
+            'companies', 'invoices', 'purchase_requests'
         ];
         
         const tablesToExport = selectedTables && selectedTables.length > 0
@@ -3212,7 +3305,7 @@ app.get('/api/export/database', authenticate, async (req, res) => {
 // Get list of available tables
 app.get('/api/export/tables', authenticate, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
             return res.status(403).json({ error: 'غير مصرح' });
         }
         
@@ -3231,13 +3324,436 @@ app.get('/api/export/tables', authenticate, async (req, res) => {
             { name: 'monthly_summaries', description: 'الملخصات الشهرية' },
             { name: 'message_templates', description: 'قوالب الرسائل' },
             { name: 'notifications', description: 'الإشعارات' },
-            { name: 'rewards', description: 'المكافآت' }
+            { name: 'rewards', description: 'المكافآت' },
+            { name: 'companies', description: 'الشركات' },
+            { name: 'invoices', description: 'الفواتير' },
+            { name: 'purchase_requests', description: 'طلبات الشراء' }
         ];
         
         res.json({ success: true, tables });
     } catch (error) {
         console.error('Get tables error:', error);
         res.status(500).json({ error: 'خطأ في جلب قائمة الجداول' });
+    }
+});
+
+// ==================== Owner Dashboard APIs ====================
+
+// Get all companies (Owner only)
+app.get('/api/owner/companies', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const companies = await db.query(`
+            SELECT c.*, 
+                   u.username as admin_username,
+                   u.full_name as admin_name,
+                   (SELECT COUNT(*) FROM users WHERE company_id = c.id AND role != 'admin' AND role != 'owner') as employee_count
+            FROM companies c
+            LEFT JOIN users u ON c.owner_user_id = u.id
+            ORDER BY c.created_at DESC
+        `);
+        
+        res.json({ success: true, companies });
+    } catch (error) {
+        console.error('Get companies error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الشركات' });
+    }
+});
+
+// Create new company with admin@domain
+app.post('/api/owner/companies', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const {
+            name,
+            domain,
+            contact_name,
+            contact_email,
+            contact_phone,
+            address,
+            max_employees,
+            price_per_employee,
+            admin_password
+        } = req.body;
+        
+        // التحقق من الحقول المطلوبة
+        if (!name || !domain || !contact_name || !contact_email || !admin_password || !price_per_employee) {
+            return res.status(400).json({ error: 'جميع الحقول المطلوبة يجب ملؤها' });
+        }
+        
+        // التحقق من domain فريد
+        const existingDomain = await db.queryOne(
+            'SELECT id FROM companies WHERE domain = ?',
+            [domain]
+        );
+        if (existingDomain) {
+            return res.status(400).json({ error: 'المجال مستخدم بالفعل' });
+        }
+        
+        // التحقق من username admin@domain غير موجود
+        const adminUsername = `admin@${domain}`;
+        const existingUser = await db.queryOne(
+            'SELECT id FROM users WHERE username = ?',
+            [adminUsername]
+        );
+        if (existingUser) {
+            return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
+        }
+        
+        // إنشاء الشركة
+        const companyResult = await db.query(`
+            INSERT INTO companies (name, domain, contact_name, contact_email, contact_phone, address, 
+                                 max_employees, price_per_employee, subscription_start_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
+        `, [name, domain, contact_name, contact_email, contact_phone || null, address || null, max_employees || 0, price_per_employee]);
+        
+        const companyId = companyResult.insertId;
+        
+        // إنشاء حساب admin@domain
+        const passwordHash = await bcrypt.hash(admin_password, 10);
+        const adminResult = await db.query(`
+            INSERT INTO users (username, password_hash, full_name, role, company_id)
+            VALUES (?, ?, ?, 'admin', ?)
+        `, [adminUsername, passwordHash, `مدير ${name}`, companyId]);
+        
+        const adminUserId = adminResult.insertId;
+        
+        // تحديث owner_user_id في الشركة
+        await db.query('UPDATE companies SET owner_user_id = ? WHERE id = ?', [adminUserId, companyId]);
+        
+        res.json({
+            success: true,
+            company: {
+                id: companyId,
+                name,
+                domain,
+                admin_username: adminUsername
+            },
+            message: 'تم إنشاء الشركة بنجاح'
+        });
+    } catch (error) {
+        console.error('Create company error:', error);
+        res.status(500).json({ error: 'خطأ في إنشاء الشركة', details: error.message });
+    }
+});
+
+// Update company
+app.put('/api/owner/companies/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const companyId = req.params.id;
+        const {
+            name,
+            contact_name,
+            contact_email,
+            contact_phone,
+            address,
+            max_employees,
+            price_per_employee,
+            is_active
+        } = req.body;
+        
+        await db.query(`
+            UPDATE companies 
+            SET name = ?, contact_name = ?, contact_email = ?, contact_phone = ?, 
+                address = ?, max_employees = ?, price_per_employee = ?, is_active = ?
+            WHERE id = ?
+        `, [name, contact_name, contact_email, contact_phone || null, address || null, 
+            max_employees || 0, price_per_employee, is_active !== undefined ? is_active : 1, companyId]);
+        
+        res.json({ success: true, message: 'تم تحديث الشركة بنجاح' });
+    } catch (error) {
+        console.error('Update company error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث الشركة' });
+    }
+});
+
+// Get all employees across all companies (Owner only)
+app.get('/api/owner/employees', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const { company_id } = req.query;
+        
+        let query = `
+            SELECT u.id, u.username, u.full_name, u.role, u.company_id, u.is_active, u.created_at,
+                   c.name as company_name, c.domain,
+                   t.name as team_name
+            FROM users u
+            LEFT JOIN companies c ON u.company_id = c.id
+            LEFT JOIN teams t ON u.team_id = t.id
+            WHERE u.role != 'owner'
+        `;
+        
+        const params = [];
+        if (company_id) {
+            query += ' AND u.company_id = ?';
+            params.push(company_id);
+        }
+        
+        query += ' ORDER BY u.created_at DESC';
+        
+        const employees = await db.query(query, params);
+        
+        res.json({ success: true, employees });
+    } catch (error) {
+        console.error('Get employees error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الموظفين' });
+    }
+});
+
+// Get all invoices
+app.get('/api/owner/invoices', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const { company_id, status } = req.query;
+        
+        let query = `
+            SELECT i.*, c.name as company_name, c.domain
+            FROM invoices i
+            LEFT JOIN companies c ON i.company_id = c.id
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        if (company_id) {
+            query += ' AND i.company_id = ?';
+            params.push(company_id);
+        }
+        if (status) {
+            query += ' AND i.status = ?';
+            params.push(status);
+        }
+        
+        query += ' ORDER BY i.created_at DESC';
+        
+        const invoices = await db.query(query, params);
+        
+        res.json({ success: true, invoices });
+    } catch (error) {
+        console.error('Get invoices error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الفواتير' });
+    }
+});
+
+// Create invoice
+app.post('/api/owner/invoices', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const {
+            company_id,
+            period_start,
+            period_end,
+            employee_count,
+            price_per_employee,
+            tax,
+            due_date,
+            notes
+        } = req.body;
+        
+        if (!company_id || !period_start || !period_end || !employee_count || !price_per_employee) {
+            return res.status(400).json({ error: 'جميع الحقول المطلوبة يجب ملؤها' });
+        }
+        
+        // حساب المبالغ
+        const subtotal = employee_count * price_per_employee;
+        const taxAmount = tax || 0;
+        const total = subtotal + taxAmount;
+        
+        // توليد رقم الفاتورة
+        const invoiceNumber = `INV-${Date.now()}-${company_id}`;
+        
+        const result = await db.query(`
+            INSERT INTO invoices (company_id, invoice_number, period_start, period_end, 
+                                employee_count, price_per_employee, subtotal, tax, total, 
+                                due_date, notes, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')
+        `, [company_id, invoiceNumber, period_start, period_end, employee_count, 
+            price_per_employee, subtotal, taxAmount, total, due_date || null, notes || null]);
+        
+        res.json({
+            success: true,
+            invoice: {
+                id: result.insertId,
+                invoice_number: invoiceNumber
+            },
+            message: 'تم إنشاء الفاتورة بنجاح'
+        });
+    } catch (error) {
+        console.error('Create invoice error:', error);
+        res.status(500).json({ error: 'خطأ في إنشاء الفاتورة', details: error.message });
+    }
+});
+
+// Update invoice status
+app.put('/api/owner/invoices/:id/status', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const invoiceId = req.params.id;
+        const { status, paid_date } = req.body;
+        
+        if (!status) {
+            return res.status(400).json({ error: 'حالة الفاتورة مطلوبة' });
+        }
+        
+        let query = 'UPDATE invoices SET status = ?';
+        const params = [status];
+        
+        if (status === 'paid' && paid_date) {
+            query += ', paid_date = ?';
+            params.push(paid_date);
+        }
+        
+        query += ' WHERE id = ?';
+        params.push(invoiceId);
+        
+        await db.query(query, params);
+        
+        res.json({ success: true, message: 'تم تحديث حالة الفاتورة بنجاح' });
+    } catch (error) {
+        console.error('Update invoice status error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث حالة الفاتورة' });
+    }
+});
+
+// Get all purchase requests
+app.get('/api/owner/purchase-requests', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const { status } = req.query;
+        
+        let query = `
+            SELECT pr.*, c.name as converted_company_name, c.domain as converted_domain
+            FROM purchase_requests pr
+            LEFT JOIN companies c ON pr.converted_to_company_id = c.id
+            WHERE 1=1
+        `;
+        
+        const params = [];
+        if (status) {
+            query += ' AND pr.status = ?';
+            params.push(status);
+        }
+        
+        query += ' ORDER BY pr.created_at DESC';
+        
+        const requests = await db.query(query, params);
+        
+        res.json({ success: true, requests });
+    } catch (error) {
+        console.error('Get purchase requests error:', error);
+        res.status(500).json({ error: 'خطأ في جلب طلبات الشراء' });
+    }
+});
+
+// Update purchase request status
+app.put('/api/owner/purchase-requests/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const requestId = req.params.id;
+        const { status, admin_notes, converted_to_company_id } = req.body;
+        
+        await db.query(`
+            UPDATE purchase_requests 
+            SET status = ?, admin_notes = ?, converted_to_company_id = ?
+            WHERE id = ?
+        `, [status || 'pending', admin_notes || null, converted_to_company_id || null, requestId]);
+        
+        res.json({ success: true, message: 'تم تحديث الطلب بنجاح' });
+    } catch (error) {
+        console.error('Update purchase request error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث الطلب' });
+    }
+});
+
+// Get owner dashboard statistics
+app.get('/api/owner/dashboard', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const stats = {
+            total_companies: await db.queryOne('SELECT COUNT(*) as count FROM companies WHERE is_active = 1'),
+            total_employees: await db.queryOne('SELECT COUNT(*) as count FROM users WHERE role != "owner" AND role != "admin" AND company_id IS NOT NULL'),
+            pending_invoices: await db.queryOne('SELECT COUNT(*) as count FROM invoices WHERE status IN ("draft", "sent", "overdue")'),
+            pending_requests: await db.queryOne('SELECT COUNT(*) as count FROM purchase_requests WHERE status = "pending"'),
+            total_revenue: await db.queryOne('SELECT SUM(total) as total FROM invoices WHERE status = "paid"')
+        };
+        
+        res.json({
+            success: true,
+            stats: {
+                total_companies: stats.total_companies?.count || 0,
+                total_employees: stats.total_employees?.count || 0,
+                pending_invoices: stats.pending_invoices?.count || 0,
+                pending_requests: stats.pending_requests?.count || 0,
+                total_revenue: parseFloat(stats.total_revenue?.total || 0)
+            }
+        });
+    } catch (error) {
+        console.error('Get owner dashboard error:', error);
+        res.status(500).json({ error: 'خطأ في جلب إحصائيات لوحة التحكم' });
+    }
+});
+
+// Public endpoint: Submit purchase request
+app.post('/api/purchase-request', async (req, res) => {
+    try {
+        const {
+            company_name,
+            contact_name,
+            contact_email,
+            contact_phone,
+            company_address,
+            expected_employees,
+            message
+        } = req.body;
+        
+        if (!company_name || !contact_name || !contact_email || !contact_phone || !expected_employees) {
+            return res.status(400).json({ error: 'جميع الحقول المطلوبة يجب ملؤها' });
+        }
+        
+        const result = await db.query(`
+            INSERT INTO purchase_requests (company_name, contact_name, contact_email, contact_phone, 
+                                         company_address, expected_employees, message, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+        `, [company_name, contact_name, contact_email, contact_phone, 
+            company_address || null, expected_employees, message || null]);
+        
+        res.json({
+            success: true,
+            message: 'تم إرسال طلبك بنجاح. سنتواصل معك قريباً.'
+        });
+    } catch (error) {
+        console.error('Submit purchase request error:', error);
+        res.status(500).json({ error: 'خطأ في إرسال الطلب' });
     }
 });
 
