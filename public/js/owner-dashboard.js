@@ -151,18 +151,19 @@ async function loadCompanies() {
     }
 }
 
-function openAddCompanyModal() {
+// Make functions globally available
+window.openAddCompanyModal = function() {
     const modal = document.getElementById('addCompanyModal');
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('active'), 10);
     document.getElementById('addCompanyForm').reset();
-}
+};
 
-function closeAddCompanyModal() {
+window.closeAddCompanyModal = function() {
     const modal = document.getElementById('addCompanyModal');
     modal.classList.remove('active');
     setTimeout(() => modal.style.display = 'none', 300);
-}
+};
 
 document.getElementById('addCompanyForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -299,19 +300,19 @@ async function loadInvoices() {
     }
 }
 
-function openCreateInvoiceModal() {
+window.openCreateInvoiceModal = function() {
     const modal = document.getElementById('createInvoiceModal');
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('active'), 10);
     document.getElementById('createInvoiceForm').reset();
     loadCompaniesForInvoice();
-}
+};
 
-function closeCreateInvoiceModal() {
+window.closeCreateInvoiceModal = function() {
     const modal = document.getElementById('createInvoiceModal');
     modal.classList.remove('active');
     setTimeout(() => modal.style.display = 'none', 300);
-}
+};
 
 async function loadCompaniesForInvoice() {
     try {
@@ -407,7 +408,7 @@ async function loadPurchaseRequests() {
     }
 }
 
-async function viewPurchaseRequest(id) {
+window.viewPurchaseRequest = async function(id) {
     try {
         const data = await window.api.getOwnerPurchaseRequests();
         if (data && data.success) {
@@ -472,15 +473,15 @@ async function viewPurchaseRequest(id) {
     } catch (error) {
         showAlertModal('خطأ', error.message || 'حدث خطأ في تحميل تفاصيل الطلب');
     }
-}
+};
 
-function closePurchaseRequestModal() {
+window.closePurchaseRequestModal = function() {
     const modal = document.getElementById('purchaseRequestModal');
     modal.classList.remove('active');
     setTimeout(() => modal.style.display = 'none', 300);
-}
+};
 
-async function updatePurchaseRequestStatus(id) {
+window.updatePurchaseRequestStatus = async function(id) {
     const status = prompt('اختر الحالة:\n1. pending - معلقة\n2. contacted - تم التواصل\n3. approved - موافق عليها\n4. rejected - مرفوضة\n5. converted - محولة');
     if (!status) return;
     
@@ -497,7 +498,7 @@ async function updatePurchaseRequestStatus(id) {
     } catch (error) {
         showAlertModal('خطأ', error.message || 'حدث خطأ في تحديث حالة الطلب');
     }
-}
+};
 
 async function viewInvoice(id) {
     // TODO: Implement invoice view modal
@@ -530,7 +531,7 @@ async function editCompany(id) {
     showAlertModal('معلومة', 'ميزة تعديل الشركة قيد التطوير');
 }
 
-function exportTable(tableName) {
+window.exportTable = function(tableName) {
     window.api.exportDatabase([tableName]).then(result => {
         if (result && result.success) {
             showAlertModal('نجح', 'تم تصدير الجدول بنجاح!');
@@ -538,7 +539,7 @@ function exportTable(tableName) {
     }).catch(error => {
         showAlertModal('خطأ', error.message || 'حدث خطأ في تصدير الجدول');
     });
-}
+};
 
 // ==================== Database Management ====================
 async function loadDatabaseTables() {
@@ -647,19 +648,19 @@ function getRequestStatusClass(status) {
     return classes[status] || 'secondary';
 }
 
-function showAlertModal(title, message) {
+window.showAlertModal = function(title, message) {
     document.getElementById('alertTitle').textContent = title;
     document.getElementById('alertMessage').textContent = message;
     const modal = document.getElementById('alertModal');
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('active'), 10);
-}
+};
 
-function closeAlertModal() {
+window.closeAlertModal = function() {
     const modal = document.getElementById('alertModal');
     modal.classList.remove('active');
     setTimeout(() => modal.style.display = 'none', 300);
-}
+};
 
 // Mobile menu toggle
 function toggleMobileMenu() {
