@@ -73,7 +73,7 @@ function showPage(pageName) {
         'invoices': 'إدارة الفواتير',
         'purchase-requests': 'استلام الطلبات',
         'database': 'قاعدة البيانات',
-        'settings': 'الإعدادات'
+        'settings': 'الاشعارات'
     };
     document.getElementById('pageTitle').textContent = titles[pageName] || 'لوحة التحكم';
     
