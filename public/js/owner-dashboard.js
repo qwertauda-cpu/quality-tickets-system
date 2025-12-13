@@ -2565,13 +2565,16 @@ function openCreateOwnerTemplateModal() {
         }
         
         // Show modal - CSS requires active class for display
-        // Remove inline display style if exists (let CSS handle it)
+        // First remove inline display:none style (it overrides CSS)
         modal.style.removeProperty('display');
-        modal.style.removeProperty('opacity');
-        // Add active class - CSS will set display:flex and opacity:1
+        // Then add active class - CSS will set display:flex and opacity:1
         modal.classList.add('active');
         
         console.log('Modal should be visible now');
+        console.log('Modal classes:', modal.className);
+        console.log('Modal inline style display:', modal.style.display);
+        console.log('Modal computed style display:', window.getComputedStyle(modal).display);
+        console.log('Modal computed style opacity:', window.getComputedStyle(modal).opacity);
     } catch (error) {
         console.error('Error in openCreateOwnerTemplateModal:', error);
         alert('خطأ: ' + error.message);
