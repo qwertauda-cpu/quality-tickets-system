@@ -4529,7 +4529,11 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
                 // إعادة تهيئة WhatsApp Client
                 if (whatsappClient) {
                     try {
-                        await whatsappClient.destroy();
+                        if (typeof whatsappClient.destroy === 'function') {
+                            await whatsappClient.destroy();
+                        } else if (typeof whatsappClient.logout === 'function') {
+                            await whatsappClient.logout();
+                        }
                     } catch (e) {
                         console.log('Error destroying old client:', e.message);
                     }
