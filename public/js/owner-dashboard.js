@@ -324,6 +324,7 @@ async function loadEmployees() {
                     <td>${emp.team_name || '-'}</td>
                     <td>${statusBadge}</td>
                     <td style="white-space: nowrap;">
+                        <button class="btn btn-sm btn-primary" onclick="editEmployee(${emp.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">تعديل</button>
                         ${emp.role !== 'admin' && emp.role !== 'owner' ? `
                             ${emp.is_active 
                                 ? `<button class="btn btn-sm btn-warning" onclick="freezeEmployee(${emp.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">تجميد</button>`
@@ -401,6 +402,135 @@ window.unfreezeEmployee = async function(employeeId) {
         showAlertModal('خطأ', 'خطأ في إلغاء تجميد الحساب: ' + (error.message || 'خطأ غير معروف'));
     }
 };
+
+window.editEmployee = async function(employeeId) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        // Get employee data
+        const employeesData = await window.api.getOwnerEmployees();
+        if (!employeesData || !employeesData.success) {
+            showAlertModal('خطأ', 'فشل في تحميل بيانات الموظف');
+            return;
+        }
+        
+        const emp = employeesData.employees.find(e => e.id == employeeId);
+        if (!emp) {
+            showAlertModal('خطأ', 'الموظف غير موجود');
+            return;
+        }
+        
+        // Open edit modal
+        const modal = document.getElementById('editEmployeeModal');
+        if (!modal) {
+            showAlertModal('خطأ', 'نافذة التعديل غير موجودة');
+            return;
+        }
+        
+        // Fill form with employee data
+        document.getElementById('edit_employee_id').value = emp.id;
+        document.getElementById('edit_employee_username').value = emp.username || '';
+        document.getElementById('edit_employee_full_name').value = emp.full_name || '';
+        document.getElementById('edit_employee_password').value = '';
+        document.getElementById('edit_employee_is_active').checked = emp.is_active === 1 || emp.is_active === true;
+        
+        // Load teams for dropdown
+        try {
+            const teamsData = await window.api.getTeams();
+            const teamSelect = document.getElementById('edit_employee_team_id');
+            if (teamSelect && teamsData && teamsData.success) {
+                teamSelect.innerHTML = '<option value="">لا يوجد فريق</option>';
+                (teamsData.teams || []).forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.id;
+                    option.textContent = team.name;
+                    if (emp.team_id == team.id) {
+                        option.selected = true;
+                    }
+                    teamSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading teams:', error);
+        }
+        
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    } catch (error) {
+        console.error('Error loading employee for edit:', error);
+        showAlertModal('خطأ', 'حدث خطأ في تحميل بيانات الموظف: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
+
+window.closeEditEmployeeModal = function() {
+    const modal = document.getElementById('editEmployeeModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+        const form = document.getElementById('editEmployeeForm');
+        if (form) {
+            form.reset();
+        }
+    }
+};
+
+// Setup edit employee form submission
+(function() {
+    const editEmployeeForm = document.getElementById('editEmployeeForm');
+    if (editEmployeeForm) {
+        editEmployeeForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const employeeId = document.getElementById('edit_employee_id')?.value;
+            if (!employeeId) {
+                showAlertModal('خطأ', 'معرف الموظف غير موجود');
+                return;
+            }
+            
+            const formData = {
+                username: document.getElementById('edit_employee_username')?.value.trim() || '',
+                full_name: document.getElementById('edit_employee_full_name')?.value.trim() || '',
+                password: document.getElementById('edit_employee_password')?.value.trim() || null,
+                team_id: document.getElementById('edit_employee_team_id')?.value || null,
+                is_active: document.getElementById('edit_employee_is_active')?.checked ? 1 : 0
+            };
+            
+            // Validate required fields
+            if (!formData.username || !formData.full_name) {
+                showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)');
+                return;
+            }
+            
+            // Remove password from formData if empty
+            if (!formData.password) {
+                delete formData.password;
+            }
+            
+            try {
+                if (!window.api) {
+                    showAlertModal('خطأ', 'API غير متاح');
+                    return;
+                }
+                
+                const data = await window.api.updateUser(employeeId, formData);
+                if (data && data.success) {
+                    showAlertModal('نجح', 'تم تحديث الموظف بنجاح!');
+                    closeEditEmployeeModal();
+                    loadEmployees();
+                } else {
+                    showAlertModal('خطأ', data?.error || 'فشل تحديث الموظف');
+                }
+            } catch (error) {
+                console.error('Error updating employee:', error);
+                showAlertModal('خطأ', 'حدث خطأ في تحديث الموظف: ' + (error.message || 'خطأ غير معروف'));
+            }
+        });
+    }
+})();
 
 window.permanentlyDeleteEmployee = async function(employeeId) {
     // Get employee info for confirmation
