@@ -1600,19 +1600,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const data = await window.api.saveSettings(formData);
                 if (data && data.success) {
-                    showAlertModal('نجح', 'تم حفظ الإعدادات بنجاح!');
-                    
-                    // إذا كان هناك QR Code، عرضه
+                    // إذا كان هناك QR Code، عرضه مباشرة
                     if (data.qr_code) {
                         displayQRCode(data.qr_code);
-                    } else if (data.needs_qr) {
-                        // انتظار QR Code
-                        setTimeout(async () => {
-                            await checkForQRCode();
-                        }, 2000);
+                        showAlertModal('نجح', 'تم حفظ الإعدادات بنجاح! يرجى مسح الباركود');
                     } else if (data.connected) {
                         hideQRCode();
-                        showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!');
+                        showAlertModal('نجح', 'تم حفظ الإعدادات والاتصال بـ WhatsApp بنجاح!');
+                    } else if (data.needs_qr) {
+                        // إذا كان يحتاج QR Code، نبدأ بالتحقق بشكل دوري
+                        showAlertModal('معلومات', 'تم حفظ الإعدادات. جاري تحميل QR Code...');
+                        
+                        // التحقق من QR Code كل ثانية لمدة 30 ثانية
+                        let attempts = 0;
+                        const maxAttempts = 30;
+                        const checkInterval = setInterval(async () => {
+                            attempts++;
+                            try {
+                                const qrData = await window.api.getWhatsAppQR();
+                                if (qrData && qrData.success) {
+                                    if (qrData.qr_code) {
+                                        clearInterval(checkInterval);
+                                        displayQRCode(qrData.qr_code);
+                                        showAlertModal('نجح', 'تم تحميل QR Code! يرجى مسح الباركود');
+                                    } else if (qrData.connected) {
+                                        clearInterval(checkInterval);
+                                        hideQRCode();
+                                        showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!');
+                                    }
+                                }
+                            } catch (error) {
+                                console.error('Error checking QR Code:', error);
+                            }
+                            
+                            if (attempts >= maxAttempts) {
+                                clearInterval(checkInterval);
+                                showAlertModal('معلومات', 'لم يظهر QR Code بعد. يرجى الضغط على "التحقق من حالة الاتصال" لاحقاً');
+                            }
+                        }, 1000);
+                    } else {
+                        showAlertModal('نجح', 'تم حفظ الإعدادات بنجاح!');
                     }
                 } else {
                     showAlertModal('خطأ', data?.error || 'حدث خطأ في حفظ الإعدادات');

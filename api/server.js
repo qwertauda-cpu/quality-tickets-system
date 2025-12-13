@@ -4537,24 +4537,43 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
                     whatsappReady = false;
                 }
                 
-                // تهيئة جديدة
-                await initWhatsAppClient();
+                // تهيئة جديدة (غير متزامن - لا ننتظر)
+                initWhatsAppClient().catch(err => {
+                    console.error('Error in initWhatsAppClient:', err);
+                });
                 
-                // انتظار QR Code (إذا كان مطلوباً)
-                if (currentQRCode) {
+                // انتظار QR Code لمدة 5 ثوانٍ
+                let qrReceived = false;
+                for (let i = 0; i < 10; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 500)); // انتظار 500ms
+                    if (currentQRCode) {
+                        qrReceived = true;
+                        break;
+                    }
+                }
+                
+                if (qrReceived && currentQRCode) {
                     return res.json({ 
                         success: true, 
                         message: 'تم حفظ الإعدادات بنجاح',
                         qr_code: currentQRCode,
                         needs_qr: true
                     });
-                } else {
+                } else if (whatsappReady) {
                     // إذا كان متصل بالفعل
                     return res.json({ 
                         success: true, 
                         message: 'تم حفظ الإعدادات بنجاح',
                         needs_qr: false,
-                        connected: whatsappReady
+                        connected: true
+                    });
+                } else {
+                    // لم يظهر QR Code بعد، لكن سيظهر قريباً
+                    return res.json({ 
+                        success: true, 
+                        message: 'تم حفظ الإعدادات بنجاح. يرجى الانتظار قليلاً لظهور QR Code',
+                        needs_qr: true,
+                        waiting: true
                     });
                 }
             } catch (error) {
@@ -4562,7 +4581,8 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
                 return res.json({ 
                     success: true, 
                     message: 'تم حفظ الإعدادات بنجاح، لكن حدث خطأ في تهيئة WhatsApp',
-                    error: error.message
+                    error: error.message,
+                    needs_qr: true
                 });
             }
         }
