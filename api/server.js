@@ -3128,6 +3128,23 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('🚀 Quality & Tickets Management System');
     console.log('==========================================');
     console.log(`✅ Server running on port ${PORT}`);
+    
+    // ==================== Initialize WhatsApp Client ====================
+    // تهيئة WhatsApp Web Client عند بدء الخادم
+    setTimeout(async () => {
+        try {
+            const settings = await getWhatsAppSettings();
+            if (settings.whatsapp_enabled && settings.whatsapp_phone) {
+                console.log('🔄 تهيئة WhatsApp Web Client...');
+                await initWhatsAppClient();
+            } else {
+                console.log('ℹ️ WhatsApp Web غير مفعّل أو رقم الواتساب غير محدد');
+            }
+        } catch (error) {
+            console.error('⚠️ خطأ في تهيئة WhatsApp Client:', error.message);
+        }
+    }, 2000); // انتظار ثانيتين بعد بدء الخادم
+    
     // ==================== Start Background Jobs ====================
     // فحص التذاكر المتأخرة كل 5 دقائق
     setInterval(checkDelayedTickets, 5 * 60 * 1000); // 5 minutes
@@ -3261,6 +3278,88 @@ async function checkExpiringSubscriptions() {
     }
 }
 
+// ==================== WhatsApp Web Client ====================
+let whatsappClient = null;
+let whatsappReady = false;
+
+// Initialize WhatsApp Web Client
+async function initWhatsAppClient() {
+    try {
+        const { Client, LocalAuth } = require('whatsapp-web.js');
+        const qrcode = require('qrcode-terminal');
+        
+        const settings = await getWhatsAppSettings();
+        
+        if (!settings.whatsapp_phone || !settings.whatsapp_enabled) {
+            console.log('⚠️ رقم الواتساب غير محدد أو الإرسال معطل - سيتم استخدام الروابط فقط');
+            return null;
+        }
+        
+        // إنشاء عميل WhatsApp Web
+        whatsappClient = new Client({
+            authStrategy: new LocalAuth({
+                clientId: 'owner-whatsapp-client'
+            }),
+            puppeteer: {
+                headless: true,
+                args: ['--no-sandbox', '--disable-setuid-sandbox']
+            }
+        });
+        
+        // عرض QR Code في Terminal
+        whatsappClient.on('qr', (qr) => {
+            console.log('');
+            console.log('==========================================');
+            console.log('📱 QR Code للواتساب - يرجى مسح الباركود:');
+            console.log('==========================================');
+            qrcode.generate(qr, { small: true });
+            console.log('يرجى مسح الباركود باستخدام WhatsApp على هاتفك');
+            console.log('==========================================');
+            console.log('');
+        });
+        
+        // عند الاتصال بنجاح
+        whatsappClient.on('ready', () => {
+            console.log('✅ تم الاتصال بـ WhatsApp Web بنجاح!');
+            console.log(`📱 رقم الواتساب: ${settings.whatsapp_phone}`);
+            whatsappReady = true;
+        });
+        
+        // عند المصادقة
+        whatsappClient.on('authenticated', () => {
+            console.log('✅ تمت المصادقة بنجاح مع WhatsApp Web');
+        });
+        
+        // عند فشل المصادقة
+        whatsappClient.on('auth_failure', (msg) => {
+            console.error('❌ فشل المصادقة مع WhatsApp Web:', msg);
+            whatsappReady = false;
+        });
+        
+        // عند انقطاع الاتصال
+        whatsappClient.on('disconnected', (reason) => {
+            console.log('⚠️ تم قطع الاتصال مع WhatsApp Web:', reason);
+            whatsappReady = false;
+            whatsappClient = null;
+        });
+        
+        // عند حدوث خطأ
+        whatsappClient.on('error', (error) => {
+            console.error('❌ خطأ في WhatsApp Client:', error);
+            whatsappReady = false;
+        });
+        
+        // بدء المصادقة
+        await whatsappClient.initialize();
+        
+        return whatsappClient;
+    } catch (error) {
+        console.error('❌ خطأ في تهيئة WhatsApp Client:', error.message);
+        console.log('⚠️ سيتم استخدام الروابط فقط لإرسال الرسائل');
+        return null;
+    }
+}
+
 // ==================== Send WhatsApp Message ====================
 async function sendWhatsAppMessage(phoneNumber, message) {
     try {
@@ -3285,34 +3384,68 @@ async function sendWhatsAppMessage(phoneNumber, message) {
             }
         }
         
-        // إذا كان هناك API URL و API Key، استخدم API
+        // إزالة رمز الدولة من الرقم (whatsapp-web.js يحتاج الرقم بدون رمز الدولة)
+        const phoneWithoutCountryCode = formattedPhone.startsWith('964') 
+            ? formattedPhone.substring(3) 
+            : formattedPhone;
+        
+        // المحاولة الأولى: استخدام WhatsApp Web Client
+        if (!whatsappClient || !whatsappReady) {
+            // محاولة تهيئة WhatsApp Client فقط إذا كان الرقم محدد
+            if (settings.whatsapp_phone) {
+                console.log('🔄 محاولة تهيئة WhatsApp Client...');
+                await initWhatsAppClient();
+            }
+        }
+        
+        if (whatsappClient && whatsappReady) {
+            try {
+                // إرسال الرسالة عبر WhatsApp Web
+                const chatId = `${phoneWithoutCountryCode}@c.us`;
+                await whatsappClient.sendMessage(chatId, message);
+                
+                console.log(`✅ تم إرسال رسالة واتساب عبر WhatsApp Web من ${settings.whatsapp_phone} إلى ${formattedPhone}`);
+                return { 
+                    success: true, 
+                    method: 'whatsapp-web', 
+                    phone: formattedPhone,
+                    from: settings.whatsapp_phone
+                };
+            } catch (whatsappError) {
+                console.error('❌ خطأ في إرسال الرسالة عبر WhatsApp Web:', whatsappError.message);
+                // Fallback to API or Web link
+            }
+        }
+        
+        // المحاولة الثانية: استخدام API إذا كان متوفراً
         if (settings.whatsapp_api_url && settings.whatsapp_api_key) {
             try {
-                // استخدام API لإرسال الرسالة
                 const axios = require('axios');
                 const response = await axios.post(settings.whatsapp_api_url, {
                     phone: formattedPhone,
                     message: message,
-                    api_key: settings.whatsapp_api_key
+                    api_key: settings.whatsapp_api_key,
+                    from: settings.whatsapp_phone
                 }, {
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${settings.whatsapp_api_key}`
-                    }
+                    },
+                    timeout: 10000 // 10 seconds timeout
                 });
                 
                 console.log(`✅ تم إرسال رسالة واتساب عبر API إلى ${formattedPhone}`);
-                return { success: true, method: 'api', phone: formattedPhone };
+                return { success: true, method: 'api', phone: formattedPhone, from: settings.whatsapp_phone };
             } catch (apiError) {
                 console.error('❌ خطأ في إرسال الرسالة عبر API:', apiError.message);
                 // Fallback to WhatsApp Web link
             }
         }
         
-        // استخدام رابط WhatsApp Web (الطريقة الافتراضية)
+        // المحاولة الثالثة: استخدام رابط WhatsApp Web (الطريقة الافتراضية)
         const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
         
-        // إذا كان هناك رقم واتساب محدد في الإعدادات، استخدمه كمرسل
+        // إذا كان هناك رقم واتساب محدد في الإعدادات
         if (settings.whatsapp_phone) {
             const ownerPhone = settings.whatsapp_phone.replace(/[\s\-\(\)\+]/g, '');
             let formattedOwnerPhone = ownerPhone;
@@ -3324,7 +3457,6 @@ async function sendWhatsAppMessage(phoneNumber, message) {
                 }
             }
             
-            // يمكن استخدام رقم المالك في رابط خاص إذا كانت الخدمة تدعم ذلك
             console.log(`📱 WhatsApp Message from ${formattedOwnerPhone} to ${formattedPhone}:`);
         } else {
             console.log(`📱 WhatsApp Message to ${formattedPhone}:`);
@@ -3333,10 +3465,7 @@ async function sendWhatsAppMessage(phoneNumber, message) {
         console.log(`   ${message}`);
         console.log(`   URL: ${whatsappUrl}`);
         
-        // TODO: يمكن إضافة كود هنا لإرسال الرسالة عبر API حقيقي
-        // يمكن استخدام axios أو fetch لإرسال الرسالة عبر API حقيقي
-        
-        return { success: true, url: whatsappUrl, phone: formattedPhone, method: 'web' };
+        return { success: true, url: whatsappUrl, phone: formattedPhone, method: 'web-link' };
     } catch (error) {
         console.error('Error sending WhatsApp message:', error);
         throw error;
