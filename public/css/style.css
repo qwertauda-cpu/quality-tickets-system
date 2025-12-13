@@ -2390,15 +2390,17 @@ select:disabled {
     display: none;
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
 }
 
 .modal-overlay.active {
-    display: flex;
-    opacity: 1;
+    display: flex !important;
+    opacity: 1 !important;
     align-items: center;
     justify-content: center;
     padding: 20px;
     overflow-y: auto;
+    pointer-events: auto;
 }
 
 .modal {

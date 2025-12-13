@@ -2577,6 +2577,13 @@ function openCreateOwnerTemplateModal() {
             modal.style.display = '';
         }
         
+        // Force the modal to be visible by setting display directly if needed
+        const modalContent = modal.querySelector('.modal');
+        if (modalContent) {
+            // Ensure modal content is visible
+            modalContent.style.transform = 'scale(1)';
+        }
+        
         console.log('Modal should be visible now');
         console.log('Modal classes:', modal.className);
         console.log('Modal inline style display:', modal.style.display);
@@ -2584,6 +2591,7 @@ function openCreateOwnerTemplateModal() {
         console.log('Modal computed style display:', window.getComputedStyle(modal).display);
         console.log('Modal computed style opacity:', window.getComputedStyle(modal).opacity);
         console.log('Modal computed style z-index:', window.getComputedStyle(modal).zIndex);
+        console.log('Modal content transform:', modalContent ? window.getComputedStyle(modalContent).transform : 'N/A');
     } catch (error) {
         console.error('Error in openCreateOwnerTemplateModal:', error);
         alert('خطأ: ' + error.message);
