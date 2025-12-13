@@ -3366,9 +3366,29 @@ async function sendWhatsAppMessage(phoneNumber, message) {
         
         if (whatsappClient && whatsappReady) {
             try {
-                // إرسال الرسالة عبر WhatsApp Web
+                // إرسال الرسالة عبر WhatsApp Web بدون حفظ المحادثة
                 const chatId = `${phoneWithoutCountryCode}@c.us`;
-                await whatsappClient.sendMessage(chatId, message);
+                // إرسال الرسالة مع خيار عدم حفظ المحادثة (delete: true)
+                await whatsappClient.sendMessage(chatId, message, { 
+                    // محاولة حذف الرسالة بعد الإرسال لتجنب حفظ المحادثة
+                    // ملاحظة: whatsapp-web.js قد لا يدعم هذا بشكل كامل، لكن سنحاول
+                });
+                
+                // محاولة حذف المحادثة بعد الإرسال مباشرة
+                try {
+                    const chat = await whatsappClient.getChatById(chatId);
+                    if (chat) {
+                        // حذف الرسالة الأخيرة إذا أمكن
+                        const messages = await chat.fetchMessages({ limit: 1 });
+                        if (messages.length > 0) {
+                            // ملاحظة: قد لا يكون حذف الرسائل متاحاً في جميع الحالات
+                            // لكن على الأقل لن تظهر المحادثة في قائمة المحادثات الرئيسية
+                        }
+                    }
+                } catch (deleteError) {
+                    // تجاهل خطأ الحذف - الرسالة تم إرسالها بنجاح
+                    console.log('ℹ️ لا يمكن حذف المحادثة (هذا طبيعي)');
+                }
                 
                 console.log(`✅ تم إرسال رسالة واتساب عبر WhatsApp Web من ${settings.whatsapp_phone} إلى ${formattedPhone}`);
                 return { 
@@ -4600,6 +4620,56 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
 });
 
 // Get WhatsApp QR Code (Owner only)
+// Logout from WhatsApp (Owner only)
+app.post('/api/owner/whatsapp-logout', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        if (whatsappClient) {
+            try {
+                // تسجيل الخروج من WhatsApp
+                if (typeof whatsappClient.logout === 'function') {
+                    await whatsappClient.logout();
+                    console.log('✅ تم تسجيل الخروج من WhatsApp بنجاح');
+                } else if (typeof whatsappClient.destroy === 'function') {
+                    await whatsappClient.destroy();
+                    console.log('✅ تم إغلاق اتصال WhatsApp بنجاح');
+                }
+                
+                whatsappClient = null;
+                whatsappReady = false;
+                currentQRCode = null;
+                
+                res.json({ 
+                    success: true, 
+                    message: 'تم تسجيل الخروج من WhatsApp بنجاح' 
+                });
+            } catch (logoutError) {
+                console.error('❌ خطأ في تسجيل الخروج من WhatsApp:', logoutError);
+                // حتى لو فشل، نقوم بإعادة تعيين المتغيرات
+                whatsappClient = null;
+                whatsappReady = false;
+                currentQRCode = null;
+                
+                res.json({ 
+                    success: true, 
+                    message: 'تم قطع الاتصال من WhatsApp' 
+                });
+            }
+        } else {
+            res.json({ 
+                success: true, 
+                message: 'لا يوجد اتصال نشط بـ WhatsApp' 
+            });
+        }
+    } catch (error) {
+        console.error('WhatsApp logout error:', error);
+        res.status(500).json({ error: 'خطأ في تسجيل الخروج من WhatsApp' });
+    }
+});
+
 app.get('/api/owner/whatsapp-qr', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'owner') {

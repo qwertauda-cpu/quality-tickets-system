@@ -1630,11 +1630,38 @@ async function checkWhatsAppStatus() {
     }
 }
 
+// Logout from WhatsApp
+async function logoutWhatsApp() {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        // تأكيد من المستخدم
+        if (!confirm('هل أنت متأكد من تسجيل الخروج من WhatsApp؟\n\nملاحظة: ستحتاج إلى مسح QR Code مرة أخرى للاتصال.')) {
+            return;
+        }
+        
+        const data = await window.api.logoutWhatsApp();
+        if (data && data.success) {
+            hideQRCode();
+            showAlertModal('نجح', data.message || 'تم تسجيل الخروج من WhatsApp بنجاح');
+        } else {
+            showAlertModal('خطأ', data.error || 'حدث خطأ في تسجيل الخروج');
+        }
+    } catch (error) {
+        console.error('Error logging out from WhatsApp:', error);
+        showAlertModal('خطأ', 'حدث خطأ في تسجيل الخروج من WhatsApp');
+    }
+}
+
 // Make functions globally accessible
 window.displayQRCode = displayQRCode;
 window.hideQRCode = hideQRCode;
 window.checkForQRCode = checkForQRCode;
 window.checkWhatsAppStatus = checkWhatsAppStatus;
+window.logoutWhatsApp = logoutWhatsApp;
 
 // Setup settings form submission
 document.addEventListener('DOMContentLoaded', function() {

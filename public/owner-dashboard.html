@@ -485,7 +485,10 @@
                                     <h4 style="margin-bottom: 16px; color: var(--text-primary);">📱 مسح الباركود للاتصال بـ WhatsApp</h4>
                                     <div id="whatsappQRCode" style="display: inline-block; padding: 16px; background: white; border-radius: 8px; margin-bottom: 16px;"></div>
                                     <p style="color: var(--text-secondary); font-size: 14px; margin-top: 16px;">افتح WhatsApp على هاتفك وامسح الباركود أعلاه</p>
-                                    <button onclick="checkWhatsAppStatus()" class="btn btn-sm btn-secondary" style="margin-top: 12px;">🔄 التحقق من حالة الاتصال</button>
+                                    <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: center; flex-wrap: wrap;">
+                                        <button onclick="checkWhatsAppStatus()" class="btn btn-sm btn-secondary">🔄 التحقق من حالة الاتصال</button>
+                                        <button onclick="logoutWhatsApp()" class="btn btn-sm btn-danger">🚪 تسجيل الخروج من WhatsApp</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
