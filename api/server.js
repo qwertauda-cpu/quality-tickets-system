@@ -77,7 +77,8 @@ app.post('/api/login', async (req, res) => {
         if (username.includes('@')) {
             // username@domain - البحث المباشر
             user = await db.queryOne(`
-                SELECT u.*, c.domain, c.name as company_name, c.id as company_id
+                SELECT u.*, c.domain, c.name as company_name, c.id as company_id, 
+                       c.is_active as company_is_active, c.owner_user_id
                 FROM users u
                 LEFT JOIN companies c ON u.company_id = c.id
                 WHERE u.username = ? AND u.is_active = 1
@@ -85,7 +86,8 @@ app.post('/api/login', async (req, res) => {
         } else {
             // username فقط - البحث في حسابات owner/admin بدون domain أو البحث في جميع الشركات
             user = await db.queryOne(`
-                SELECT u.*, c.domain, c.name as company_name, c.id as company_id
+                SELECT u.*, c.domain, c.name as company_name, c.id as company_id,
+                       c.is_active as company_is_active, c.owner_user_id
                 FROM users u
                 LEFT JOIN companies c ON u.company_id = c.id
                 WHERE u.username = ? AND (u.role = 'owner' OR u.company_id IS NULL) AND u.is_active = 1
@@ -100,6 +102,32 @@ app.post('/api/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
             return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+        }
+        
+        // التحقق من حالة الشركة ومديرها
+        if (user.company_id) {
+            // التحقق من حالة الشركة
+            if (user.company_is_active === 0) {
+                return res.status(403).json({ 
+                    error: 'يرجى التواصل مع المبيعات',
+                    contact_sales: true 
+                });
+            }
+            
+            // التحقق من حالة مدير الشركة (owner_user_id)
+            if (user.owner_user_id) {
+                const companyAdmin = await db.queryOne(
+                    'SELECT is_active FROM users WHERE id = ?',
+                    [user.owner_user_id]
+                );
+                
+                if (companyAdmin && companyAdmin.is_active === 0) {
+                    return res.status(403).json({ 
+                        error: 'يرجى التواصل مع المبيعات',
+                        contact_sales: true 
+                    });
+                }
+            }
         }
         
         // إضافة display_username مع domain إذا كان موجوداً
@@ -2211,7 +2239,7 @@ app.put('/api/users/:id/freeze', authenticate, async (req, res) => {
         const { is_frozen } = req.body; // true to freeze, false to unfreeze
         
         // Don't allow freezing admin users or self
-        const user = await db.queryOne('SELECT role FROM users WHERE id = ?', [userId]);
+        const user = await db.queryOne('SELECT role, company_id FROM users WHERE id = ?', [userId]);
         if (!user) {
             return res.status(404).json({ error: 'المستخدم غير موجود' });
         }
@@ -2228,12 +2256,47 @@ app.put('/api/users/:id/freeze', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'لا يمكن تجميد حسابك الخاص' });
         }
         
-        // Freeze/Unfreeze (set is_active = 0 for freeze, 1 for unfreeze)
+        // Freeze/Unfreeze user
         await db.query('UPDATE users SET is_active = ? WHERE id = ?', [is_frozen ? 0 : 1, userId]);
+        
+        // إذا كان المستخدم هو مدير شركة (admin role مع company_id)، قم بتجميد/إلغاء تجميد جميع موظفي الشركة
+        if (user.role === 'admin' && user.company_id) {
+            if (is_frozen) {
+                // تجميد جميع موظفي الشركة
+                await db.query(
+                    'UPDATE users SET is_active = 0 WHERE company_id = ? AND id != ?',
+                    [user.company_id, userId]
+                );
+                
+                // تجميد الشركة أيضاً
+                await db.query(
+                    'UPDATE companies SET is_active = 0 WHERE id = ?',
+                    [user.company_id]
+                );
+            } else {
+                // إلغاء تجميد جميع موظفي الشركة
+                await db.query(
+                    'UPDATE users SET is_active = 1 WHERE company_id = ?',
+                    [user.company_id]
+                );
+                
+                // إلغاء تجميد الشركة
+                await db.query(
+                    'UPDATE companies SET is_active = 1 WHERE id = ?',
+                    [user.company_id]
+                );
+            }
+        }
         
         res.json({ 
             success: true, 
-            message: is_frozen ? 'تم تجميد الحساب بنجاح' : 'تم إلغاء تجميد الحساب بنجاح' 
+            message: is_frozen 
+                ? (user.role === 'admin' && user.company_id 
+                    ? 'تم تجميد حساب المدير وجميع موظفي الشركة بنجاح' 
+                    : 'تم تجميد الحساب بنجاح')
+                : (user.role === 'admin' && user.company_id 
+                    ? 'تم إلغاء تجميد حساب المدير وجميع موظفي الشركة بنجاح' 
+                    : 'تم إلغاء تجميد الحساب بنجاح')
         });
     } catch (error) {
         console.error('Freeze/Unfreeze user error:', error);

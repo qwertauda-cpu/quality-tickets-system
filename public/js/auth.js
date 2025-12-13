@@ -51,7 +51,10 @@ if (loginForm) {
                 window.location.href = '/index.html';
             }
         } else {
-            errorDiv.textContent = data.error || 'خطأ في تسجيل الدخول';
+            const errorMessage = data.contact_sales 
+                ? 'يرجى التواصل مع المبيعات' 
+                : (data.error || 'خطأ في تسجيل الدخول');
+            errorDiv.textContent = errorMessage;
             errorDiv.style.display = 'block';
         }
     } catch (error) {
