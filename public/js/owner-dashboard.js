@@ -677,10 +677,65 @@ async function updateInvoiceStatus(id) {
     }
 }
 
-async function editCompany(id) {
-    // TODO: Implement company edit modal
-    showAlertModal('معلومة', 'ميزة تعديل الشركة قيد التطوير');
-}
+window.editCompany = async function(id) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        // Get company data
+        const companiesData = await window.api.getOwnerCompanies();
+        if (!companiesData || !companiesData.success) {
+            showAlertModal('خطأ', 'فشل في تحميل بيانات الشركة');
+            return;
+        }
+        
+        const company = companiesData.companies.find(c => c.id === id);
+        if (!company) {
+            showAlertModal('خطأ', 'الشركة غير موجودة');
+            return;
+        }
+        
+        // Open edit modal
+        const modal = document.getElementById('editCompanyModal');
+        if (!modal) {
+            showAlertModal('خطأ', 'نافذة التعديل غير موجودة');
+            return;
+        }
+        
+        // Fill form with company data
+        document.getElementById('edit_company_id').value = company.id;
+        document.getElementById('edit_company_name').value = company.name || '';
+        document.getElementById('edit_company_domain').value = company.domain || '';
+        document.getElementById('edit_company_contact_name').value = company.contact_name || '';
+        document.getElementById('edit_company_contact_email').value = company.contact_email || '';
+        document.getElementById('edit_company_contact_phone').value = company.contact_phone || '';
+        document.getElementById('edit_company_address').value = company.address || '';
+        document.getElementById('edit_company_max_employees').value = company.max_employees || 0;
+        document.getElementById('edit_company_price_per_employee').value = company.price_per_employee || 0;
+        document.getElementById('edit_company_is_active').checked = company.is_active === 1 || company.is_active === true;
+        
+        // Setup thousands input for price field
+        setupThousandsInput('edit_company_price_per_employee');
+        
+        // Show modal
+        modal.style.display = 'flex';
+        setTimeout(() => modal.classList.add('active'), 10);
+    } catch (error) {
+        console.error('Error loading company for edit:', error);
+        showAlertModal('خطأ', 'حدث خطأ في تحميل بيانات الشركة: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
+
+window.closeEditCompanyModal = function() {
+    const modal = document.getElementById('editCompanyModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => modal.style.display = 'none', 300);
+        document.getElementById('editCompanyForm').reset();
+    }
+};
 
 window.exportTable = function(tableName) {
     window.api.exportDatabase([tableName]).then(result => {
