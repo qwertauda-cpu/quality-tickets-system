@@ -677,19 +677,19 @@ table tbody tr:last-child td {
 }
 
 .btn-large {
-    padding: 20px 40px;
-    font-size: 17px;
+    padding: 24px 32px;
+    font-size: 16px;
     font-weight: 600;
-    min-width: 240px;
-    border-radius: 14px;
+    min-width: 280px;
+    border-radius: 16px;
     box-shadow: var(--shadow-lg);
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 12px;
+    justify-content: flex-start;
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
+    text-align: right;
 }
 
 .btn-large::before {
@@ -716,21 +716,56 @@ table tbody tr:last-child td {
     transform: translateY(-1px) scale(0.98);
 }
 
+.btn-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    justify-content: flex-start;
+}
+
 .btn-icon {
-    font-size: 24px;
+    font-size: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: transform 0.3s ease;
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 8px;
 }
 
 .btn-large:hover .btn-icon {
-    transform: scale(1.15) rotate(5deg);
+    transform: scale(1.1) rotate(5deg);
+    background: rgba(255, 255, 255, 0.25);
 }
 
-.btn-text {
-    font-weight: 600;
+.btn-text-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex: 1;
+}
+
+.btn-text-main {
+    font-weight: 700;
+    font-size: 18px;
     letter-spacing: 0.3px;
+    line-height: 1.4;
+    color: white;
+}
+
+.btn-text-sub {
+    font-weight: 400;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.85);
+    opacity: 0.9;
 }
 
 .quick-actions {
