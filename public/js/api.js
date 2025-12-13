@@ -209,14 +209,28 @@ const api = {
         }).then(res => {
             if (res.ok) {
                 return res.blob().then(blob => {
+                    // Use createObjectURL with proper error handling
+                    // Note: This may show a warning on HTTP (not HTTPS) but will still work
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = `database-export-${new Date().toISOString().split('T')[0]}.sql`;
+                    a.style.display = 'none';
                     document.body.appendChild(a);
                     a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
+                    
+                    // Clean up immediately to reduce security warning
+                    setTimeout(() => {
+                        try {
+                            window.URL.revokeObjectURL(url);
+                            if (document.body.contains(a)) {
+                                document.body.removeChild(a);
+                            }
+                        } catch (e) {
+                            // Ignore cleanup errors
+                        }
+                    }, 0);
+                    
                     return { success: true };
                 });
             }
@@ -270,6 +284,46 @@ api.createScoringRule = async (data) => {
 api.getScoringRules = async () => {
     return await apiRequest('/scoring-rules');
 };
+
+// Owner Dashboard API
+api.getOwnerDashboard = () => apiRequest('/owner/dashboard');
+api.getOwnerCompanies = () => apiRequest('/owner/companies');
+api.createCompany = (data) => apiRequest('/owner/companies', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+api.updateCompany = (id, data) => apiRequest(`/owner/companies/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
+api.getOwnerEmployees = (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/owner/employees?${queryString}`);
+};
+api.getOwnerInvoices = (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/owner/invoices?${queryString}`);
+};
+api.createInvoice = (data) => apiRequest('/owner/invoices', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
+api.updateInvoiceStatus = (id, data) => apiRequest(`/owner/invoices/${id}/status`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
+api.getOwnerPurchaseRequests = (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return apiRequest(`/owner/purchase-requests?${queryString}`);
+};
+api.updatePurchaseRequest = (id, data) => apiRequest(`/owner/purchase-requests/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
+api.submitPurchaseRequest = (data) => apiRequest('/purchase-request', {
+    method: 'POST',
+    body: JSON.stringify(data)
+});
 
 // Make API available globally
 window.api = api;
