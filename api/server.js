@@ -3302,17 +3302,39 @@ async function initWhatsAppClient() {
             whatsappReady = false;
         });
         
-        // عند انقطاع الاتصال
-        whatsappClient.on('disconnected', (reason) => {
+        // عند انقطاع الاتصال - محاولة إعادة الاتصال تلقائياً
+        whatsappClient.on('disconnected', async (reason) => {
             console.log('⚠️ تم قطع الاتصال مع WhatsApp Web:', reason);
             whatsappReady = false;
-            whatsappClient = null;
+            
+            // محاولة إعادة الاتصال تلقائياً بعد 5 ثوانٍ
+            if (reason !== 'LOGOUT') {
+                console.log('🔄 محاولة إعادة الاتصال تلقائياً خلال 5 ثوانٍ...');
+                setTimeout(async () => {
+                    try {
+                        const settings = await getWhatsAppSettings();
+                        if (settings.whatsapp_enabled && settings.whatsapp_phone) {
+                            console.log('🔄 إعادة تهيئة WhatsApp Client...');
+                            whatsappClient = null;
+                            await initWhatsAppClient();
+                        }
+                    } catch (error) {
+                        console.error('❌ خطأ في إعادة الاتصال:', error.message);
+                    }
+                }, 5000);
+            } else {
+                // إذا كان الانقطاع بسبب تسجيل الخروج، لا نحاول إعادة الاتصال
+                whatsappClient = null;
+            }
         });
         
-        // عند حدوث خطأ
+        // عند حدوث خطأ - لا نعيد تعيين whatsappClient حتى لا نفقد الجلسة
         whatsappClient.on('error', (error) => {
             console.error('❌ خطأ في WhatsApp Client:', error);
-            whatsappReady = false;
+            // لا نعيد تعيين whatsappReady إلا إذا كان الخطأ خطيراً
+            if (error.message && error.message.includes('Session closed')) {
+                whatsappReady = false;
+            }
         });
         
         // بدء المصادقة
@@ -4628,13 +4650,26 @@ app.post('/api/owner/whatsapp-logout', authenticate, async (req, res) => {
         
         if (whatsappClient) {
             try {
-                // تسجيل الخروج من WhatsApp
+                // تسجيل الخروج من WhatsApp وحذف الجلسة
                 if (typeof whatsappClient.logout === 'function') {
                     await whatsappClient.logout();
                     console.log('✅ تم تسجيل الخروج من WhatsApp بنجاح');
                 } else if (typeof whatsappClient.destroy === 'function') {
                     await whatsappClient.destroy();
                     console.log('✅ تم إغلاق اتصال WhatsApp بنجاح');
+                }
+                
+                // حذف بيانات الجلسة المحفوظة
+                try {
+                    const fs = require('fs');
+                    const path = require('path');
+                    const sessionPath = path.join(__dirname, '.wwebjs_auth', 'session-owner-whatsapp-client');
+                    if (fs.existsSync(sessionPath)) {
+                        fs.rmSync(sessionPath, { recursive: true, force: true });
+                        console.log('✅ تم حذف بيانات الجلسة المحفوظة');
+                    }
+                } catch (sessionError) {
+                    console.log('⚠️ لم يتم حذف بيانات الجلسة:', sessionError.message);
                 }
                 
                 whatsappClient = null;
