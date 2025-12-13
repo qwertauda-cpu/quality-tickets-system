@@ -1630,6 +1630,63 @@ async function checkWhatsAppStatus() {
     }
 }
 
+// Generate WhatsApp QR Code
+async function generateWhatsAppQR() {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        // التحقق من وجود رقم الواتساب
+        const whatsappPhone = document.getElementById('whatsapp_phone')?.value.trim();
+        if (!whatsappPhone) {
+            showAlertModal('خطأ', 'يرجى إدخال رقم الواتساب أولاً ثم حفظ الإعدادات');
+            return;
+        }
+        
+        // التحقق من أن الإعدادات محفوظة
+        const whatsappEnabled = document.getElementById('whatsapp_enabled')?.checked;
+        if (!whatsappEnabled) {
+            showAlertModal('خطأ', 'يرجى تفعيل "إرسال رسائل الواتساب" أولاً ثم حفظ الإعدادات');
+            return;
+        }
+        
+        showAlertModal('معلومات', 'جاري توليد QR Code... يرجى الانتظار');
+        
+        // محاولة الحصول على QR Code من السيرفر
+        const data = await window.api.getWhatsAppQR();
+        if (data && data.success) {
+            if (data.qr_code) {
+                displayQRCode(data.qr_code);
+                showAlertModal('نجح', 'تم توليد QR Code بنجاح! يرجى مسح الباركود باستخدام WhatsApp');
+            } else if (data.connected) {
+                hideQRCode();
+                showAlertModal('معلومات', 'أنت متصل بالفعل بـ WhatsApp!');
+            } else {
+                // إذا لم يكن هناك QR Code، نحاول تهيئة WhatsApp Client
+                showAlertModal('معلومات', 'جاري تهيئة WhatsApp... يرجى الانتظار قليلاً ثم اضغط الزر مرة أخرى');
+                
+                // إعادة المحاولة بعد 3 ثوانٍ
+                setTimeout(async () => {
+                    const retryData = await window.api.getWhatsAppQR();
+                    if (retryData && retryData.success && retryData.qr_code) {
+                        displayQRCode(retryData.qr_code);
+                        showAlertModal('نجح', 'تم توليد QR Code بنجاح! يرجى مسح الباركود');
+                    } else {
+                        showAlertModal('معلومات', 'يرجى المحاولة مرة أخرى بعد بضع ثوانٍ');
+                    }
+                }, 3000);
+            }
+        } else {
+            showAlertModal('خطأ', 'حدث خطأ في توليد QR Code');
+        }
+    } catch (error) {
+        console.error('Error generating WhatsApp QR:', error);
+        showAlertModal('خطأ', 'حدث خطأ في توليد QR Code. يرجى المحاولة مرة أخرى');
+    }
+}
+
 // Logout from WhatsApp
 async function logoutWhatsApp() {
     try {
@@ -1662,6 +1719,7 @@ window.hideQRCode = hideQRCode;
 window.checkForQRCode = checkForQRCode;
 window.checkWhatsAppStatus = checkWhatsAppStatus;
 window.logoutWhatsApp = logoutWhatsApp;
+window.generateWhatsAppQR = generateWhatsAppQR;
 
 // Setup settings form submission
 document.addEventListener('DOMContentLoaded', function() {
