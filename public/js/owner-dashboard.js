@@ -152,12 +152,16 @@ async function loadCompanies() {
 }
 
 function openAddCompanyModal() {
-    document.getElementById('addCompanyModal').style.display = 'block';
+    const modal = document.getElementById('addCompanyModal');
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('active'), 10);
     document.getElementById('addCompanyForm').reset();
 }
 
 function closeAddCompanyModal() {
-    document.getElementById('addCompanyModal').style.display = 'none';
+    const modal = document.getElementById('addCompanyModal');
+    modal.classList.remove('active');
+    setTimeout(() => modal.style.display = 'none', 300);
 }
 
 document.getElementById('addCompanyForm').addEventListener('submit', async (e) => {
@@ -296,13 +300,17 @@ async function loadInvoices() {
 }
 
 function openCreateInvoiceModal() {
-    document.getElementById('createInvoiceModal').style.display = 'block';
+    const modal = document.getElementById('createInvoiceModal');
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('active'), 10);
     document.getElementById('createInvoiceForm').reset();
     loadCompaniesForInvoice();
 }
 
 function closeCreateInvoiceModal() {
-    document.getElementById('createInvoiceModal').style.display = 'none';
+    const modal = document.getElementById('createInvoiceModal');
+    modal.classList.remove('active');
+    setTimeout(() => modal.style.display = 'none', 300);
 }
 
 async function loadCompaniesForInvoice() {
@@ -456,7 +464,9 @@ async function viewPurchaseRequest(id) {
                         <button class="btn btn-secondary" onclick="closePurchaseRequestModal()">إغلاق</button>
                     </div>
                 `;
-                document.getElementById('purchaseRequestModal').style.display = 'block';
+                const modal = document.getElementById('purchaseRequestModal');
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('active'), 10);
             }
         }
     } catch (error) {
@@ -465,7 +475,9 @@ async function viewPurchaseRequest(id) {
 }
 
 function closePurchaseRequestModal() {
-    document.getElementById('purchaseRequestModal').style.display = 'none';
+    const modal = document.getElementById('purchaseRequestModal');
+    modal.classList.remove('active');
+    setTimeout(() => modal.style.display = 'none', 300);
 }
 
 async function updatePurchaseRequestStatus(id) {
@@ -638,11 +650,15 @@ function getRequestStatusClass(status) {
 function showAlertModal(title, message) {
     document.getElementById('alertTitle').textContent = title;
     document.getElementById('alertMessage').textContent = message;
-    document.getElementById('alertModal').style.display = 'block';
+    const modal = document.getElementById('alertModal');
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('active'), 10);
 }
 
 function closeAlertModal() {
-    document.getElementById('alertModal').style.display = 'none';
+    const modal = document.getElementById('alertModal');
+    modal.classList.remove('active');
+    setTimeout(() => modal.style.display = 'none', 300);
 }
 
 // Mobile menu toggle
@@ -655,10 +671,11 @@ function toggleMobileMenu() {
 
 // Close modals when clicking outside
 window.onclick = function(event) {
-    const modals = document.querySelectorAll('.modal');
+    const modals = document.querySelectorAll('.modal-overlay');
     modals.forEach(modal => {
         if (event.target === modal) {
-            modal.style.display = 'none';
+            modal.classList.remove('active');
+            setTimeout(() => modal.style.display = 'none', 300);
         }
     });
 };
