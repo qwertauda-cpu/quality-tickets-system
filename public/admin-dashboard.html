@@ -429,7 +429,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>إدارة المستخدمين</h2>
-                        <button class="btn btn-primary" onclick="showAddUserForm()">➕ إضافة عامل جديد</button>
+                        <button class="btn btn-primary" onclick="showAddUserForm()">➕ إضافة موظف جديد</button>
                     </div>
                     <div class="card-body">
                         <div class="table-container">
@@ -458,7 +458,7 @@
                 <!-- Add/Edit User Modal -->
                 <div id="userModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
                     <div style="background: var(--card-bg); padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto;">
-                        <h2 id="userModalTitle" style="margin-bottom: 20px;">إضافة عامل جديد</h2>
+                        <h2 id="userModalTitle" style="margin-bottom: 20px;">إضافة موظف جديد</h2>
                         <form id="userForm">
                             <input type="hidden" id="edit_user_id">
                             <div class="form-group">
@@ -475,12 +475,34 @@
                                 <input type="text" id="user_full_name" required>
                             </div>
                             <div class="form-group">
-                                <label for="user_role">نوع الحساب *</label>
-                                <select id="user_role" required onchange="handleRoleChange()">
-                                    <option value="">اختر نوع الحساب</option>
-                                    <option value="technician">حساب فني</option>
-                                    <option value="quality_staff">حساب موظف جودة</option>
-                                </select>
+                                <label style="margin-bottom: 15px; display: block; font-weight: 600; font-size: 16px;">الصلاحيات *</label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
+                                    <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
+                                        <input type="checkbox" id="perm_create_tickets" onchange="updatePermissions()">
+                                        <label for="perm_create_tickets" style="margin: 0; cursor: pointer; flex: 1;">إنشاء التكتات</label>
+                                    </div>
+                                    <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
+                                        <input type="checkbox" id="perm_manage_tickets" onchange="updatePermissions()">
+                                        <label for="perm_manage_tickets" style="margin: 0; cursor: pointer; flex: 1;">إدارة التكتات</label>
+                                    </div>
+                                    <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
+                                        <input type="checkbox" id="perm_review_quality" onchange="updatePermissions()">
+                                        <label for="perm_review_quality" style="margin: 0; cursor: pointer; flex: 1;">مراجعة الجودة</label>
+                                    </div>
+                                    <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
+                                        <input type="checkbox" id="perm_execute_tickets" onchange="updatePermissions()">
+                                        <label for="perm_execute_tickets" style="margin: 0; cursor: pointer; flex: 1;">تنفيذ التكتات</label>
+                                    </div>
+                                    <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
+                                        <input type="checkbox" id="perm_manage_teams" onchange="updatePermissions()">
+                                        <label for="perm_manage_teams" style="margin: 0; cursor: pointer; flex: 1;">إدارة الفرق</label>
+                                    </div>
+                                    <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
+                                        <input type="checkbox" id="perm_view_reports" onchange="updatePermissions()">
+                                        <label for="perm_view_reports" style="margin: 0; cursor: pointer; flex: 1;">عرض التقارير</label>
+                                    </div>
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 10px;">اختر الصلاحيات المناسبة للموظف</small>
                             </div>
                             <div class="form-group" id="user_team_group" style="display: none;">
                                 <label for="user_team_id">الفريق</label>
@@ -489,6 +511,7 @@
                                 </select>
                                 <small id="user_team_hint" style="color: var(--text-muted); font-size: 12px;"></small>
                             </div>
+                            <input type="hidden" id="user_role" value="">
                             <div class="form-group">
                                 <div class="checkbox-group">
                                     <input type="checkbox" id="user_is_active" checked>

@@ -935,8 +935,9 @@ async function loadUsers() {
                         'admin': 'مدير',
                         'quality_staff': 'موظف جودة',
                         'team_leader': 'قائد فريق',
-                        'technician': 'عامل',
-                        'accountant': 'محاسب'
+                        'technician': 'موظف فني',
+                        'accountant': 'محاسب',
+                        'call_center': 'موظف مركز اتصال'
                     }[user.role] || user.role;
                     
                     row.innerHTML = `
@@ -967,12 +968,21 @@ async function loadUsers() {
 }
 
 function showAddUserForm() {
-    document.getElementById('userModalTitle').textContent = 'إضافة عامل جديد';
+    document.getElementById('userModalTitle').textContent = 'إضافة موظف جديد';
     document.getElementById('userForm').reset();
     document.getElementById('edit_user_id').value = '';
     document.getElementById('user_password').required = true;
     document.getElementById('user_password_label').innerHTML = 'كلمة المرور *';
     document.getElementById('user_is_active').checked = true;
+    
+    // Reset permissions
+    document.getElementById('perm_create_tickets').checked = false;
+    document.getElementById('perm_manage_tickets').checked = false;
+    document.getElementById('perm_review_quality').checked = false;
+    document.getElementById('perm_execute_tickets').checked = false;
+    document.getElementById('perm_manage_teams').checked = false;
+    document.getElementById('perm_view_reports').checked = false;
+    
     document.getElementById('user_role').value = '';
     document.getElementById('user_team_group').style.display = 'none';
     document.getElementById('user_team_id').required = false;
@@ -983,33 +993,113 @@ function showAddUserForm() {
     document.getElementById('userModal').style.display = 'flex';
 }
 
-function handleRoleChange() {
-    const role = document.getElementById('user_role').value;
+// Set permissions checkboxes based on role (for editing)
+function setPermissionsFromRole(role) {
+    // Reset all permissions
+    document.getElementById('perm_create_tickets').checked = false;
+    document.getElementById('perm_manage_tickets').checked = false;
+    document.getElementById('perm_review_quality').checked = false;
+    document.getElementById('perm_execute_tickets').checked = false;
+    document.getElementById('perm_manage_teams').checked = false;
+    document.getElementById('perm_view_reports').checked = false;
+    
+    // Set permissions based on role
+    switch(role) {
+        case 'admin':
+            document.getElementById('perm_manage_tickets').checked = true;
+            document.getElementById('perm_manage_teams').checked = true;
+            document.getElementById('perm_view_reports').checked = true;
+            break;
+        case 'call_center':
+            document.getElementById('perm_create_tickets').checked = true;
+            break;
+        case 'quality_staff':
+            document.getElementById('perm_review_quality').checked = true;
+            document.getElementById('perm_view_reports').checked = true;
+            break;
+        case 'technician':
+            document.getElementById('perm_execute_tickets').checked = true;
+            break;
+        case 'team_leader':
+            document.getElementById('perm_manage_teams').checked = true;
+            document.getElementById('perm_execute_tickets').checked = true;
+            break;
+        case 'accountant':
+            document.getElementById('perm_view_reports').checked = true;
+            break;
+    }
+}
+
+// Convert permissions to role
+function updatePermissions() {
+    const createTickets = document.getElementById('perm_create_tickets').checked;
+    const manageTickets = document.getElementById('perm_manage_tickets').checked;
+    const reviewQuality = document.getElementById('perm_review_quality').checked;
+    const executeTickets = document.getElementById('perm_execute_tickets').checked;
+    const manageTeams = document.getElementById('perm_manage_teams').checked;
+    const viewReports = document.getElementById('perm_view_reports').checked;
+    
     const teamGroup = document.getElementById('user_team_group');
     const teamSelect = document.getElementById('user_team_id');
+    const roleInput = document.getElementById('user_role');
     
-    // الفريق مطلوب للفني وموظف الجودة
-    if (role === 'technician' || role === 'quality_staff') {
+    // Determine role based on permissions
+    let role = '';
+    if (manageTickets && manageTeams) {
+        // Admin-like permissions
+        role = 'admin';
+    } else if (createTickets && !executeTickets && !reviewQuality) {
+        // Call center
+        role = 'call_center';
+    } else if (reviewQuality && !executeTickets) {
+        // Quality staff
+        role = 'quality_staff';
         teamGroup.style.display = 'block';
-        if (role === 'technician') {
+        teamSelect.required = false;
+        const smallText = document.getElementById('user_team_hint');
+        if (smallText) {
+            smallText.textContent = 'اختياري - يمكن تعيين موظف الجودة لفريق معين';
+        }
+    } else if (executeTickets && !reviewQuality) {
+        // Technician
+        role = 'technician';
+        teamGroup.style.display = 'block';
+        teamSelect.required = true;
+        const smallText = document.getElementById('user_team_hint');
+        if (smallText) {
+            smallText.textContent = 'مطلوب - يجب اختيار الفريق للفني';
+        }
+    } else if (manageTeams && !manageTickets) {
+        // Team leader
+        role = 'team_leader';
+        teamGroup.style.display = 'block';
+        teamSelect.required = true;
+        const smallText = document.getElementById('user_team_hint');
+        if (smallText) {
+            smallText.textContent = 'مطلوب - يجب اختيار الفريق لقائد الفريق';
+        }
+    } else if (viewReports && !createTickets && !executeTickets) {
+        // Accountant
+        role = 'accountant';
+        teamGroup.style.display = 'none';
+        teamSelect.required = false;
+    } else {
+        // Default to technician if execute_tickets is checked
+        if (executeTickets) {
+            role = 'technician';
+            teamGroup.style.display = 'block';
             teamSelect.required = true;
-            // تحديث النص التوضيحي
-            const smallText = teamGroup.querySelector('small');
+            const smallText = document.getElementById('user_team_hint');
             if (smallText) {
                 smallText.textContent = 'مطلوب - يجب اختيار الفريق للفني';
             }
         } else {
+            teamGroup.style.display = 'none';
             teamSelect.required = false;
-            const smallText = teamGroup.querySelector('small');
-            if (smallText) {
-                smallText.textContent = 'اختياري - فقط لموظف الجودة';
-            }
         }
-    } else {
-        teamGroup.style.display = 'none';
-        teamSelect.required = false;
-        teamSelect.value = '';
     }
+    
+    roleInput.value = role;
 }
 
 async function loadTeamsForUserForm() {
@@ -1048,11 +1138,15 @@ async function editUser(userId) {
                 document.getElementById('user_role').value = user.role;
                 document.getElementById('user_is_active').checked = user.is_active == 1;
                 
-                handleRoleChange();
+                // Set permissions based on role
+                setPermissionsFromRole(user.role);
+                
                 await loadTeamsForUserForm();
                 if (user.team_id) {
                     document.getElementById('user_team_id').value = user.team_id;
                 }
+                
+                updatePermissions();
                 
                 document.getElementById('userModal').style.display = 'flex';
             }
@@ -1092,11 +1186,14 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             
             const userId = document.getElementById('edit_user_id').value;
+            
+            // Update role from permissions
+            updatePermissions();
             const role = document.getElementById('user_role').value;
             const teamId = document.getElementById('user_team_id').value;
             
             if (!role) {
-                alert('يرجى اختيار نوع الحساب');
+                alert('يرجى اختيار صلاحية واحدة على الأقل');
                 return;
             }
             
