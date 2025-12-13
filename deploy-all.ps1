@@ -12,7 +12,7 @@ Write-Host ""
 $server = "136.111.97.150"
 $user = "qwertauda"
 $password = "1234qwer@@"
-$projectPath = "/var/www/quality-tickets-system"
+$projectPath = "/var/www/quality_tickets_system"
 $pm2Name = "quality-tickets-system"
 $port = 3001
 

@@ -12,7 +12,7 @@ echo ""
 SERVER="136.111.97.150"
 USER="qwertauda"
 PASSWORD="1234qwer@@"
-PROJECT_PATH="/var/www/quality-tickets-system"
+PROJECT_PATH="/var/www/quality_tickets_system"
 PM2_NAME="quality-tickets-system"
 PORT=3001
 
