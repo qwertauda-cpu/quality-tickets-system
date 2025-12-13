@@ -3366,28 +3366,27 @@ async function sendWhatsAppMessage(phoneNumber, message) {
         
         if (whatsappClient && whatsappReady) {
             try {
-                // إرسال الرسالة عبر WhatsApp Web بدون حفظ المحادثة
+                // إرسال الرسالة عبر WhatsApp Web
+                // ملاحظة: whatsapp-web.js لا يدعم حذف الرسائل تلقائياً
+                // لكن الرسائل المرسلة من البوت لا تظهر في قائمة المحادثات الرئيسية عادة
                 const chatId = `${phoneWithoutCountryCode}@c.us`;
-                // إرسال الرسالة مع خيار عدم حفظ المحادثة (delete: true)
-                await whatsappClient.sendMessage(chatId, message, { 
-                    // محاولة حذف الرسالة بعد الإرسال لتجنب حفظ المحادثة
-                    // ملاحظة: whatsapp-web.js قد لا يدعم هذا بشكل كامل، لكن سنحاول
-                });
+                await whatsappClient.sendMessage(chatId, message);
                 
-                // محاولة حذف المحادثة بعد الإرسال مباشرة
+                // محاولة إخفاء المحادثة من قائمة المحادثات (إذا أمكن)
                 try {
                     const chat = await whatsappClient.getChatById(chatId);
                     if (chat) {
-                        // حذف الرسالة الأخيرة إذا أمكن
-                        const messages = await chat.fetchMessages({ limit: 1 });
-                        if (messages.length > 0) {
-                            // ملاحظة: قد لا يكون حذف الرسائل متاحاً في جميع الحالات
-                            // لكن على الأقل لن تظهر المحادثة في قائمة المحادثات الرئيسية
+                        // محاولة أرشفة المحادثة لإخفائها من القائمة الرئيسية
+                        // ملاحظة: هذا قد لا يعمل في جميع الحالات
+                        try {
+                            await chat.archive();
+                        } catch (archiveError) {
+                            // تجاهل خطأ الأرشفة - الرسالة تم إرسالها بنجاح
                         }
                     }
-                } catch (deleteError) {
-                    // تجاهل خطأ الحذف - الرسالة تم إرسالها بنجاح
-                    console.log('ℹ️ لا يمكن حذف المحادثة (هذا طبيعي)');
+                } catch (hideError) {
+                    // تجاهل خطأ الإخفاء - الرسالة تم إرسالها بنجاح
+                    console.log('ℹ️ لا يمكن إخفاء المحادثة (هذا طبيعي)');
                 }
                 
                 console.log(`✅ تم إرسال رسالة واتساب عبر WhatsApp Web من ${settings.whatsapp_phone} إلى ${formattedPhone}`);
