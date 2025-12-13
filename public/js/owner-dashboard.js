@@ -1462,6 +1462,20 @@ async function loadSettings() {
 // Make loadSettings globally accessible
 window.loadSettings = loadSettings;
 
+// Toggle WhatsApp Accordion
+function toggleWhatsAppAccordion() {
+    const accordionSection = document.querySelector('.accordion-section');
+    const accordionContent = document.getElementById('whatsappAccordionContent');
+    const accordionIcon = document.getElementById('whatsappAccordionIcon');
+    
+    if (accordionSection && accordionContent && accordionIcon) {
+        accordionSection.classList.toggle('active');
+    }
+}
+
+// Make toggleWhatsAppAccordion globally accessible
+window.toggleWhatsAppAccordion = toggleWhatsAppAccordion;
+
 // Setup settings form submission
 document.addEventListener('DOMContentLoaded', function() {
     const whatsappSettingsForm = document.getElementById('whatsappSettingsForm');
