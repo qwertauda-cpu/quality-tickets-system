@@ -2535,14 +2535,9 @@ async function loadOwnerTemplates() {
 
 // Open create template modal
 function openCreateOwnerTemplateModal() {
-    console.log('openCreateOwnerTemplateModal called');
     const modal = document.getElementById('owner-template-modal');
     const title = document.getElementById('owner-template-modal-title');
     const form = document.getElementById('ownerTemplateForm');
-    
-    console.log('Modal element:', modal);
-    console.log('Title element:', title);
-    console.log('Form element:', form);
     
     if (!modal) {
         console.error('Modal not found!');
@@ -2563,13 +2558,12 @@ function openCreateOwnerTemplateModal() {
         templateIdInput.value = '';
     }
     
+    // Show modal using CSS class (required for proper display)
     modal.style.display = 'flex';
-    modal.style.zIndex = '10000';
-    setTimeout(() => {
-        modal.classList.add('active');
-    }, 10);
-    
-    console.log('Modal should be visible now');
+    // Force reflow
+    modal.offsetHeight;
+    // Add active class for CSS transitions
+    modal.classList.add('active');
 }
 window.openCreateOwnerTemplateModal = openCreateOwnerTemplateModal;
 
