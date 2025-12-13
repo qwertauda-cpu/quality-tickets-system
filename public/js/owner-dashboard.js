@@ -733,9 +733,65 @@ window.closeEditCompanyModal = function() {
     if (modal) {
         modal.classList.remove('active');
         setTimeout(() => modal.style.display = 'none', 300);
-        document.getElementById('editCompanyForm').reset();
+        const form = document.getElementById('editCompanyForm');
+        if (form) {
+            form.reset();
+        }
     }
 };
+
+// Setup edit company form submission
+(function() {
+    const editCompanyForm = document.getElementById('editCompanyForm');
+    if (editCompanyForm) {
+        editCompanyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const companyId = document.getElementById('edit_company_id')?.value;
+            if (!companyId) {
+                showAlertModal('خطأ', 'معرف الشركة غير موجود');
+                return;
+            }
+            
+            const formData = {
+                name: document.getElementById('edit_company_name')?.value || '',
+                contact_name: document.getElementById('edit_company_contact_name')?.value || '',
+                contact_email: document.getElementById('edit_company_contact_email')?.value || '',
+                contact_phone: document.getElementById('edit_company_contact_phone')?.value || null,
+                address: document.getElementById('edit_company_address')?.value || null,
+                max_employees: parseInt(document.getElementById('edit_company_max_employees')?.value) || 0,
+                price_per_employee: parseFloat(document.getElementById('edit_company_price_per_employee')?.value) || 0,
+                is_active: document.getElementById('edit_company_is_active')?.checked ? 1 : 0
+            };
+            
+            // Validate required fields
+            if (!formData.name || !formData.contact_name || !formData.contact_email) {
+                showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)');
+                return;
+            }
+            
+            try {
+                if (!window.api) {
+                    showAlertModal('خطأ', 'API غير متاح');
+                    return;
+                }
+                
+                const data = await window.api.updateCompany(companyId, formData);
+                if (data && data.success) {
+                    showAlertModal('نجح', 'تم تحديث الشركة بنجاح!');
+                    closeEditCompanyModal();
+                    loadCompanies();
+                    loadDashboard();
+                } else {
+                    showAlertModal('خطأ', data?.error || 'فشل تحديث الشركة');
+                }
+            } catch (error) {
+                console.error('Error updating company:', error);
+                showAlertModal('خطأ', 'حدث خطأ في تحديث الشركة: ' + (error.message || 'خطأ غير معروف'));
+            }
+        });
+    }
+})();
 
 window.exportTable = function(tableName) {
     window.api.exportDatabase([tableName]).then(result => {
