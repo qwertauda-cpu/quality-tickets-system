@@ -59,6 +59,14 @@
                         <h3>إجمالي الإيرادات</h3>
                         <div class="value" id="totalRevenue">0</div>
                     </div>
+                    <div class="stat-card danger">
+                        <h3>الشركات غير النشطة</h3>
+                        <div class="value" id="inactiveCompanies">0</div>
+                    </div>
+                    <div class="stat-card warning">
+                        <h3>الاشتراكات القريبة على الانتهاء</h3>
+                        <div class="value" id="expiringSoon">0</div>
+                    </div>
                 </div>
                 
                 <!-- Quick Actions -->
@@ -81,6 +89,119 @@
                             </div>
                         </div>
                     </button>
+                </div>
+
+                <!-- Recent Invoices Section -->
+                <div class="card" style="margin-top: 30px;">
+                    <div class="card-header">
+                        <h2>الفواتير الأخيرة</h2>
+                        <a href="#" onclick="showPage('invoices'); return false;" class="btn btn-sm btn-primary">عرض الكل</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="recentInvoicesTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم الفاتورة</th>
+                                        <th>الشركة</th>
+                                        <th>المبلغ</th>
+                                        <th>تاريخ الاستحقاق</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recentInvoicesTableBody">
+                                    <tr>
+                                        <td colspan="6" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Companies Section -->
+                <div class="card" style="margin-top: 30px;">
+                    <div class="card-header">
+                        <h2>الشركات النشطة</h2>
+                        <a href="#" onclick="showPage('companies'); return false;" class="btn btn-sm btn-primary">عرض الكل</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="activeCompaniesTable">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الشركة</th>
+                                        <th>المجال</th>
+                                        <th>عدد الموظفين</th>
+                                        <th>تاريخ الانتهاء</th>
+                                        <th>الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activeCompaniesTableBody">
+                                    <tr>
+                                        <td colspan="5" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inactive Companies Section -->
+                <div class="card" style="margin-top: 30px;">
+                    <div class="card-header">
+                        <h2>الشركات غير النشطة</h2>
+                        <a href="#" onclick="showPage('companies'); return false;" class="btn btn-sm btn-primary">عرض الكل</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="inactiveCompaniesTable">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الشركة</th>
+                                        <th>المجال</th>
+                                        <th>عدد الموظفين</th>
+                                        <th>تاريخ الانتهاء</th>
+                                        <th>الحالة</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inactiveCompaniesTableBody">
+                                    <tr>
+                                        <td colspan="5" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expiring Soon Companies Section -->
+                <div class="card" style="margin-top: 30px;">
+                    <div class="card-header">
+                        <h2>الاشتراكات القريبة على الانتهاء</h2>
+                        <span class="badge badge-warning" id="expiringCountBadge" style="margin-right: 10px;">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="expiringCompaniesTable">
+                                <thead>
+                                    <tr>
+                                        <th>اسم الشركة</th>
+                                        <th>المجال</th>
+                                        <th>تاريخ الانتهاء</th>
+                                        <th>الأيام المتبقية</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expiringCompaniesTableBody">
+                                    <tr>
+                                        <td colspan="5" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
 

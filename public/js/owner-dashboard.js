@@ -114,12 +114,29 @@ async function loadDashboard() {
             const pendingInvoicesEl = document.getElementById('pendingInvoices');
             const pendingRequestsEl = document.getElementById('pendingRequests');
             const totalRevenueEl = document.getElementById('totalRevenue');
+            const inactiveCompaniesEl = document.getElementById('inactiveCompanies');
+            const expiringSoonEl = document.getElementById('expiringSoon');
             
             if (totalCompaniesEl) totalCompaniesEl.textContent = stats.total_companies || 0;
             if (totalEmployeesEl) totalEmployeesEl.textContent = stats.total_employees || 0;
             if (pendingInvoicesEl) pendingInvoicesEl.textContent = stats.pending_invoices || 0;
             if (pendingRequestsEl) pendingRequestsEl.textContent = stats.pending_requests || 0;
             if (totalRevenueEl) totalRevenueEl.textContent = formatCurrency(stats.total_revenue || 0);
+            if (inactiveCompaniesEl) inactiveCompaniesEl.textContent = stats.inactive_companies || 0;
+            if (expiringSoonEl) expiringSoonEl.textContent = stats.expiring_soon || 0;
+            
+            // Load recent invoices
+            loadRecentInvoices(data.recent_invoices || []);
+            
+            // Load active companies
+            loadActiveCompanies(data.active_companies || []);
+            
+            // Load inactive companies
+            loadInactiveCompanies(data.inactive_companies || []);
+            
+            // Load expiring companies
+            loadExpiringCompanies(data.expiring_companies || []);
+            
         } else {
             console.error('Dashboard API returned error:', data?.error);
         }
@@ -131,13 +148,151 @@ async function loadDashboard() {
         const pendingInvoicesEl = document.getElementById('pendingInvoices');
         const pendingRequestsEl = document.getElementById('pendingRequests');
         const totalRevenueEl = document.getElementById('totalRevenue');
+        const inactiveCompaniesEl = document.getElementById('inactiveCompanies');
+        const expiringSoonEl = document.getElementById('expiringSoon');
         
         if (totalCompaniesEl) totalCompaniesEl.textContent = '-';
         if (totalEmployeesEl) totalEmployeesEl.textContent = '-';
         if (pendingInvoicesEl) pendingInvoicesEl.textContent = '-';
         if (pendingRequestsEl) pendingRequestsEl.textContent = '-';
         if (totalRevenueEl) totalRevenueEl.textContent = '-';
+        if (inactiveCompaniesEl) inactiveCompaniesEl.textContent = '-';
+        if (expiringSoonEl) expiringSoonEl.textContent = '-';
     }
+}
+
+function loadRecentInvoices(invoices) {
+    const tbody = document.getElementById('recentInvoicesTableBody');
+    if (!tbody) return;
+    
+    if (!invoices || invoices.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">لا توجد فواتير</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    invoices.forEach(invoice => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${invoice.invoice_number || '-'}</td>
+            <td>${invoice.company_name || '-'} ${invoice.domain ? '(@' + invoice.domain + ')' : ''}</td>
+            <td>${formatCurrency(invoice.total || 0)}</td>
+            <td>${invoice.due_date ? formatDate(invoice.due_date) : '-'}</td>
+            <td><span class="badge badge-${getInvoiceStatusClass(invoice.status)}">${getInvoiceStatusName(invoice.status)}</span></td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="viewInvoice(${invoice.id})">عرض</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function loadActiveCompanies(companies) {
+    const tbody = document.getElementById('activeCompaniesTableBody');
+    if (!tbody) return;
+    
+    if (!companies || companies.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد شركات نشطة</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    companies.forEach(company => {
+        const row = document.createElement('tr');
+        const endDate = company.subscription_end_date ? formatDate(company.subscription_end_date) : 'غير محدد';
+        row.innerHTML = `
+            <td>${company.name || '-'}</td>
+            <td>@${company.domain || '-'}</td>
+            <td>${company.current_employees || 0}</td>
+            <td>${endDate}</td>
+            <td><span class="badge badge-success">نشط</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function loadInactiveCompanies(companies) {
+    const tbody = document.getElementById('inactiveCompaniesTableBody');
+    if (!tbody) return;
+    
+    if (!companies || companies.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد شركات غير نشطة</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    companies.forEach(company => {
+        const row = document.createElement('tr');
+        const endDate = company.subscription_end_date ? formatDate(company.subscription_end_date) : 'غير محدد';
+        row.innerHTML = `
+            <td>${company.name || '-'}</td>
+            <td>@${company.domain || '-'}</td>
+            <td>${company.current_employees || 0}</td>
+            <td>${endDate}</td>
+            <td><span class="badge badge-warning">غير نشط</span></td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function loadExpiringCompanies(companies) {
+    const tbody = document.getElementById('expiringCompaniesTableBody');
+    const badge = document.getElementById('expiringCountBadge');
+    if (!tbody) return;
+    
+    if (badge) {
+        badge.textContent = companies ? companies.length : 0;
+    }
+    
+    if (!companies || companies.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد اشتراكات قريبة على الانتهاء</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = '';
+    companies.forEach(company => {
+        const row = document.createElement('tr');
+        const daysRemaining = company.days_remaining || 0;
+        const daysClass = daysRemaining <= 7 ? 'badge-danger' : daysRemaining <= 15 ? 'badge-warning' : 'badge-info';
+        row.innerHTML = `
+            <td>${company.name || '-'}</td>
+            <td>@${company.domain || '-'}</td>
+            <td>${company.subscription_end_date ? formatDate(company.subscription_end_date) : 'غير محدد'}</td>
+            <td><span class="badge ${daysClass}">${daysRemaining} يوم</span></td>
+            <td>
+                <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})">تعديل</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function getInvoiceStatusClass(status) {
+    const statusMap = {
+        'draft': 'secondary',
+        'sent': 'info',
+        'paid': 'success',
+        'overdue': 'danger',
+        'cancelled': 'secondary'
+    };
+    return statusMap[status] || 'secondary';
+}
+
+function getInvoiceStatusName(status) {
+    const statusMap = {
+        'draft': 'مسودة',
+        'sent': 'مرسلة',
+        'paid': 'مدفوعة',
+        'overdue': 'متأخرة',
+        'cancelled': 'ملغاة'
+    };
+    return statusMap[status] || status;
 }
 
 // ==================== Companies Management ====================

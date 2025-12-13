@@ -3133,6 +3133,10 @@ app.listen(PORT, '0.0.0.0', () => {
     setInterval(checkDelayedTickets, 5 * 60 * 1000); // 5 minutes
     checkDelayedTickets(); // Run immediately on startup
     
+    // فحص الاشتراكات القريبة على الانتهاء كل 24 ساعة
+    setInterval(checkExpiringSubscriptions, 24 * 60 * 60 * 1000); // 24 hours
+    checkExpiringSubscriptions(); // Run immediately on startup
+    
     console.log(`🌐 Access: http://localhost:${PORT}`);
     console.log('');
 });
@@ -3928,23 +3932,91 @@ app.get('/api/owner/dashboard', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
         }
         
+        // Calculate days until expiration (30 days threshold)
+        const thirtyDaysFromNow = moment().add(30, 'days').format('YYYY-MM-DD');
+        const today = moment().format('YYYY-MM-DD');
+        
         const stats = {
             total_companies: await db.queryOne('SELECT COUNT(*) as count FROM companies WHERE is_active = 1'),
+            inactive_companies: await db.queryOne('SELECT COUNT(*) as count FROM companies WHERE is_active = 0'),
             total_employees: await db.queryOne('SELECT COUNT(*) as count FROM users WHERE role != "owner" AND role != "admin" AND company_id IS NOT NULL'),
             pending_invoices: await db.queryOne('SELECT COUNT(*) as count FROM invoices WHERE status IN ("draft", "sent", "overdue")'),
             pending_requests: await db.queryOne('SELECT COUNT(*) as count FROM purchase_requests WHERE status = "pending"'),
-            total_revenue: await db.queryOne('SELECT SUM(total) as total FROM invoices WHERE status = "paid"')
+            total_revenue: await db.queryOne('SELECT SUM(total) as total FROM invoices WHERE status = "paid"'),
+            expiring_soon: await db.queryOne(`
+                SELECT COUNT(*) as count 
+                FROM companies 
+                WHERE is_active = 1 
+                AND subscription_end_date IS NOT NULL 
+                AND subscription_end_date BETWEEN ? AND ?
+            `, [today, thirtyDaysFromNow])
         };
+        
+        // Get recent invoices (last 5)
+        const recentInvoices = await db.query(`
+            SELECT i.*, c.name as company_name, c.domain
+            FROM invoices i
+            LEFT JOIN companies c ON i.company_id = c.id
+            ORDER BY i.created_at DESC
+            LIMIT 5
+        `);
+        
+        // Get active companies (first 5)
+        const activeCompanies = await db.query(`
+            SELECT c.*, 
+                   u.username as admin_username,
+                   u.full_name as admin_name,
+                   c.current_employees
+            FROM companies c
+            LEFT JOIN users u ON c.owner_user_id = u.id
+            WHERE c.is_active = 1
+            ORDER BY c.created_at DESC
+            LIMIT 5
+        `);
+        
+        // Get inactive companies (first 5)
+        const inactiveCompanies = await db.query(`
+            SELECT c.*, 
+                   u.username as admin_username,
+                   u.full_name as admin_name,
+                   c.current_employees
+            FROM companies c
+            LEFT JOIN users u ON c.owner_user_id = u.id
+            WHERE c.is_active = 0
+            ORDER BY c.created_at DESC
+            LIMIT 5
+        `);
+        
+        // Get expiring soon companies
+        const expiringCompanies = await db.query(`
+            SELECT c.*, 
+                   u.username as admin_username,
+                   u.full_name as admin_name,
+                   c.current_employees,
+                   DATEDIFF(c.subscription_end_date, CURDATE()) as days_remaining
+            FROM companies c
+            LEFT JOIN users u ON c.owner_user_id = u.id
+            WHERE c.is_active = 1 
+            AND c.subscription_end_date IS NOT NULL 
+            AND c.subscription_end_date BETWEEN ? AND ?
+            ORDER BY c.subscription_end_date ASC
+        `, [today, thirtyDaysFromNow]);
         
         res.json({
             success: true,
             stats: {
                 total_companies: stats.total_companies?.count || 0,
+                inactive_companies: stats.inactive_companies?.count || 0,
                 total_employees: stats.total_employees?.count || 0,
                 pending_invoices: stats.pending_invoices?.count || 0,
                 pending_requests: stats.pending_requests?.count || 0,
-                total_revenue: parseFloat(stats.total_revenue?.total || 0)
-            }
+                total_revenue: parseFloat(stats.total_revenue?.total || 0),
+                expiring_soon: stats.expiring_soon?.count || 0
+            },
+            recent_invoices: recentInvoices || [],
+            active_companies: activeCompanies || [],
+            inactive_companies: inactiveCompanies || [],
+            expiring_companies: expiringCompanies || []
         });
     } catch (error) {
         console.error('Get owner dashboard error:', error);
