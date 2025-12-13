@@ -69,28 +69,6 @@
                         <div class="value" id="expiringSoon">0</div>
                     </div>
                 </div>
-                
-                <!-- Quick Actions -->
-                <div class="quick-actions">
-                    <button class="btn btn-primary btn-large" onclick="openAddCompanyModal()">
-                        <div class="btn-content">
-                            <span class="btn-icon">🏢</span>
-                            <div class="btn-text-wrapper">
-                                <span class="btn-text-main">إضافة شركة جديدة</span>
-                                <span class="btn-text-sub">إنشاء حساب شركة جديدة</span>
-                            </div>
-                        </div>
-                    </button>
-                    <button class="btn btn-success btn-large" onclick="openCreateInvoiceModal()">
-                        <div class="btn-content">
-                            <span class="btn-icon">💰</span>
-                            <div class="btn-text-wrapper">
-                                <span class="btn-text-main">إنشاء فاتورة</span>
-                                <span class="btn-text-sub">إصدار فاتورة جديدة</span>
-                            </div>
-                        </div>
-                    </button>
-                </div>
 
                 <!-- Recent Invoices Section -->
                 <div class="card" style="margin-top: 30px;">
@@ -208,10 +186,31 @@
 
             <!-- Companies Management Page -->
             <div id="companies-page" class="page-content" style="display: none;">
+                <!-- Quick Actions -->
+                <div class="quick-actions" style="margin-bottom: 24px;">
+                    <button class="btn btn-primary btn-large" onclick="openAddCompanyModal()">
+                        <div class="btn-content">
+                            <span class="btn-icon">🏢</span>
+                            <div class="btn-text-wrapper">
+                                <span class="btn-text-main">إضافة شركة جديدة</span>
+                                <span class="btn-text-sub">إنشاء حساب شركة جديدة</span>
+                            </div>
+                        </div>
+                    </button>
+                    <button class="btn btn-success btn-large" onclick="openCreateInvoiceModal()">
+                        <div class="btn-content">
+                            <span class="btn-icon">💰</span>
+                            <div class="btn-text-wrapper">
+                                <span class="btn-text-main">إنشاء فاتورة</span>
+                                <span class="btn-text-sub">إصدار فاتورة جديدة</span>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+                
                 <div class="card">
                     <div class="card-header">
                         <h2>إدارة الشركات</h2>
-                        <button class="btn btn-primary" onclick="openAddCompanyModal()">➕ إضافة شركة جديدة</button>
                     </div>
                     <div class="card-body">
                         <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
@@ -398,6 +397,51 @@
                                     </tr>
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>الإعدادات</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-section">
+                            <h3 class="form-section-title">إعدادات الواتساب</h3>
+                            <form id="whatsappSettingsForm">
+                                <div class="form-group">
+                                    <label for="whatsapp_phone">رقم الواتساب <span class="required">*</span></label>
+                                    <input type="text" id="whatsapp_phone" placeholder="مثال: 07901234567 أو 9647901234567" required>
+                                    <small class="form-hint">رقم الواتساب الخاص بك لإرسال الرسائل للمشتركين</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="whatsapp_api_key">مفتاح API (اختياري)</label>
+                                    <input type="text" id="whatsapp_api_key" placeholder="أدخل مفتاح API إذا كنت تستخدم خدمة API">
+                                    <small class="form-hint">مفتاح API للاستخدام مع خدمات WhatsApp Business API</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="whatsapp_api_url">رابط API (اختياري)</label>
+                                    <input type="text" id="whatsapp_api_url" placeholder="مثال: https://api.whatsapp.com/v1/messages">
+                                    <small class="form-hint">رابط API للاستخدام مع خدمات WhatsApp Business API</small>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                        <input type="checkbox" id="whatsapp_enabled" style="width: auto;">
+                                        <span>تفعيل إرسال رسائل الواتساب</span>
+                                    </label>
+                                    <small class="form-hint">عند التفعيل، سيتم إرسال رسائل الواتساب تلقائياً عند الحاجة</small>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary">💾 حفظ الإعدادات</button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
