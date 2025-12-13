@@ -894,6 +894,52 @@
         </div>
     </div>
 
+    <!-- Select Managers Modal -->
+    <div id="selectManagersModal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>اختر المدراء (الشركات) المراد إرسال الرسالة لهم</h2>
+                    <button type="button" class="modal-close" onclick="closeSelectManagersModal()" aria-label="إغلاق">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                            <label style="font-weight: 600; color: var(--text-primary); font-size: 15px;">اختر من القائمة:</label>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" onclick="selectAllManagersInModal()" class="btn btn-sm" style="padding: 8px 16px; font-size: 13px;">✅ تحديد الكل</button>
+                                <button type="button" onclick="deselectAllManagersInModal()" class="btn btn-sm btn-secondary" style="padding: 8px 16px; font-size: 13px;">❌ إلغاء الكل</button>
+                            </div>
+                        </div>
+                        <select id="managersSelectModal" multiple size="10" style="width: 100%; padding: 12px 16px; padding-left: 44px; background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: 'Cairo', sans-serif; color: var(--text-primary); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-sizing: border-box; min-height: 350px; line-height: 1.8; cursor: pointer;">
+                            <option value="" disabled style="color: var(--text-muted); font-style: italic; padding: 12px;">جاري تحميل قائمة المدراء...</option>
+                        </select>
+                        <small class="form-hint" style="margin-top: 8px; display: block;">💡 اضغط Ctrl (أو Cmd على Mac) للاختيار المتعدد</small>
+                    </div>
+                    
+                    <div id="selectedManagersPreviewModal" style="display: none; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, rgba(37, 211, 102, 0.15) 0%, rgba(37, 211, 102, 0.08) 100%); border-radius: 12px; border-right: 3px solid #25D366; border: 1px solid rgba(37, 211, 102, 0.3);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                            <p style="color: var(--text-primary); font-size: 16px; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                <span>✅</span>
+                                <span id="selectedCountModal">0</span>
+                                <span>مدراء مختارون</span>
+                            </p>
+                        </div>
+                        <div id="selectedManagersListModal" style="display: flex; flex-direction: column; gap: 10px; max-height: 250px; overflow-y: auto; padding-right: 4px;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer" style="padding: 20px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" onclick="closeSelectManagersModal()" class="btn btn-secondary">إلغاء</button>
+                    <button type="button" onclick="confirmSendMessages()" class="btn btn-success" id="confirmSendBtn" disabled>📤 إرسال الرسائل</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/owner-dashboard.js"></script>

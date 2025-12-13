@@ -1880,27 +1880,178 @@ function clearSelectedManagers() {
     updateSelectedManagersPreview();
 }
 
-// Send manual WhatsApp messages
-async function sendManualWhatsAppMessages() {
+// Load managers/companies for modal
+async function loadManagersForModal() {
     try {
         if (!window.api) {
-            showAlertModal('خطأ', 'API غير متاح');
+            console.error('API not available');
             return;
         }
         
+        const data = await window.api.getOwnerCompanies();
+        if (data && data.success && data.companies) {
+            const managersSelect = document.getElementById('managersSelectModal');
+            if (!managersSelect) return;
+            
+            managersSelect.innerHTML = '';
+            
+            if (data.companies.length === 0) {
+                managersSelect.innerHTML = '<option value="" disabled style="color: var(--text-muted);">لا توجد شركات متاحة</option>';
+                return;
+            }
+            
+            // ترتيب الشركات حسب الاسم
+            const sortedCompanies = [...data.companies].sort((a, b) => {
+                const nameA = (a.company_name || '').toLowerCase();
+                const nameB = (b.company_name || '').toLowerCase();
+                return nameA.localeCompare(nameB, 'ar');
+            });
+            
+            sortedCompanies.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.id;
+                option.dataset.companyName = company.company_name || 'غير محدد';
+                option.dataset.adminName = company.admin_name || company.admin_username || 'غير محدد';
+                option.dataset.contactPhone = company.contact_phone || '';
+                
+                // نص الخيار: اسم الشركة - اسم المدير - رقم الهاتف
+                let optionText = `${company.company_name || 'غير محدد'}`;
+                if (company.admin_name || company.admin_username) {
+                    optionText += ` | 👤 ${company.admin_name || company.admin_username}`;
+                }
+                if (company.contact_phone) {
+                    optionText += ` | 📱 ${company.contact_phone}`;
+                }
+                
+                option.textContent = optionText;
+                option.style.padding = '12px 16px';
+                option.style.fontSize = '14px';
+                option.style.lineHeight = '1.6';
+                
+                managersSelect.appendChild(option);
+            });
+            
+            // إضافة event listener للتحديث عند التغيير
+            managersSelect.addEventListener('change', updateSelectedManagersPreviewModal);
+        }
+    } catch (error) {
+        console.error('Error loading managers:', error);
+        const managersSelect = document.getElementById('managersSelectModal');
+        if (managersSelect) {
+            managersSelect.innerHTML = '<option value="" disabled style="color: var(--error-color);">خطأ في تحميل قائمة المدراء</option>';
+        }
+    }
+}
+
+// Open select managers modal
+async function openSelectManagersModal() {
+    try {
         const messageText = document.getElementById('manualMessageText')?.value.trim();
         if (!messageText) {
-            showAlertModal('خطأ', 'يرجى إدخال نص الرسالة');
+            showAlertModal('خطأ', 'يرجى إدخال نص الرسالة أولاً');
             return;
         }
         
-        const checkboxes = document.querySelectorAll('.manager-checkbox:checked');
-        if (checkboxes.length === 0) {
-            showAlertModal('خطأ', 'يرجى اختيار شركة واحدة على الأقل');
-            return;
-        }
+        // تحميل قائمة المدراء
+        await loadManagersForModal();
         
-        const managersSelect = document.getElementById('managersSelect');
+        // فتح الـ Modal
+        const modal = document.getElementById('selectManagersModal');
+        if (modal) {
+            modal.style.display = 'flex';
+            modal.classList.add('active');
+            updateSelectedManagersPreviewModal();
+        }
+    } catch (error) {
+        console.error('Error opening select managers modal:', error);
+        showAlertModal('خطأ', 'حدث خطأ في فتح نافذة الاختيار');
+    }
+}
+
+// Close select managers modal
+function closeSelectManagersModal() {
+    const modal = document.getElementById('selectManagersModal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
+// Select all managers in modal
+function selectAllManagersInModal() {
+    const managersSelect = document.getElementById('managersSelectModal');
+    if (!managersSelect) return;
+    
+    Array.from(managersSelect.options).forEach(option => {
+        if (option.value) {
+            option.selected = true;
+        }
+    });
+    
+    updateSelectedManagersPreviewModal();
+}
+
+// Deselect all managers in modal
+function deselectAllManagersInModal() {
+    const managersSelect = document.getElementById('managersSelectModal');
+    if (!managersSelect) return;
+    
+    Array.from(managersSelect.selectedOptions).forEach(option => {
+        option.selected = false;
+    });
+    
+    updateSelectedManagersPreviewModal();
+}
+
+// Update selected managers preview in modal
+function updateSelectedManagersPreviewModal() {
+    const managersSelect = document.getElementById('managersSelectModal');
+    const previewContainer = document.getElementById('selectedManagersPreviewModal');
+    const previewList = document.getElementById('selectedManagersListModal');
+    const selectedCount = document.getElementById('selectedCountModal');
+    const confirmBtn = document.getElementById('confirmSendBtn');
+    
+    if (!managersSelect || !previewContainer || !previewList || !confirmBtn) return;
+    
+    const selectedOptions = Array.from(managersSelect.selectedOptions);
+    
+    if (selectedOptions.length === 0) {
+        previewContainer.style.display = 'none';
+        confirmBtn.disabled = true;
+        return;
+    }
+    
+    previewContainer.style.display = 'block';
+    confirmBtn.disabled = false;
+    
+    if (selectedCount) {
+        selectedCount.textContent = selectedOptions.length;
+    }
+    
+    previewList.innerHTML = '';
+    
+    selectedOptions.forEach(option => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding: 10px 14px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; border: 1px solid rgba(37, 211, 102, 0.2); display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;';
+        item.innerHTML = `
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; margin-bottom: 4px;">${option.dataset.companyName}</div>
+                <div style="font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap;">
+                    <span>👤 ${option.dataset.adminName}</span>
+                    ${option.dataset.contactPhone ? `<span>📱 ${option.dataset.contactPhone}</span>` : '<span style="color: var(--warning-color);">⚠️ لا يوجد رقم</span>'}
+                </div>
+            </div>
+        `;
+        previewList.appendChild(item);
+    });
+}
+
+// Confirm and send messages
+async function confirmSendMessages() {
+    try {
+        const managersSelect = document.getElementById('managersSelectModal');
         if (!managersSelect) {
             showAlertModal('خطأ', 'عنصر الاختيار غير موجود');
             return;
@@ -1909,6 +2060,12 @@ async function sendManualWhatsAppMessages() {
         const selectedOptions = Array.from(managersSelect.selectedOptions);
         if (selectedOptions.length === 0) {
             showAlertModal('خطأ', 'يرجى اختيار شركة واحدة على الأقل');
+            return;
+        }
+        
+        const messageText = document.getElementById('manualMessageText')?.value.trim();
+        if (!messageText) {
+            showAlertModal('خطأ', 'يرجى إدخال نص الرسالة');
             return;
         }
         
@@ -1923,8 +2080,22 @@ async function sendManualWhatsAppMessages() {
             }
         }
         
-        // تأكيد الإرسال
-        if (!confirm(`هل أنت متأكد من إرسال الرسالة إلى ${selectedOptions.length} شركة؟`)) {
+        // إغلاق Modal
+        closeSelectManagersModal();
+        
+        // إرسال الرسائل
+        await sendManualWhatsAppMessagesWithIds(messageText, companyIds);
+    } catch (error) {
+        console.error('Error confirming send messages:', error);
+        showAlertModal('خطأ', 'حدث خطأ في إرسال الرسائل');
+    }
+}
+
+// Send messages with company IDs
+async function sendManualWhatsAppMessagesWithIds(messageText, companyIds) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
             return;
         }
         
@@ -2002,6 +2173,12 @@ async function sendManualWhatsAppMessages() {
         
         showAlertModal('خطأ', 'حدث خطأ في إرسال الرسائل');
     }
+}
+
+// Send manual WhatsApp messages (deprecated - now opens modal)
+async function sendManualWhatsAppMessages() {
+    // This function now opens the modal instead
+    await openSelectManagersModal();
 }
 
 // Clear manual message form
