@@ -629,19 +629,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        // Show/hide "إنشاء تكت" button based on user role (only admin and call_center can see it)
-        const createTicketButtons = document.querySelectorAll('button[onclick="openCreateTicketModal()"]');
-        if (user.role === 'admin' || user.role === 'call_center') {
-            // Show buttons for admin and call_center
-            createTicketButtons.forEach(btn => {
-                btn.style.display = '';
-            });
-        } else {
-            // Hide buttons for other roles
-            createTicketButtons.forEach(btn => {
-                btn.style.display = 'none';
-            });
-        }
+        // Keep "إنشاء تكت" button visible for all users, but permissions are checked in openCreateTicketModal()
+        // The button will be visible but only admin and call_center can actually use it
     }
     
     // Run immediately
