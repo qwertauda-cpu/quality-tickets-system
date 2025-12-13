@@ -358,46 +358,64 @@
                         </svg>
                     </button>
                 </div>
-            <form id="createInvoiceForm">
-                <div class="form-group">
-                    <label>الشركة *</label>
-                    <select id="invoice_company_id" required>
-                        <option value="">اختر الشركة</option>
-                    </select>
+                <div class="modal-body">
+                    <form id="createInvoiceForm">
+                        <div class="form-section">
+                            <h3 class="form-section-title">معلومات الفاتورة الأساسية</h3>
+                            <div class="form-group">
+                                <label for="invoice_company_id">الشركة <span class="required">*</span></label>
+                                <select id="invoice_company_id" required>
+                                    <option value="">اختر الشركة</option>
+                                </select>
+                            </div>
+                            <div class="form-grid-2">
+                                <div class="form-group">
+                                    <label for="invoice_period_start">بداية الفترة <span class="required">*</span></label>
+                                    <input type="date" id="invoice_period_start" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="invoice_period_end">نهاية الفترة <span class="required">*</span></label>
+                                    <input type="date" id="invoice_period_end" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="form-section-title">تفاصيل الفاتورة المالية</h3>
+                            <div class="form-group">
+                                <label for="invoice_employee_count">عدد الموظفين <span class="required">*</span></label>
+                                <input type="number" id="invoice_employee_count" min="1" required placeholder="أدخل عدد الموظفين">
+                            </div>
+                            <div class="form-group">
+                                <label for="invoice_price_per_employee">السعر لكل موظف (دينار عراقي) <span class="required">*</span></label>
+                                <input type="number" id="invoice_price_per_employee" step="0.01" min="0" required placeholder="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="invoice_tax">الضريبة (دينار عراقي)</label>
+                                <input type="number" id="invoice_tax" step="0.01" min="0" value="0" placeholder="0.00">
+                                <small class="form-hint">اختياري - يمكن تركها صفر</small>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="form-section-title">معلومات إضافية</h3>
+                            <div class="form-group">
+                                <label for="invoice_due_date">تاريخ الاستحقاق</label>
+                                <input type="date" id="invoice_due_date">
+                                <small class="form-hint">اختياري - تاريخ استحقاق دفع الفاتورة</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="invoice_notes">ملاحظات</label>
+                                <textarea id="invoice_notes" rows="4" placeholder="أدخل أي ملاحظات إضافية عن الفاتورة"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="closeCreateInvoiceModal()">إلغاء</button>
+                            <button type="submit" class="btn btn-primary">إنشاء الفاتورة</button>
+                        </div>
+                    </form>
                 </div>
-                <div class="form-group">
-                    <label>بداية الفترة *</label>
-                    <input type="date" id="invoice_period_start" required>
-                </div>
-                <div class="form-group">
-                    <label>نهاية الفترة *</label>
-                    <input type="date" id="invoice_period_end" required>
-                </div>
-                <div class="form-group">
-                    <label>عدد الموظفين *</label>
-                    <input type="number" id="invoice_employee_count" min="1" required>
-                </div>
-                <div class="form-group">
-                    <label>السعر لكل موظف *</label>
-                    <input type="number" id="invoice_price_per_employee" step="0.01" min="0" required>
-                </div>
-                <div class="form-group">
-                    <label>الضريبة</label>
-                    <input type="number" id="invoice_tax" step="0.01" min="0" value="0">
-                </div>
-                <div class="form-group">
-                    <label>تاريخ الاستحقاق</label>
-                    <input type="date" id="invoice_due_date">
-                </div>
-                <div class="form-group">
-                    <label>ملاحظات</label>
-                    <textarea id="invoice_notes" rows="3"></textarea>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeCreateInvoiceModal()">إلغاء</button>
-                    <button type="submit" class="btn btn-primary">إنشاء</button>
-                </div>
-            </form>
         </div>
     </div>
 
