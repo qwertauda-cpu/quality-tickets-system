@@ -161,13 +161,17 @@ async function loadTeams() {
         const data = await window.api.getTeams();
         if (data && data.success) {
             const tbody = document.getElementById('teamsTableBody');
+            if (!tbody) {
+                console.error('teamsTableBody element not found');
+                return;
+            }
             tbody.innerHTML = '';
             
             if (data.teams && data.teams.length > 0) {
                 data.teams.forEach(team => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${team.name}</td>
+                        <td>${team.name || '-'}</td>
                         <td>${team.shift === 'morning' ? 'صباحي' : 'مسائي'}</td>
                         <td>${team.member_count || 0}</td>
                         <td>${team.max_connection_limit || 7}</td>
@@ -179,9 +183,18 @@ async function loadTeams() {
             } else {
                 tbody.innerHTML = '<tr><td colspan="6" class="loading">لا توجد فرق</td></tr>';
             }
+        } else {
+            const tbody = document.getElementById('teamsTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="error">خطأ في تحميل البيانات</td></tr>';
+            }
         }
     } catch (error) {
         console.error('Error loading teams:', error);
+        const tbody = document.getElementById('teamsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="error">خطأ في تحميل البيانات</td></tr>';
+        }
     }
 }
 
@@ -204,10 +217,18 @@ async function loadTickets() {
         if (data && data.success) {
             allTickets = data.tickets || [];
             filterTickets();
+        } else {
+            const tbody = document.getElementById('ticketsTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التكتات</td></tr>';
+            }
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
-        document.getElementById('ticketsTableBody').innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التكتات</td></tr>';
+        const tbody = document.getElementById('ticketsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التكتات</td></tr>';
+        }
     }
 }
 
@@ -310,12 +331,17 @@ function filterTickets() {
 
 function displayTickets(tickets) {
     const tbody = document.getElementById('ticketsTableBody');
-    tbody.innerHTML = '';
+    if (!tbody) {
+        console.error('ticketsTableBody element not found');
+        return;
+    }
     
-    if (tickets.length === 0) {
+    if (!tickets || tickets.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات</td></tr>';
         return;
     }
+    
+    tbody.innerHTML = '';
     
     tickets.forEach(ticket => {
         const netScore = (ticket.positive_points || 0) - (ticket.negative_points || 0);
@@ -333,16 +359,16 @@ function displayTickets(tickets) {
             'completed': 'مكتملة',
             'postponed': 'مؤجلة',
             'closed': 'مغلقة'
-        }[ticket.status] || ticket.status;
+        }[ticket.status] || ticket.status || '-';
         
         const row = document.createElement('tr');
         if (ticket.status === 'postponed') {
             row.classList.add('postponed');
         }
         row.innerHTML = `
-            <td>${ticket.ticket_number}</td>
-            <td>${ticket.ticket_type_name || ''}</td>
-            <td>${ticket.team_name || ''}</td>
+            <td>${ticket.ticket_number || '-'}</td>
+            <td>${ticket.ticket_type_name || '-'}</td>
+            <td>${ticket.team_name || '-'}</td>
             <td><span class="badge ${statusBadge}">${statusText}</span></td>
             <td>${formatTimeDuration(ticket.actual_time_minutes)}</td>
             <td>${netScore}</td>
@@ -905,6 +931,10 @@ async function loadUsers() {
         const data = await window.api.getUsers();
         if (data && data.success) {
             const tbody = document.getElementById('usersTableBody');
+            if (!tbody) {
+                console.error('usersTableBody element not found');
+                return;
+            }
             tbody.innerHTML = '';
             
             if (data.users && data.users.length > 0) {
@@ -920,8 +950,8 @@ async function loadUsers() {
                     }[user.role] || user.role;
                     
                     row.innerHTML = `
-                        <td>${user.username}</td>
-                        <td>${user.full_name}</td>
+                        <td>${user.username || '-'}</td>
+                        <td>${user.full_name || '-'}</td>
                         <td>${user.team_name || '-'}</td>
                         <td>${roleText}</td>
                         <td><span class="badge ${user.is_active ? 'badge-success' : 'badge-danger'}">${user.is_active ? 'نشط' : 'غير نشط'}</span></td>
@@ -936,12 +966,17 @@ async function loadUsers() {
             } else {
                 tbody.innerHTML = '<tr><td colspan="7" class="loading">لا يوجد مستخدمين</td></tr>';
             }
+        } else {
+            const tbody = document.getElementById('usersTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل البيانات</td></tr>';
+            }
         }
     } catch (error) {
         console.error('Error loading users:', error);
         const tbody = document.getElementById('usersTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
@@ -1323,35 +1358,56 @@ async function loadDashboard() {
         }
         if (data.success) {
             // Update stats
-            const totalTickets = data.todayStats.reduce((sum, stat) => sum + (stat.total_tickets || 0), 0);
-            const completedTickets = data.todayStats.reduce((sum, stat) => sum + (stat.completed_tickets || 0), 0);
+            const todayStats = data.todayStats || [];
+            const totalTickets = todayStats.reduce((sum, stat) => sum + (stat.total_tickets || 0), 0);
+            const completedTickets = todayStats.reduce((sum, stat) => sum + (stat.completed_tickets || 0), 0);
             
-            document.getElementById('totalTickets').textContent = totalTickets;
-            document.getElementById('completedTickets').textContent = completedTickets;
-            document.getElementById('pendingTickets').textContent = totalTickets - completedTickets;
+            const totalTicketsEl = document.getElementById('totalTickets');
+            const completedTicketsEl = document.getElementById('completedTickets');
+            const pendingTicketsEl = document.getElementById('pendingTickets');
+            
+            if (totalTicketsEl) totalTicketsEl.textContent = totalTickets;
+            if (completedTicketsEl) completedTicketsEl.textContent = completedTickets;
+            if (pendingTicketsEl) pendingTicketsEl.textContent = totalTickets - completedTickets;
             
             // Update rankings
             const tbody = document.getElementById('rankingsTableBody');
-            tbody.innerHTML = '';
-            
-            if (data.teamRankings && data.teamRankings.length > 0) {
-                data.teamRankings.forEach((team, index) => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${team.name}</td>
-                        <td>${team.total_points || 0}</td>
-                        <td>${team.total_tickets || 0}</td>
-                        <td>${team.total_points || 0}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } else {
-                tbody.innerHTML = '<tr><td colspan="5" class="loading">لا توجد بيانات</td></tr>';
+            if (tbody) {
+                tbody.innerHTML = '';
+                
+                if (data.teamRankings && data.teamRankings.length > 0) {
+                    data.teamRankings.forEach((team, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${team.name || '-'}</td>
+                            <td>${team.total_points || 0}</td>
+                            <td>${team.total_tickets || 0}</td>
+                            <td>${team.total_points || 0}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="loading">لا توجد بيانات</td></tr>';
+                }
             }
+        } else {
+            console.error('Dashboard API returned error:', data.error);
         }
     } catch (error) {
         console.error('Error loading dashboard:', error);
+        // Show error message in UI
+        const totalTicketsEl = document.getElementById('totalTickets');
+        const completedTicketsEl = document.getElementById('completedTickets');
+        const pendingTicketsEl = document.getElementById('pendingTickets');
+        if (totalTicketsEl) totalTicketsEl.textContent = '-';
+        if (completedTicketsEl) completedTicketsEl.textContent = '-';
+        if (pendingTicketsEl) pendingTicketsEl.textContent = '-';
+        
+        const tbody = document.getElementById('rankingsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="error">خطأ في تحميل البيانات</td></tr>';
+        }
     }
 }
 
