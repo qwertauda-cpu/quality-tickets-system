@@ -55,12 +55,46 @@ async function authenticate(req, res, next) {
         }
         
         // Simple token-based auth (in production, use JWT)
-        const [user] = await db.query('SELECT * FROM users WHERE id = ? AND is_active = 1', [token]);
-        if (!user) {
+        const [user] = await db.query(`
+            SELECT u.*, c.is_active as company_is_active, c.owner_user_id
+            FROM users u
+            LEFT JOIN companies c ON u.company_id = c.id
+            WHERE u.id = ? AND u.is_active = 1
+        `, [token]);
+        
+        if (!user || user.length === 0) {
             return res.status(401).json({ error: 'غير مصرح' });
         }
         
-        req.user = user;
+        const userData = user[0];
+        
+        // التحقق من حالة الشركة ومديرها
+        if (userData.company_id) {
+            // التحقق من حالة الشركة
+            if (userData.company_is_active === 0) {
+                return res.status(403).json({ 
+                    error: 'يرجى التواصل مع المبيعات',
+                    contact_sales: true 
+                });
+            }
+            
+            // التحقق من حالة مدير الشركة
+            if (userData.owner_user_id) {
+                const companyAdmin = await db.queryOne(
+                    'SELECT is_active FROM users WHERE id = ?',
+                    [userData.owner_user_id]
+                );
+                
+                if (companyAdmin && companyAdmin.is_active === 0) {
+                    return res.status(403).json({ 
+                        error: 'يرجى التواصل مع المبيعات',
+                        contact_sales: true 
+                    });
+                }
+            }
+        }
+        
+        req.user = userData;
         next();
     } catch (error) {
         res.status(500).json({ error: 'خطأ في المصادقة' });
