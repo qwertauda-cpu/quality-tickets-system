@@ -5,7 +5,8 @@ let ticketTypes = [];
 let teams = [];
 
 // Ticket Checklists Configuration
-const ticketChecklists = {
+if (typeof ticketChecklists === 'undefined') {
+    var ticketChecklists = {
     FTTH_NEW: [
         "صورة الفات قبل العمل",
         "صورة الفات بعد الربط",
