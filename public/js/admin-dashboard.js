@@ -593,25 +593,6 @@ async function handleAdminTicketSubmit(e) {
         return;
     }
     
-    // Combine date and time
-    const dateReceived = getDateTimeValue('admin_time_received_container');
-    const timeReceived = getTimeValue('admin_time_received_time_container');
-    const timeReceivedFull = combineDateTime(dateReceived, timeReceived);
-    
-    // التحقق من time_received (مطلوب)
-    if (!timeReceivedFull) {
-        alert('يرجى إدخال تاريخ ووقت استلام التكت (T0)');
-        return;
-    }
-    
-    const dateFirstContact = getDateTimeValue('admin_time_first_contact_container');
-    const timeFirstContact = getTimeValue('admin_time_first_contact_time_container');
-    const timeFirstContactFull = dateFirstContact && timeFirstContact ? combineDateTime(dateFirstContact, timeFirstContact) : null;
-    
-    const dateCompleted = getDateTimeValue('admin_time_completed_container');
-    const timeCompleted = getTimeValue('admin_time_completed_time_container');
-    const timeCompletedFull = dateCompleted && timeCompleted ? combineDateTime(dateCompleted, timeCompleted) : null;
-    
     const ticketNumber = document.getElementById('admin_ticket_number').value?.trim();
     const ticketTypeId = document.getElementById('admin_ticket_type_id').value;
     const teamId = document.getElementById('admin_team_id').value;
@@ -649,9 +630,6 @@ async function handleAdminTicketSubmit(e) {
         ticket_number: ticketNumber,
         ticket_type_id: parsedTicketTypeId,
         team_id: parsedTeamId,
-        time_received: timeReceivedFull,
-        time_first_contact: timeFirstContactFull || null,
-        time_completed: timeCompletedFull || null,
         subscriber_name: document.getElementById('admin_subscriber_name').value?.trim() || null,
         subscriber_phone: document.getElementById('admin_subscriber_phone').value?.trim() || null,
         subscriber_address: document.getElementById('admin_subscriber_address').value?.trim() || null,
@@ -967,7 +945,7 @@ async function loadUsers() {
     }
 }
 
-function showAddUserForm() {
+async function showAddUserForm() {
     document.getElementById('userModalTitle').textContent = 'إضافة موظف جديد';
     document.getElementById('userForm').reset();
     document.getElementById('edit_user_id').value = '';
@@ -988,7 +966,10 @@ function showAddUserForm() {
     document.getElementById('user_team_id').required = false;
     
     // Load teams
-    loadTeamsForUserForm();
+    await loadTeamsForUserForm();
+    
+    // Setup domain auto-complete for username
+    setupUsernameDomainAutoComplete();
     
     document.getElementById('userModal').style.display = 'flex';
 }
@@ -1119,6 +1100,52 @@ async function loadTeamsForUserForm() {
         }
     } catch (error) {
         console.error('Error loading teams:', error);
+    }
+}
+
+// Setup username domain auto-complete
+async function setupUsernameDomainAutoComplete() {
+    const usernameInput = document.getElementById('user_username');
+    if (!usernameInput) return;
+    
+    // Get current user's company domain
+    const user = getCurrentUser();
+    if (!user || !user.company_id) {
+        // No company - remove any existing listeners
+        const newInput = usernameInput.cloneNode(true);
+        usernameInput.parentNode.replaceChild(newInput, usernameInput);
+        return;
+    }
+    
+    try {
+        // Get company domain
+        const companiesData = await window.api.getOwnerCompanies();
+        if (companiesData && companiesData.success) {
+            const company = companiesData.companies.find(c => c.id === user.company_id);
+            if (company && company.domain) {
+                const domain = company.domain;
+                
+                // Add blur event to auto-add @domain
+                usernameInput.addEventListener('blur', function() {
+                    const value = this.value.trim();
+                    if (value && !value.includes('@')) {
+                        this.value = `${value}@${domain}`;
+                    } else if (value.includes('@')) {
+                        // Check if domain matches
+                        const parts = value.split('@');
+                        if (parts.length === 2 && parts[1] !== domain) {
+                            // Wrong domain, fix it
+                            this.value = `${parts[0]}@${domain}`;
+                        }
+                    }
+                });
+                
+                // Add placeholder
+                usernameInput.placeholder = `مثال: ahmed@${domain}`;
+            }
+        }
+    } catch (error) {
+        console.error('Error setting up domain auto-complete:', error);
     }
 }
 
