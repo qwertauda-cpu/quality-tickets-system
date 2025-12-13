@@ -1521,16 +1521,41 @@ async function loadCreateTicketTypes() {
             const select = document.getElementById('create_ticket_type_id');
             if (select) {
                 select.innerHTML = '<option value="">اختر النوع</option>';
+                
+                // Add all ticket types from database
                 data.types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type.id;
                     option.textContent = type.name_ar || type.name || 'نوع غير معروف';
                     select.appendChild(option);
                 });
+                
+                // Add "مخصص" option at the end
+                const customOption = document.createElement('option');
+                customOption.value = 'custom';
+                customOption.textContent = 'مخصص';
+                select.appendChild(customOption);
+            }
+        } else {
+            // Even if API fails, add custom option
+            const select = document.getElementById('create_ticket_type_id');
+            if (select) {
+                const customOption = document.createElement('option');
+                customOption.value = 'custom';
+                customOption.textContent = 'مخصص';
+                select.appendChild(customOption);
             }
         }
     } catch (error) {
         console.error('Error loading ticket types:', error);
+        // Even if error, add custom option
+        const select = document.getElementById('create_ticket_type_id');
+        if (select) {
+            const customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = 'مخصص';
+            select.appendChild(customOption);
+        }
     }
 }
 
@@ -1561,13 +1586,34 @@ function setupCreateTicketFormSubmission() {
         }
         
         const ticketNumber = document.getElementById('create_ticket_number')?.value?.trim();
-        const ticketTypeId = document.getElementById('create_ticket_type_id')?.value;
+        const ticketTypeSelect = document.getElementById('create_ticket_type_id');
+        const selectedType = ticketTypeSelect ? ticketTypeSelect.value : '';
+        let ticketTypeId = null;
+        let customTicketType = null;
+        
+        if (selectedType === 'custom') {
+            const customType = document.getElementById('create_custom_ticket_type')?.value.trim();
+            if (!customType) {
+                showAlertModal('تحذير', 'الرجاء إدخال نوع التكت المخصص', 'warning');
+                return;
+            }
+            customTicketType = customType;
+        } else if (selectedType && selectedType !== '') {
+            ticketTypeId = parseInt(selectedType);
+            if (isNaN(ticketTypeId)) {
+                showAlertModal('تحذير', 'نوع التكت غير صحيح', 'warning');
+                return;
+            }
+        } else {
+            showAlertModal('تحذير', 'الرجاء اختيار نوع التكت', 'warning');
+            return;
+        }
         const subscriberName = document.getElementById('create_subscriber_name')?.value?.trim() || '';
         const subscriberPhone = phone;
         const region = document.getElementById('create_region')?.value?.trim() || '';
         const notes = document.getElementById('create_notes')?.value?.trim() || '';
         
-        if (!ticketTypeId) {
+        if (!ticketTypeId && !customTicketType) {
             showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)', 'warning');
             return;
         }
@@ -1575,7 +1621,8 @@ function setupCreateTicketFormSubmission() {
         try {
             const formData = {
                 ticket_number: ticketNumber,
-                ticket_type_id: parseInt(ticketTypeId),
+                ticket_type_id: ticketTypeId,
+                custom_ticket_type: customTicketType,
                 subscriber_name: subscriberName || null,
                 subscriber_phone: subscriberPhone || null,
                 region: region || null,

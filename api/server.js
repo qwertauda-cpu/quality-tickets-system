@@ -330,6 +330,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         const {
             ticket_number,
             ticket_type_id,
+            custom_ticket_type,
             team_id,
             assigned_technician_id,
             time_received,
@@ -486,31 +487,53 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         // التحقق من الحقول المطلوبة
         // ticket_number يتم توليده تلقائياً، لا حاجة للتحقق منه
         
-        if (!ticket_type_id || isNaN(parseInt(ticket_type_id))) {
-            console.log('Validation error: ticket_type_id is invalid:', ticket_type_id, typeof ticket_type_id);
+        // Handle ticket type: either ticket_type_id or custom_ticket_type
+        let finalTicketTypeId = null;
+        
+        if (custom_ticket_type && custom_ticket_type.trim()) {
+            // Custom ticket type - create or find a ticket type with this name
+            const customTypeName = custom_ticket_type.trim();
+            
+            // Check if a ticket type with this name already exists
+            let existingCustomType = await db.queryOne(
+                'SELECT id FROM ticket_types WHERE name_ar = ? OR name = ?',
+                [customTypeName, customTypeName]
+            );
+            
+            if (existingCustomType) {
+                finalTicketTypeId = existingCustomType.id;
+            } else {
+                // Create new ticket type for custom type
+                const insertResult = await db.query(`
+                    INSERT INTO ticket_types (name, name_ar, is_active, created_at)
+                    VALUES (?, ?, 1, NOW())
+                `, [customTypeName, customTypeName]);
+                finalTicketTypeId = insertResult.insertId;
+            }
+        } else if (ticket_type_id) {
+            // Regular ticket type
+            if (isNaN(parseInt(ticket_type_id))) {
+                console.log('Validation error: ticket_type_id is invalid:', ticket_type_id, typeof ticket_type_id);
+                return res.status(400).json({ error: 'نوع التكت غير صحيح' });
+            }
+            
+            finalTicketTypeId = parseInt(ticket_type_id);
+            
+            // التحقق من وجود ticket_type_id في قاعدة البيانات
+            const ticketTypeExists = await db.queryOne(
+                'SELECT id FROM ticket_types WHERE id = ? AND is_active = 1',
+                [finalTicketTypeId]
+            );
+            
+            if (!ticketTypeExists) {
+                console.log('Validation error: ticket_type_id does not exist:', finalTicketTypeId);
+                return res.status(400).json({ error: 'نوع التكت غير موجود أو غير نشط' });
+            }
+        } else {
             return res.status(400).json({ error: 'نوع التكت مطلوب' });
         }
         
-        // تحويل إلى أرقام
-        const ticketTypeId = parseInt(ticket_type_id);
-        
-        console.log('Parsed values - ticketTypeId:', ticketTypeId);
-        
-        if (isNaN(ticketTypeId) || ticketTypeId <= 0) {
-            console.log('Validation error: ticketTypeId is invalid:', ticketTypeId);
-            return res.status(400).json({ error: 'نوع التكت غير صحيح' });
-        }
-        
-        // التحقق من وجود ticket_type_id في قاعدة البيانات
-        const ticketTypeExists = await db.queryOne(
-            'SELECT id FROM ticket_types WHERE id = ? AND is_active = 1',
-            [ticketTypeId]
-        );
-        
-        if (!ticketTypeExists) {
-            console.log('Validation error: ticket_type_id does not exist:', ticketTypeId);
-            return res.status(400).json({ error: 'نوع التكت غير موجود أو غير نشط' });
-        }
+        console.log('Parsed values - finalTicketTypeId:', finalTicketTypeId);
         
         // team_id اختياري الآن - إذا لم يتم إرساله، سيتم تعيينه لاحقاً
         let teamId = null;
@@ -562,7 +585,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         let insertValues = `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`;
         let insertParams = [
             finalTicketNumber.trim(), 
-            ticketTypeId, 
+            finalTicketTypeId, 
             teamId, 
             quality_staff_id,
             assigned_technician_id || null,

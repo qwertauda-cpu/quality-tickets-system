@@ -78,9 +78,14 @@ function showPage(pageName) {
 
 async function loadTicketTypes() {
     try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
         const data = await window.api.getTicketTypes();
         // Load for modal
-        const modalSelect = document.getElementById('modal_ticket_type_id');
+        const modalSelect = document.getElementById('create_ticket_type_id');
         if (modalSelect && data && data.success) {
             modalSelect.innerHTML = '<option value="">اختر النوع</option>';
             // Check both possible response formats
@@ -93,9 +98,32 @@ async function loadTicketTypes() {
                     modalSelect.appendChild(option);
                 });
             }
+            
+            // Add "مخصص" option at the end
+            const customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = 'مخصص';
+            modalSelect.appendChild(customOption);
+        } else {
+            // Even if API fails, add custom option
+            const modalSelect = document.getElementById('create_ticket_type_id');
+            if (modalSelect) {
+                const customOption = document.createElement('option');
+                customOption.value = 'custom';
+                customOption.textContent = 'مخصص';
+                modalSelect.appendChild(customOption);
+            }
         }
     } catch (error) {
         console.error('Error loading ticket types:', error);
+        // Even if error, add custom option
+        const modalSelect = document.getElementById('create_ticket_type_id');
+        if (modalSelect) {
+            const customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = 'مخصص';
+            modalSelect.appendChild(customOption);
+        }
     }
 }
 
@@ -125,6 +153,24 @@ function closeCreateTicketModal() {
         }
     }
 }
+
+// Handle ticket type change to show/hide custom type input
+window.handleTicketTypeChange = function() {
+    const ticketTypeSelect = document.getElementById('create_ticket_type_id');
+    const customTypeGroup = document.getElementById('create_custom_ticket_type_group');
+    const customTypeInput = document.getElementById('create_custom_ticket_type');
+    
+    if (ticketTypeSelect && customTypeGroup && customTypeInput) {
+        if (ticketTypeSelect.value === 'custom') {
+            customTypeGroup.style.display = 'block';
+            customTypeInput.required = true;
+        } else {
+            customTypeGroup.style.display = 'none';
+            customTypeInput.required = false;
+            customTypeInput.value = '';
+        }
+    }
+};
 
 // Handle form submission
 document.addEventListener('DOMContentLoaded', () => {

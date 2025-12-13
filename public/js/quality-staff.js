@@ -3769,11 +3769,18 @@ function closeCreateTicketModal() {
 
 async function loadTicketTypesForCreateModal() {
     try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
         const data = await window.api.getTicketTypes();
         if (data && data.success && data.types) {
             const select = document.getElementById('create_ticket_type_id');
             if (select) {
                 select.innerHTML = '<option value="">اختر النوع</option>';
+                
+                // Add all ticket types from database
                 data.types.forEach(type => {
                     const option = document.createElement('option');
                     option.value = type.id;
@@ -3781,12 +3788,34 @@ async function loadTicketTypesForCreateModal() {
                     option.textContent = type.name_ar || type.name || 'نوع غير معروف';
                     select.appendChild(option);
                 });
+                
+                // Add "مخصص" option at the end
+                const customOption = document.createElement('option');
+                customOption.value = 'custom';
+                customOption.textContent = 'مخصص';
+                select.appendChild(customOption);
             }
         } else {
             console.error('Invalid response from getTicketTypes:', data);
+            // Even if API fails, add custom option
+            const select = document.getElementById('create_ticket_type_id');
+            if (select) {
+                const customOption = document.createElement('option');
+                customOption.value = 'custom';
+                customOption.textContent = 'مخصص';
+                select.appendChild(customOption);
+            }
         }
     } catch (error) {
         console.error('Error loading ticket types:', error);
+        // Even if error, add custom option
+        const select = document.getElementById('create_ticket_type_id');
+        if (select) {
+            const customOption = document.createElement('option');
+            customOption.value = 'custom';
+            customOption.textContent = 'مخصص';
+            select.appendChild(customOption);
+        }
     }
 }
 
@@ -3840,14 +3869,37 @@ function setupCreateTicketFormSubmission() {
                 ticket_number: document.getElementById('create_ticket_number').value || null,
                 subscriber_name: document.getElementById('create_subscriber_name').value.trim(),
                 subscriber_phone: phone,
-                ticket_type_id: document.getElementById('create_ticket_type_id').value,
+                ticket_type_id: null, // Will be set below
+                custom_ticket_type: null, // Will be set below
                 region: document.getElementById('create_region').value.trim() || null,
                 notes: document.getElementById('create_notes').value.trim() || null
                 // No team_id, technician_id, or time fields - will be set later
             };
             
+            // Handle ticket type (regular or custom)
+            const ticketTypeSelect = document.getElementById('create_ticket_type_id');
+            const selectedType = ticketTypeSelect ? ticketTypeSelect.value : '';
+            
+            if (selectedType === 'custom') {
+                const customType = document.getElementById('create_custom_ticket_type')?.value.trim();
+                if (!customType) {
+                    showAlertModal('تحذير', 'الرجاء إدخال نوع التكت المخصص', 'warning');
+                    return;
+                }
+                ticketData.custom_ticket_type = customType;
+            } else if (selectedType && selectedType !== '') {
+                ticketData.ticket_type_id = parseInt(selectedType);
+                if (isNaN(ticketData.ticket_type_id)) {
+                    showAlertModal('تحذير', 'نوع التكت غير صحيح', 'warning');
+                    return;
+                }
+            } else {
+                showAlertModal('تحذير', 'الرجاء اختيار نوع التكت', 'warning');
+                return;
+            }
+            
             // Validate required fields
-            if (!ticketData.subscriber_name || !ticketData.subscriber_phone || !ticketData.ticket_type_id) {
+            if (!ticketData.subscriber_name || !ticketData.subscriber_phone) {
                 showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)', 'warning');
                 return;
             }
@@ -3889,6 +3941,24 @@ window.showAssignTicketModal = showAssignTicketModal;
 window.closeAssignTicketModal = closeAssignTicketModal;
 window.reviewTicket = reviewTicket;
 window.closeReviewSection = closeReviewSection;
+// Handle ticket type change to show/hide custom type input
+window.handleTicketTypeChange = function() {
+    const ticketTypeSelect = document.getElementById('create_ticket_type_id');
+    const customTypeGroup = document.getElementById('create_custom_ticket_type_group');
+    const customTypeInput = document.getElementById('create_custom_ticket_type');
+    
+    if (ticketTypeSelect && customTypeGroup && customTypeInput) {
+        if (ticketTypeSelect.value === 'custom') {
+            customTypeGroup.style.display = 'block';
+            customTypeInput.required = true;
+        } else {
+            customTypeGroup.style.display = 'none';
+            customTypeInput.required = false;
+            customTypeInput.value = '';
+        }
+    }
+};
+
 window.openCreateTicketModal = openCreateTicketModal;
 window.closeCreateTicketModal = closeCreateTicketModal;
 window.showAlertModal = showAlertModal;

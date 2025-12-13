@@ -139,9 +139,15 @@
                                 <!-- نوع التكت -->
                                 <div class="form-group">
                                     <label for="create_ticket_type_id">نوع التكت *</label>
-                                    <select id="create_ticket_type_id" required>
+                                    <select id="create_ticket_type_id" required onchange="handleTicketTypeChange()">
                                         <option value="">اختر النوع</option>
                                     </select>
+                                </div>
+                                
+                                <!-- نوع التكت المخصص (يظهر فقط عند اختيار "مخصص") -->
+                                <div class="form-group" id="create_custom_ticket_type_group" style="display: none;">
+                                    <label for="create_custom_ticket_type">اكتب نوع التكت المخصص *</label>
+                                    <input type="text" id="create_custom_ticket_type" placeholder="أدخل نوع التكت المطلوب">
                                 </div>
                                 
                                 <!-- المنطقة -->
