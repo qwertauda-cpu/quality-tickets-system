@@ -209,7 +209,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>إدارة التكتات</h2>
-                        <button class="btn btn-primary" onclick="openNewTicketModal()" style="margin-right: 10px;">➕ إدخال تكت</button>
+                        <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تكت</button>
                     </div>
                     <div class="card-body">
                         <!-- Tabs/Filters -->
@@ -1085,6 +1085,82 @@
             }
         })();
     </script>
+
+    <!-- Create Ticket Modal (Simplified) -->
+    <div id="create-ticket-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header">
+                <h2>إنشاء تكت جديد</h2>
+                <button class="modal-close-btn" onclick="closeCreateTicketModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="createTicketForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="create_ticket_number">رقم التكت *</label>
+                            <input type="text" id="create_ticket_number" pattern="[0-9]+" inputmode="numeric" autocomplete="off" required>
+                            <small class="form-text" style="color: #666; font-size: 0.85em;">يجب أن يحتوي على أرقام إنجليزية فقط (0-9)</small>
+                            <div id="create_ticket_number_error" class="error-message" style="display: none;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="create_subscriber_name">اسم المشترك *</label>
+                            <input type="text" id="create_subscriber_name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="create_subscriber_phone">رقم المشترك *</label>
+                            <input type="text" id="create_subscriber_phone" pattern="[0-9]{11}" inputmode="numeric" maxlength="11" autocomplete="off" required>
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">يجب أن يحتوي على 11 رقم إنجليزي فقط (0-9)</small>
+                            <div id="create_subscriber_phone_error" class="error-message" style="display: none;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="create_ticket_type_id">نوع التكت *</label>
+                            <select id="create_ticket_type_id" required>
+                                <option value="">اختر النوع</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="create_team_id">الفريق *</label>
+                            <select id="create_team_id" required>
+                                <option value="">اختر الفريق</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="create_assigned_technician_id">الفني المكلف</label>
+                            <select id="create_assigned_technician_id">
+                                <option value="">اختر الفني (اختياري)</option>
+                            </select>
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">إذا لم تختر فني، سيتم إرسال التكت للفريق فقط</small>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="create_time_received">تاريخ استلام التكت (T0) *</label>
+                            <div id="create_time_received_container"></div>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="create_time_first_contact">تاريخ اول رد (T1)</label>
+                            <div id="create_time_first_contact_container"></div>
+                        </div>
+                        
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="create_time_completed">تاريخ اكمال التكت (T2)</label>
+                            <div id="create_time_completed_container"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
+                        <button type="submit" class="btn btn-primary">إنشاء التكت</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
 

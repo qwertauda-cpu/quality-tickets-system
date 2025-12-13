@@ -3522,6 +3522,218 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Create Ticket Modal Functions
+async function openCreateTicketModal() {
+    const modal = document.getElementById('create-ticket-modal');
+    if (modal) {
+        modal.classList.add('active');
+        // Load ticket types and teams
+        await loadTicketTypesForCreateModal();
+        await loadTeamsForCreateModal();
+        // Initialize datetime pickers
+        initCreateModalDateTimePickers();
+        // Setup form submission
+        setupCreateTicketFormSubmission();
+        // Setup ticket number validation
+        setupCreateTicketNumberValidation();
+    }
+}
+
+function closeCreateTicketModal() {
+    const modal = document.getElementById('create-ticket-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        // Reset form
+        document.getElementById('createTicketForm').reset();
+    }
+}
+
+async function loadTicketTypesForCreateModal() {
+    try {
+        const data = await window.api.getTicketTypes();
+        if (data && data.success) {
+            const select = document.getElementById('create_ticket_type_id');
+            if (select) {
+                select.innerHTML = '<option value="">اختر النوع</option>';
+                data.ticketTypes.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name;
+                    select.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading ticket types:', error);
+    }
+}
+
+async function loadTeamsForCreateModal() {
+    try {
+        const data = await window.api.getTeams();
+        if (data && data.success) {
+            const teamSelect = document.getElementById('create_team_id');
+            const techSelect = document.getElementById('create_assigned_technician_id');
+            
+            if (teamSelect) {
+                teamSelect.innerHTML = '<option value="">اختر الفريق</option>';
+                data.teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.id;
+                    option.textContent = team.name;
+                    teamSelect.appendChild(option);
+                });
+            }
+            
+            // Load technicians when team is selected
+            if (teamSelect && techSelect) {
+                teamSelect.addEventListener('change', async function() {
+                    const teamId = this.value;
+                    if (teamId) {
+                        await loadTechniciansForTeam(teamId, techSelect);
+                    } else {
+                        techSelect.innerHTML = '<option value="">اختر الفني (اختياري)</option>';
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error loading teams:', error);
+    }
+}
+
+async function loadTechniciansForTeam(teamId, selectElement) {
+    try {
+        const data = await window.api.getTeamMembers(teamId);
+        if (data && data.success) {
+            selectElement.innerHTML = '<option value="">اختر الفني (اختياري)</option>';
+            data.members.forEach(member => {
+                if (member.role === 'technician') {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = member.full_name;
+                    selectElement.appendChild(option);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error loading technicians:', error);
+    }
+}
+
+function initCreateModalDateTimePickers() {
+    // Initialize date and time pickers for create modal
+    if (typeof createDateTimePicker === 'function') {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        
+        // Create date pickers
+        window.createTimeReceivedPicker = createDateTimePicker('create_time_received_container', now.toISOString().slice(0, 16), true);
+        window.createTimeFirstContactPicker = createDateTimePicker('create_time_first_contact_container', null, false);
+        window.createTimeCompletedPicker = createDateTimePicker('create_time_completed_container', null, false);
+    }
+}
+
+function setupCreateTicketFormSubmission() {
+    const form = document.getElementById('createTicketForm');
+    if (form) {
+        form.onsubmit = async function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const ticketData = {
+                ticket_number: document.getElementById('create_ticket_number').value,
+                subscriber_name: document.getElementById('create_subscriber_name').value,
+                subscriber_phone: document.getElementById('create_subscriber_phone').value,
+                ticket_type_id: document.getElementById('create_ticket_type_id').value,
+                team_id: document.getElementById('create_team_id').value,
+                assigned_technician_id: document.getElementById('create_assigned_technician_id').value || null,
+                time_received: getCreateDateTimeValue('create_time_received_container'),
+                time_first_contact: getCreateDateTimeValue('create_time_first_contact_container') || null,
+                time_completed: getCreateDateTimeValue('create_time_completed_container') || null
+            };
+            
+            try {
+                const result = await window.api.createTicket(ticketData);
+                if (result && result.success) {
+                    alert('تم إنشاء التكت بنجاح!');
+                    closeCreateTicketModal();
+                    // Reload tickets list
+                    if (typeof loadTicketsManagement === 'function') {
+                        loadTicketsManagement(currentTicketFilter || 'NEW');
+                    }
+                } else {
+                    alert('خطأ: ' + (result.error || 'فشل إنشاء التكت'));
+                }
+            } catch (error) {
+                console.error('Error creating ticket:', error);
+                alert('حدث خطأ أثناء إنشاء التكت');
+            }
+        };
+    }
+}
+
+function getCreateDateTimeValue(containerId) {
+    // Use the helper function from datetime-picker.js
+    if (typeof window.getDateTimeValue === 'function') {
+        return window.getDateTimeValue(containerId);
+    }
+    
+    // Fallback: manual extraction
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+    
+    const hiddenInput = container.querySelector('input[type="hidden"]');
+    if (hiddenInput) {
+        return hiddenInput.value || null;
+    }
+    
+    // Try to get from selects
+    const yearSelect = container.querySelector('select[name="year"]');
+    const monthSelect = container.querySelector('select[name="month"]');
+    const daySelect = container.querySelector('select[name="day"]');
+    
+    if (!yearSelect || !monthSelect || !daySelect) return null;
+    
+    const year = yearSelect.value;
+    const month = monthSelect.value.padStart(2, '0');
+    const day = daySelect.value.padStart(2, '0');
+    
+    if (!year || !month || !day) return null;
+    
+    return `${year}-${month}-${day}T00:00:00`;
+}
+
+function setupCreateTicketNumberValidation() {
+    const ticketNumberInput = document.getElementById('create_ticket_number');
+    if (ticketNumberInput) {
+        ticketNumberInput.addEventListener('blur', async function() {
+            const ticketNumber = this.value.trim();
+            if (!ticketNumber) return;
+            
+            try {
+                const result = await window.api.checkTicketExists(ticketNumber);
+                if (result && result.exists) {
+                    const errorDiv = document.getElementById('create_ticket_number_error');
+                    if (errorDiv) {
+                        errorDiv.textContent = 'رقم التكت موجود بالفعل!';
+                        errorDiv.style.display = 'block';
+                        ticketNumberInput.style.borderColor = '#dc3545';
+                    }
+                } else {
+                    const errorDiv = document.getElementById('create_ticket_number_error');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                        ticketNumberInput.style.borderColor = '';
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking ticket number:', error);
+            }
+        });
+    }
+}
+
 window.showTicketDetails = showTicketDetails;
 window.generateMessage = generateMessage;
 window.copyMessage = copyMessage;
@@ -3531,4 +3743,6 @@ window.showAssignTicketModal = showAssignTicketModal;
 window.closeAssignTicketModal = closeAssignTicketModal;
 window.reviewTicket = reviewTicket;
 window.closeReviewSection = closeReviewSection;
+window.openCreateTicketModal = openCreateTicketModal;
+window.closeCreateTicketModal = closeCreateTicketModal;
 

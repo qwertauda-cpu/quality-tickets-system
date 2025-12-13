@@ -63,6 +63,7 @@ const api = {
         return apiRequest(`/teams/${teamId}/scores?${params}`);
     },
     getTechniciansByTeam: (teamId) => apiRequest(`/teams/${teamId}/technicians`),
+    getTeamMembers: (teamId) => apiRequest(`/teams/${teamId}/members`),
     
     // Tickets
     getTickets: (params = {}) => {
@@ -70,6 +71,7 @@ const api = {
         return apiRequest(`/tickets?${queryString}`);
     },
     getTicket: (id) => apiRequest(`/tickets/${id}`),
+    checkTicketExists: (ticketNumber) => apiRequest(`/tickets/check/${ticketNumber}`),
     createTicket: (data) => apiRequest('/tickets', {
         method: 'POST',
         body: JSON.stringify(data)

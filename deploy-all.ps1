@@ -24,12 +24,10 @@ if ($gitStatus) {
     git status --short
     Write-Host ""
     
-    $commit = Read-Host "Do you want to commit these changes? (yes/no)"
+    # Auto-commit in non-interactive mode
+    $commit = "yes"  # Auto-commit
     if ($commit -eq "yes") {
-        $commitMessage = Read-Host "Enter commit message (or press Enter for default)"
-        if ([string]::IsNullOrWhiteSpace($commitMessage)) {
-            $commitMessage = "Update: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-        }
+        $commitMessage = "Update: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
         
         Write-Host "Adding files..." -ForegroundColor Yellow
         git add .
@@ -54,14 +52,10 @@ Write-Host "Step 2: Pushing to GitHub..." -ForegroundColor Cyan
 $remoteExists = git remote get-url origin 2>$null
 if (-not $remoteExists) {
     Write-Host "❌ No GitHub remote found!" -ForegroundColor Red
-    Write-Host ""
-    $repoUrl = Read-Host "Enter GitHub repository URL"
-    if ([string]::IsNullOrWhiteSpace($repoUrl)) {
-        Write-Host "❌ Repository URL is required" -ForegroundColor Red
-        exit 1
-    }
-    git remote add origin $repoUrl
-    Write-Host "✅ Remote added: $repoUrl" -ForegroundColor Green
+    Write-Host "Skipping GitHub push..." -ForegroundColor Yellow
+    $skipGitHub = $true
+} else {
+    $skipGitHub = $false
 }
 
 # Get current branch
@@ -70,14 +64,18 @@ if ([string]::IsNullOrWhiteSpace($currentBranch)) {
     $currentBranch = "main"
 }
 
-Write-Host "Pushing to origin/$currentBranch..." -ForegroundColor Yellow
-git push -u origin $currentBranch
+if (-not $skipGitHub) {
+    Write-Host "Pushing to origin/$currentBranch..." -ForegroundColor Yellow
+    git push -u origin $currentBranch
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host "✅ Successfully pushed to GitHub!" -ForegroundColor Green
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "✅ Successfully pushed to GitHub!" -ForegroundColor Green
+    } else {
+        Write-Host "❌ Failed to push to GitHub" -ForegroundColor Red
+        Write-Host "Continuing with server deployment anyway..." -ForegroundColor Yellow
+    }
 } else {
-    Write-Host "❌ Failed to push to GitHub" -ForegroundColor Red
-    Write-Host "Continuing with server deployment anyway..." -ForegroundColor Yellow
+    Write-Host "⏭️  Skipping GitHub push (no remote configured)" -ForegroundColor Yellow
 }
 
 Write-Host ""
