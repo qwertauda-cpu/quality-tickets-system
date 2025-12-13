@@ -1086,9 +1086,9 @@
         })();
     </script>
 
-    <!-- Create Ticket Modal (Simplified) -->
+    <!-- Create Ticket Modal (Simplified for Support/Call Center) -->
     <div id="create-ticket-modal" class="modal-overlay">
-        <div class="modal" style="max-width: 800px;">
+        <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
                 <h2>إنشاء تكت جديد</h2>
                 <button class="modal-close-btn" onclick="closeCreateTicketModal()">×</button>
@@ -1096,25 +1096,28 @@
             <div class="modal-body">
                 <form id="createTicketForm">
                     <div class="form-grid">
-                        <div class="form-group">
-                            <label for="create_ticket_number">رقم التكت *</label>
-                            <input type="text" id="create_ticket_number" pattern="[0-9]+" inputmode="numeric" autocomplete="off" required>
-                            <small class="form-text" style="color: #666; font-size: 0.85em;">يجب أن يحتوي على أرقام إنجليزية فقط (0-9)</small>
-                            <div id="create_ticket_number_error" class="error-message" style="display: none;"></div>
+                        <!-- رقم التكت - توليد تلقائي (للعرض فقط) -->
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="create_ticket_number">رقم التكت</label>
+                            <input type="text" id="create_ticket_number" readonly style="background-color: var(--bg-tertiary); color: var(--text-secondary); cursor: not-allowed;">
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">سيتم توليده تلقائياً من النظام</small>
                         </div>
                         
+                        <!-- اسم المشترك -->
                         <div class="form-group">
                             <label for="create_subscriber_name">اسم المشترك *</label>
-                            <input type="text" id="create_subscriber_name" required>
+                            <input type="text" id="create_subscriber_name" required placeholder="أدخل اسم المشترك">
                         </div>
                         
+                        <!-- رقم الهاتف -->
                         <div class="form-group">
-                            <label for="create_subscriber_phone">رقم المشترك *</label>
-                            <input type="text" id="create_subscriber_phone" pattern="[0-9]{11}" inputmode="numeric" maxlength="11" autocomplete="off" required>
+                            <label for="create_subscriber_phone">رقم الهاتف *</label>
+                            <input type="text" id="create_subscriber_phone" pattern="[0-9]{11}" inputmode="numeric" maxlength="11" autocomplete="off" required placeholder="11 رقم">
                             <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">يجب أن يحتوي على 11 رقم إنجليزي فقط (0-9)</small>
                             <div id="create_subscriber_phone_error" class="error-message" style="display: none;"></div>
                         </div>
                         
+                        <!-- نوع التكت -->
                         <div class="form-group">
                             <label for="create_ticket_type_id">نوع التكت *</label>
                             <select id="create_ticket_type_id" required>
@@ -1122,38 +1125,20 @@
                             </select>
                         </div>
                         
+                        <!-- المنطقة -->
                         <div class="form-group">
-                            <label for="create_team_id">الفريق *</label>
-                            <select id="create_team_id" required>
-                                <option value="">اختر الفريق</option>
-                            </select>
+                            <label for="create_region">المنطقة</label>
+                            <input type="text" id="create_region" placeholder="أدخل المنطقة">
                         </div>
                         
-                        <div class="form-group">
-                            <label for="create_assigned_technician_id">الفني المكلف</label>
-                            <select id="create_assigned_technician_id">
-                                <option value="">اختر الفني (اختياري)</option>
-                            </select>
-                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">إذا لم تختر فني، سيتم إرسال التكت للفريق فقط</small>
-                        </div>
-                        
+                        <!-- الملاحظات -->
                         <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="create_time_received">تاريخ استلام التكت (T0) *</label>
-                            <div id="create_time_received_container"></div>
-                        </div>
-                        
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="create_time_first_contact">تاريخ اول رد (T1)</label>
-                            <div id="create_time_first_contact_container"></div>
-                        </div>
-                        
-                        <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="create_time_completed">تاريخ اكمال التكت (T2)</label>
-                            <div id="create_time_completed_container"></div>
+                            <label for="create_notes">ملاحظات</label>
+                            <textarea id="create_notes" rows="4" placeholder="أدخل أي ملاحظات إضافية (اختياري)" style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; font-family: inherit; resize: vertical;"></textarea>
                         </div>
                     </div>
                     
-                    <div style="margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end;">
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
                         <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
                         <button type="submit" class="btn btn-primary">إنشاء التكت</button>
                     </div>

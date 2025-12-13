@@ -473,9 +473,9 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             assigned_technician_id,
             time_received, time_first_contact, time_completed,
             actual_time_minutes, adjusted_time_minutes, load_factor,
-            subscriber_name, subscriber_phone, subscriber_address, notes,
+            subscriber_name, subscriber_phone, subscriber_address, region, notes,
             call_center_id, status`;
-        let insertValues = `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`;
+        let insertValues = `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`;
         let insertParams = [
             finalTicketNumber.trim(), 
             ticketTypeId, 
@@ -491,14 +491,11 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             subscriber_name ? subscriber_name.trim() : null, 
             subscriber_phone ? subscriber_phone.trim() : null, 
             subscriber_address ? subscriber_address.trim() : null, 
+            region ? region.trim() : null,
             notes ? notes.trim() : null,
             req.user.role === 'call_center' ? req.user.id : null,
             finalTicketStatus
         ];
-        
-        // إضافة region إذا كان موجوداً (إذا كان الحقل موجود في قاعدة البيانات)
-        // ملاحظة: قد لا يكون حقل region موجوداً في قاعدة البيانات حالياً
-        // سنضيفه فقط إذا كان موجوداً في req.body
         
         const result = await db.query(`
             INSERT INTO tickets (${insertFields})

@@ -610,6 +610,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('userName').textContent = user.full_name;
     document.getElementById('currentUser').textContent = user.full_name;
     
+    // Hide "إدارة تكتات" section for technicians and quality_staff (only admin and call_center can access)
+    if (user.role === 'technician' || user.role === 'quality_staff') {
+        const ticketsManagementMenuItem = document.querySelector('a[data-page="tickets-management-new"]');
+        if (ticketsManagementMenuItem) {
+            ticketsManagementMenuItem.parentElement.style.display = 'none';
+        }
+        const ticketsManagementPage = document.getElementById('tickets-management-new-page');
+        if (ticketsManagementPage) {
+            ticketsManagementPage.style.display = 'none';
+        }
+    }
+    
     // Load initial data
     await loadTicketTypes();
     await loadTeams();
@@ -1244,6 +1256,16 @@ function displayScores(scores) {
 }
 
 function showPage(pageName) {
+    // Check permissions for tickets-management-new (only admin and call_center)
+    if (pageName === 'tickets-management-new') {
+        const user = getCurrentUser();
+        if (user.role !== 'admin' && user.role !== 'call_center') {
+            alert('غير مصرح لك بالوصول إلى هذه الصفحة');
+            showPage('tickets-management');
+            return;
+        }
+    }
+    
     // Hide all pages
     document.querySelectorAll('.page-content').forEach(page => {
         page.style.display = 'none';
@@ -3527,15 +3549,37 @@ async function openCreateTicketModal() {
     const modal = document.getElementById('create-ticket-modal');
     if (modal) {
         modal.classList.add('active');
-        // Load ticket types and teams
+        
+        // Generate ticket number automatically
+        generateTicketNumber();
+        
+        // Load ticket types only
         await loadTicketTypesForCreateModal();
-        await loadTeamsForCreateModal();
-        // Initialize datetime pickers
-        initCreateModalDateTimePickers();
+        
         // Setup form submission
         setupCreateTicketFormSubmission();
-        // Setup ticket number validation
-        setupCreateTicketNumberValidation();
+        
+        // Setup phone validation
+        setupCreatePhoneValidation();
+    }
+}
+
+// Generate automatic ticket number
+function generateTicketNumber() {
+    const ticketNumberInput = document.getElementById('create_ticket_number');
+    if (ticketNumberInput) {
+        // Format: TKT-YYYYMMDD-HHMMSS-XXX
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+        
+        const ticketNumber = `TKT-${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
+        ticketNumberInput.value = ticketNumber;
     }
 }
 
@@ -3568,69 +3612,34 @@ async function loadTicketTypesForCreateModal() {
     }
 }
 
-async function loadTeamsForCreateModal() {
-    try {
-        const data = await window.api.getTeams();
-        if (data && data.success) {
-            const teamSelect = document.getElementById('create_team_id');
-            const techSelect = document.getElementById('create_assigned_technician_id');
+// Phone validation for create modal
+function setupCreatePhoneValidation() {
+    const phoneInput = document.getElementById('create_subscriber_phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            // Remove any non-numeric characters
+            this.value = this.value.replace(/[^0-9]/g, '');
             
-            if (teamSelect) {
-                teamSelect.innerHTML = '<option value="">اختر الفريق</option>';
-                data.teams.forEach(team => {
-                    const option = document.createElement('option');
-                    option.value = team.id;
-                    option.textContent = team.name;
-                    teamSelect.appendChild(option);
-                });
+            // Limit to 11 digits
+            if (this.value.length > 11) {
+                this.value = this.value.slice(0, 11);
             }
             
-            // Load technicians when team is selected
-            if (teamSelect && techSelect) {
-                teamSelect.addEventListener('change', async function() {
-                    const teamId = this.value;
-                    if (teamId) {
-                        await loadTechniciansForTeam(teamId, techSelect);
-                    } else {
-                        techSelect.innerHTML = '<option value="">اختر الفني (اختياري)</option>';
-                    }
-                });
-            }
-        }
-    } catch (error) {
-        console.error('Error loading teams:', error);
-    }
-}
-
-async function loadTechniciansForTeam(teamId, selectElement) {
-    try {
-        const data = await window.api.getTeamMembers(teamId);
-        if (data && data.success) {
-            selectElement.innerHTML = '<option value="">اختر الفني (اختياري)</option>';
-            data.members.forEach(member => {
-                if (member.role === 'technician') {
-                    const option = document.createElement('option');
-                    option.value = member.id;
-                    option.textContent = member.full_name;
-                    selectElement.appendChild(option);
+            // Show/hide error
+            const errorDiv = document.getElementById('create_subscriber_phone_error');
+            if (this.value.length > 0 && this.value.length !== 11) {
+                if (errorDiv) {
+                    errorDiv.textContent = 'يجب أن يحتوي على 11 رقم بالضبط';
+                    errorDiv.style.display = 'block';
                 }
-            });
-        }
-    } catch (error) {
-        console.error('Error loading technicians:', error);
-    }
-}
-
-function initCreateModalDateTimePickers() {
-    // Initialize date and time pickers for create modal
-    if (typeof createDateTimePicker === 'function') {
-        const now = new Date();
-        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-        
-        // Create date pickers
-        window.createTimeReceivedPicker = createDateTimePicker('create_time_received_container', now.toISOString().slice(0, 16), true);
-        window.createTimeFirstContactPicker = createDateTimePicker('create_time_first_contact_container', null, false);
-        window.createTimeCompletedPicker = createDateTimePicker('create_time_completed_container', null, false);
+                this.style.borderColor = '#dc3545';
+            } else {
+                if (errorDiv) {
+                    errorDiv.style.display = 'none';
+                }
+                this.style.borderColor = '';
+            }
+        });
     }
 }
 
@@ -3640,23 +3649,35 @@ function setupCreateTicketFormSubmission() {
         form.onsubmit = async function(e) {
             e.preventDefault();
             
-            // Get form values
+            // Validate phone number
+            const phone = document.getElementById('create_subscriber_phone').value;
+            if (phone.length !== 11) {
+                alert('يجب أن يحتوي رقم الهاتف على 11 رقم بالضبط');
+                return;
+            }
+            
+            // Get form values (simplified - only required fields)
             const ticketData = {
-                ticket_number: document.getElementById('create_ticket_number').value,
-                subscriber_name: document.getElementById('create_subscriber_name').value,
-                subscriber_phone: document.getElementById('create_subscriber_phone').value,
+                // ticket_number will be auto-generated by server if empty
+                ticket_number: document.getElementById('create_ticket_number').value || null,
+                subscriber_name: document.getElementById('create_subscriber_name').value.trim(),
+                subscriber_phone: phone,
                 ticket_type_id: document.getElementById('create_ticket_type_id').value,
-                team_id: document.getElementById('create_team_id').value,
-                assigned_technician_id: document.getElementById('create_assigned_technician_id').value || null,
-                time_received: getCreateDateTimeValue('create_time_received_container'),
-                time_first_contact: getCreateDateTimeValue('create_time_first_contact_container') || null,
-                time_completed: getCreateDateTimeValue('create_time_completed_container') || null
+                region: document.getElementById('create_region').value.trim() || null,
+                notes: document.getElementById('create_notes').value.trim() || null
+                // No team_id, technician_id, or time fields - will be set later
             };
+            
+            // Validate required fields
+            if (!ticketData.subscriber_name || !ticketData.subscriber_phone || !ticketData.ticket_type_id) {
+                alert('الرجاء ملء جميع الحقول المطلوبة (*)');
+                return;
+            }
             
             try {
                 const result = await window.api.createTicket(ticketData);
                 if (result && result.success) {
-                    alert('تم إنشاء التكت بنجاح!');
+                    alert('تم إنشاء التكت بنجاح!\nرقم التكت: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'));
                     closeCreateTicketModal();
                     // Reload tickets list
                     if (typeof loadTicketsManagement === 'function') {
@@ -3667,72 +3688,12 @@ function setupCreateTicketFormSubmission() {
                 }
             } catch (error) {
                 console.error('Error creating ticket:', error);
-                alert('حدث خطأ أثناء إنشاء التكت');
+                alert('حدث خطأ أثناء إنشاء التكت: ' + (error.message || 'خطأ غير معروف'));
             }
         };
     }
 }
 
-function getCreateDateTimeValue(containerId) {
-    // Use the helper function from datetime-picker.js
-    if (typeof window.getDateTimeValue === 'function') {
-        return window.getDateTimeValue(containerId);
-    }
-    
-    // Fallback: manual extraction
-    const container = document.getElementById(containerId);
-    if (!container) return null;
-    
-    const hiddenInput = container.querySelector('input[type="hidden"]');
-    if (hiddenInput) {
-        return hiddenInput.value || null;
-    }
-    
-    // Try to get from selects
-    const yearSelect = container.querySelector('select[name="year"]');
-    const monthSelect = container.querySelector('select[name="month"]');
-    const daySelect = container.querySelector('select[name="day"]');
-    
-    if (!yearSelect || !monthSelect || !daySelect) return null;
-    
-    const year = yearSelect.value;
-    const month = monthSelect.value.padStart(2, '0');
-    const day = daySelect.value.padStart(2, '0');
-    
-    if (!year || !month || !day) return null;
-    
-    return `${year}-${month}-${day}T00:00:00`;
-}
-
-function setupCreateTicketNumberValidation() {
-    const ticketNumberInput = document.getElementById('create_ticket_number');
-    if (ticketNumberInput) {
-        ticketNumberInput.addEventListener('blur', async function() {
-            const ticketNumber = this.value.trim();
-            if (!ticketNumber) return;
-            
-            try {
-                const result = await window.api.checkTicketExists(ticketNumber);
-                if (result && result.exists) {
-                    const errorDiv = document.getElementById('create_ticket_number_error');
-                    if (errorDiv) {
-                        errorDiv.textContent = 'رقم التكت موجود بالفعل!';
-                        errorDiv.style.display = 'block';
-                        ticketNumberInput.style.borderColor = '#dc3545';
-                    }
-                } else {
-                    const errorDiv = document.getElementById('create_ticket_number_error');
-                    if (errorDiv) {
-                        errorDiv.style.display = 'none';
-                        ticketNumberInput.style.borderColor = '';
-                    }
-                }
-            } catch (error) {
-                console.error('Error checking ticket number:', error);
-            }
-        });
-    }
-}
 
 window.showTicketDetails = showTicketDetails;
 window.generateMessage = generateMessage;
