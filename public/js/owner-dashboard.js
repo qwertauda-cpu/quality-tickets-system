@@ -2564,17 +2564,12 @@ function openCreateOwnerTemplateModal() {
             templateIdInput.value = '';
         }
         
-        // Show modal - CSS requires both display:flex AND active class
-        // First set display, then add active class for opacity transition
-        modal.style.display = 'flex';
-        modal.style.opacity = '0';
-        // Force reflow
-        void modal.offsetHeight;
-        // Use requestAnimationFrame to ensure display is set before adding active class
-        requestAnimationFrame(() => {
-            modal.classList.add('active');
-            modal.style.opacity = '1';
-        });
+        // Show modal - CSS requires active class for display
+        // Remove inline display style if exists (let CSS handle it)
+        modal.style.removeProperty('display');
+        modal.style.removeProperty('opacity');
+        // Add active class - CSS will set display:flex and opacity:1
+        modal.classList.add('active');
         
         console.log('Modal should be visible now');
     } catch (error) {
