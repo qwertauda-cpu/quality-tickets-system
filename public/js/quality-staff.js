@@ -3897,3 +3897,9 @@ window.closeCreateTicketModal = closeCreateTicketModal;
 window.showAlertModal = showAlertModal;
 window.closeAlertModal = closeAlertModal;
 
+// Export variables to global scope
+window.ticketChecklists = ticketChecklists;
+window.ticketTypeMapping = ticketTypeMapping;
+
+})();
+
