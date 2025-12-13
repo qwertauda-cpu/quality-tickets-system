@@ -547,23 +547,23 @@
                                     </div>
                                     
                                     <div class="form-group" style="margin-bottom: 20px;">
-                                        <label style="display: block; margin-bottom: 12px; font-weight: 600; color: var(--text-primary);">اختر المدراء (الشركات) المراد إرسال الرسالة لهم:</label>
-                                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; background: var(--bg-secondary);">
-                                            <div style="margin-bottom: 8px;">
-                                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
-                                                    <input type="checkbox" id="selectAllManagers" onchange="toggleAllManagers(this.checked)" style="cursor: pointer;">
-                                                    <span style="font-weight: 600; color: var(--text-primary);">تحديد الكل</span>
-                                                </label>
-                                            </div>
-                                            <div id="managersList" style="display: flex; flex-direction: column; gap: 8px;">
-                                                <div style="padding: 12px; text-align: center; color: var(--text-secondary);">جاري تحميل قائمة المدراء...</div>
-                                            </div>
-                                        </div>
+                                        <label for="managersSelect" style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">اختر المدراء (الشركات) المراد إرسال الرسالة لهم <span class="required">*</span></label>
+                                        <select id="managersSelect" multiple size="6" style="width: 100%; padding: 12px 16px; padding-left: 44px; background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: 'Cairo', sans-serif; color: var(--text-primary); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-sizing: border-box; min-height: 200px; line-height: 1.8; cursor: pointer;">
+                                            <option value="" disabled style="color: var(--text-muted); font-style: italic; padding: 12px;">جاري تحميل قائمة المدراء...</option>
+                                        </select>
+                                        <small class="form-hint">💡 اضغط Ctrl (أو Cmd على Mac) للاختيار المتعدد</small>
                                     </div>
                                     
-                                    <div id="selectedManagersPreview" style="display: none; margin-bottom: 20px; padding: 16px; background: rgba(37, 211, 102, 0.1); border-radius: 6px; border-right: 3px solid #25D366;">
-                                        <p style="color: var(--text-primary); font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">المدراء المختارون:</p>
-                                        <div id="selectedManagersList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                                    <div id="selectedManagersPreview" style="display: none; margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(37, 211, 102, 0.15) 0%, rgba(37, 211, 102, 0.08) 100%); border-radius: 12px; border-right: 3px solid #25D366; border: 1px solid rgba(37, 211, 102, 0.3);">
+                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                                            <p style="color: var(--text-primary); font-size: 15px; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                                                <span>✅</span>
+                                                <span id="selectedCount">0</span>
+                                                <span>مدراء مختارون</span>
+                                            </p>
+                                            <button type="button" onclick="clearSelectedManagers()" class="btn btn-sm" style="padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3);">مسح الكل</button>
+                                        </div>
+                                        <div id="selectedManagersList" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;"></div>
                                     </div>
                                     
                                     <div class="form-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">

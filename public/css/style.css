@@ -1813,6 +1813,31 @@ select option {
     cursor: pointer;
 }
 
+/* Multiple select styling */
+select[multiple] {
+    min-height: 200px;
+    padding: 12px 16px;
+    padding-left: 44px;
+}
+
+select[multiple] option {
+    padding: 12px 16px;
+    margin: 4px 0;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+select[multiple] option:hover {
+    background: var(--bg-tertiary);
+}
+
+select[multiple] option:checked {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
 /* Select option hover (for browsers that support it) */
 select option:hover,
 select option:focus,

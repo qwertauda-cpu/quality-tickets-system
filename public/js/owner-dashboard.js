@@ -1761,62 +1761,72 @@ async function loadManagersForManualMessage() {
         
         const data = await window.api.getOwnerCompanies();
         if (data && data.success && data.companies) {
-            const managersList = document.getElementById('managersList');
-            if (!managersList) return;
+            const managersSelect = document.getElementById('managersSelect');
+            if (!managersSelect) return;
             
-            managersList.innerHTML = '';
+            managersSelect.innerHTML = '';
             
             if (data.companies.length === 0) {
-                managersList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-secondary);">لا توجد شركات متاحة</div>';
+                managersSelect.innerHTML = '<option value="" disabled style="color: var(--text-muted);">لا توجد شركات متاحة</option>';
                 return;
             }
             
-            data.companies.forEach(company => {
-                const managerItem = document.createElement('div');
-                managerItem.style.cssText = 'padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); transition: all 0.2s;';
-                managerItem.innerHTML = `
-                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; width: 100%;">
-                        <input type="checkbox" class="manager-checkbox" value="${company.id}" data-company-name="${company.company_name}" data-admin-name="${company.admin_name || company.admin_username || ''}" data-contact-phone="${company.contact_phone || ''}" onchange="updateSelectedManagersPreview()" style="cursor: pointer; width: 18px; height: 18px;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${company.company_name || 'غير محدد'}</div>
-                            <div style="font-size: 12px; color: var(--text-secondary);">
-                                <span>👤 ${company.admin_name || company.admin_username || 'غير محدد'}</span>
-                                ${company.contact_phone ? `<span style="margin-right: 12px;">📱 ${company.contact_phone}</span>` : ''}
-                            </div>
-                        </div>
-                    </label>
-                `;
-                managersList.appendChild(managerItem);
+            // ترتيب الشركات حسب الاسم
+            const sortedCompanies = [...data.companies].sort((a, b) => {
+                const nameA = (a.company_name || '').toLowerCase();
+                const nameB = (b.company_name || '').toLowerCase();
+                return nameA.localeCompare(nameB, 'ar');
             });
+            
+            sortedCompanies.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.id;
+                option.dataset.companyName = company.company_name || 'غير محدد';
+                option.dataset.adminName = company.admin_name || company.admin_username || 'غير محدد';
+                option.dataset.contactPhone = company.contact_phone || '';
+                
+                // نص الخيار: اسم الشركة - اسم المدير - رقم الهاتف
+                let optionText = `${company.company_name || 'غير محدد'}`;
+                if (company.admin_name || company.admin_username) {
+                    optionText += ` | 👤 ${company.admin_name || company.admin_username}`;
+                }
+                if (company.contact_phone) {
+                    optionText += ` | 📱 ${company.contact_phone}`;
+                }
+                
+                option.textContent = optionText;
+                option.style.padding = '12px 16px';
+                option.style.fontSize = '14px';
+                option.style.lineHeight = '1.6';
+                
+                managersSelect.appendChild(option);
+            });
+            
+            // إضافة event listener للتحديث عند التغيير
+            managersSelect.addEventListener('change', updateSelectedManagersPreview);
         }
     } catch (error) {
         console.error('Error loading managers:', error);
-        const managersList = document.getElementById('managersList');
-        if (managersList) {
-            managersList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--error-color);">خطأ في تحميل قائمة المدراء</div>';
+        const managersSelect = document.getElementById('managersSelect');
+        if (managersSelect) {
+            managersSelect.innerHTML = '<option value="" disabled style="color: var(--error-color);">خطأ في تحميل قائمة المدراء</option>';
         }
     }
 }
 
-// Toggle all managers selection
-function toggleAllManagers(checked) {
-    const checkboxes = document.querySelectorAll('.manager-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = checked;
-    });
-    updateSelectedManagersPreview();
-}
-
 // Update selected managers preview
 function updateSelectedManagersPreview() {
-    const checkboxes = document.querySelectorAll('.manager-checkbox:checked');
+    const managersSelect = document.getElementById('managersSelect');
     const previewContainer = document.getElementById('selectedManagersPreview');
     const previewList = document.getElementById('selectedManagersList');
+    const selectedCount = document.getElementById('selectedCount');
     const sendBtn = document.getElementById('sendManualMessagesBtn');
     
-    if (!previewContainer || !previewList || !sendBtn) return;
+    if (!managersSelect || !previewContainer || !previewList || !sendBtn) return;
     
-    if (checkboxes.length === 0) {
+    const selectedOptions = Array.from(managersSelect.selectedOptions);
+    
+    if (selectedOptions.length === 0) {
         previewContainer.style.display = 'none';
         sendBtn.disabled = true;
         return;
@@ -1824,20 +1834,52 @@ function updateSelectedManagersPreview() {
     
     previewContainer.style.display = 'block';
     sendBtn.disabled = false;
+    
+    if (selectedCount) {
+        selectedCount.textContent = selectedOptions.length;
+    }
+    
     previewList.innerHTML = '';
     
-    checkboxes.forEach(checkbox => {
+    selectedOptions.forEach(option => {
         const item = document.createElement('div');
-        item.style.cssText = 'padding: 8px 12px; background: white; border-radius: 4px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;';
+        item.style.cssText = 'padding: 10px 14px; background: rgba(255, 255, 255, 0.1); border-radius: 8px; border: 1px solid rgba(37, 211, 102, 0.2); display: flex; justify-content: space-between; align-items: center; transition: all 0.2s;';
         item.innerHTML = `
-            <div>
-                <span style="font-weight: 600; color: var(--text-primary);">${checkbox.dataset.companyName}</span>
-                <span style="margin-right: 8px; color: var(--text-secondary); font-size: 12px;">(${checkbox.dataset.adminName})</span>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; margin-bottom: 4px;">${option.dataset.companyName}</div>
+                <div style="font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap;">
+                    <span>👤 ${option.dataset.adminName}</span>
+                    ${option.dataset.contactPhone ? `<span>📱 ${option.dataset.contactPhone}</span>` : '<span style="color: var(--warning-color);">⚠️ لا يوجد رقم</span>'}
+                </div>
             </div>
-            ${checkbox.dataset.contactPhone ? `<span style="color: var(--text-secondary); font-size: 12px;">📱 ${checkbox.dataset.contactPhone}</span>` : '<span style="color: var(--error-color); font-size: 12px;">⚠️ لا يوجد رقم</span>'}
+            <button type="button" onclick="removeManagerFromSelection('${option.value}')" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; transition: all 0.2s; margin-right: 8px;" onmouseover="this.style.background='rgba(239, 68, 68, 0.25)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.transform='scale(1)'">✕</button>
         `;
         previewList.appendChild(item);
     });
+}
+
+// Remove manager from selection
+function removeManagerFromSelection(companyId) {
+    const managersSelect = document.getElementById('managersSelect');
+    if (!managersSelect) return;
+    
+    const option = managersSelect.querySelector(`option[value="${companyId}"]`);
+    if (option) {
+        option.selected = false;
+        updateSelectedManagersPreview();
+    }
+}
+
+// Clear all selected managers
+function clearSelectedManagers() {
+    const managersSelect = document.getElementById('managersSelect');
+    if (!managersSelect) return;
+    
+    Array.from(managersSelect.selectedOptions).forEach(option => {
+        option.selected = false;
+    });
+    
+    updateSelectedManagersPreview();
 }
 
 // Send manual WhatsApp messages
@@ -1860,19 +1902,31 @@ async function sendManualWhatsAppMessages() {
             return;
         }
         
-        const companyIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        const managersSelect = document.getElementById('managersSelect');
+        if (!managersSelect) {
+            showAlertModal('خطأ', 'عنصر الاختيار غير موجود');
+            return;
+        }
+        
+        const selectedOptions = Array.from(managersSelect.selectedOptions);
+        if (selectedOptions.length === 0) {
+            showAlertModal('خطأ', 'يرجى اختيار شركة واحدة على الأقل');
+            return;
+        }
+        
+        const companyIds = selectedOptions.map(option => parseInt(option.value));
         
         // التحقق من وجود أرقام هواتف
-        const companiesWithoutPhone = Array.from(checkboxes).filter(cb => !cb.dataset.contactPhone);
+        const companiesWithoutPhone = selectedOptions.filter(option => !option.dataset.contactPhone);
         if (companiesWithoutPhone.length > 0) {
-            const companyNames = companiesWithoutPhone.map(cb => cb.dataset.companyName).join(', ');
+            const companyNames = companiesWithoutPhone.map(option => option.dataset.companyName).join(', ');
             if (!confirm(`تحذير: بعض الشركات المختارة لا تحتوي على رقم هاتف:\n${companyNames}\n\nهل تريد المتابعة؟`)) {
                 return;
             }
         }
         
         // تأكيد الإرسال
-        if (!confirm(`هل أنت متأكد من إرسال الرسالة إلى ${checkboxes.length} شركة؟`)) {
+        if (!confirm(`هل أنت متأكد من إرسال الرسالة إلى ${selectedOptions.length} شركة؟`)) {
             return;
         }
         
@@ -1955,13 +2009,15 @@ async function sendManualWhatsAppMessages() {
 // Clear manual message form
 function clearManualMessageForm() {
     const messageText = document.getElementById('manualMessageText');
-    const checkboxes = document.querySelectorAll('.manager-checkbox');
-    const selectAll = document.getElementById('selectAllManagers');
+    const managersSelect = document.getElementById('managersSelect');
     const statusDiv = document.getElementById('manualMessageStatus');
     
     if (messageText) messageText.value = '';
-    checkboxes.forEach(cb => cb.checked = false);
-    if (selectAll) selectAll.checked = false;
+    if (managersSelect) {
+        Array.from(managersSelect.selectedOptions).forEach(option => {
+            option.selected = false;
+        });
+    }
     if (statusDiv) {
         statusDiv.style.display = 'none';
         statusDiv.innerHTML = '';
@@ -1979,8 +2035,9 @@ window.checkForQRCode = checkForQRCode;
 window.checkWhatsAppStatus = checkWhatsAppStatus;
 window.logoutWhatsApp = logoutWhatsApp;
 window.generateWhatsAppQR = generateWhatsAppQR;
-window.toggleAllManagers = toggleAllManagers;
 window.updateSelectedManagersPreview = updateSelectedManagersPreview;
+window.removeManagerFromSelection = removeManagerFromSelection;
+window.clearSelectedManagers = clearSelectedManagers;
 window.sendManualWhatsAppMessages = sendManualWhatsAppMessages;
 window.clearManualMessageForm = clearManualMessageForm;
 
