@@ -697,17 +697,40 @@ async function loadCompaniesForInvoice() {
                 const option = document.createElement('option');
                 option.value = company.id;
                 option.textContent = `${company.name} (@${company.domain})`;
-                option.dataset.pricePerEmployee = company.price_per_employee;
+                option.dataset.pricePerEmployee = company.price_per_employee || 0;
+                option.dataset.currentEmployees = company.current_employees || 0;
                 select.appendChild(option);
             });
             
-            // Auto-fill price when company is selected
+            // Auto-fill company info when company is selected
             select.addEventListener('change', function() {
                 const selectedOption = this.options[this.selectedIndex];
-                if (selectedOption.dataset.pricePerEmployee) {
-                    const priceValue = parseFloat(selectedOption.dataset.pricePerEmployee);
-                    // Price is already in full amount, set it directly
-                    document.getElementById('invoice_price_per_employee').value = priceValue.toString();
+                if (selectedOption && selectedOption.value) {
+                    // Get company data from the option
+                    const pricePerEmployee = parseFloat(selectedOption.dataset.pricePerEmployee) || 0;
+                    const currentEmployees = parseInt(selectedOption.dataset.currentEmployees) || 0;
+                    
+                    // Fill price per employee (already in full amount)
+                    const priceInput = document.getElementById('invoice_price_per_employee');
+                    if (priceInput) {
+                        priceInput.value = pricePerEmployee.toString();
+                    }
+                    
+                    // Fill employee count
+                    const employeeCountInput = document.getElementById('invoice_employee_count');
+                    if (employeeCountInput) {
+                        employeeCountInput.value = currentEmployees.toString();
+                    }
+                } else {
+                    // Clear fields if no company selected
+                    const priceInput = document.getElementById('invoice_price_per_employee');
+                    if (priceInput) {
+                        priceInput.value = '';
+                    }
+                    const employeeCountInput = document.getElementById('invoice_employee_count');
+                    if (employeeCountInput) {
+                        employeeCountInput.value = '';
+                    }
                 }
             });
         }
