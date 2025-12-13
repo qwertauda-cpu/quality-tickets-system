@@ -62,7 +62,7 @@ function showPage(pageName) {
         targetPage.style.display = 'block';
     }
     
-    document.getElementById('pageTitle').textContent = 'التكتات';
+    document.getElementById('pageTitle').textContent = 'التذكرةات';
     
     document.querySelectorAll('.sidebar-menu a').forEach(link => {
         link.classList.remove('active');
@@ -200,7 +200,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 if (!formData.ticket_type_id || isNaN(formData.ticket_type_id)) {
-                    alert('نوع التكت مطلوب');
+                    alert('نوع التذكرة مطلوب');
                     return;
                 }
                 
@@ -208,15 +208,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await window.api.createTicket(formData);
                 
                 if (response && response.success) {
-                    alert('✅ تم إنشاء التكت بنجاح!');
+                    alert('✅ تم إنشاء التذكرة بنجاح!');
                     closeCreateTicketModal();
                     loadTickets(); // Refresh tickets list
                 } else {
-                    alert('❌ خطأ: ' + (response.error || 'فشل إنشاء التكت'));
+                    alert('❌ خطأ: ' + (response.error || 'فشل إنشاء التذكرة'));
                 }
             } catch (error) {
                 console.error('Error creating ticket:', error);
-                alert('❌ خطأ في إنشاء التكت: ' + (error.message || 'خطأ غير معروف'));
+                alert('❌ خطأ في إنشاء التذكرة: ' + (error.message || 'خطأ غير معروف'));
             }
         });
     }
@@ -235,11 +235,11 @@ async function loadTickets() {
         if (response && response.success) {
             displayTickets(response.tickets || []);
         } else {
-            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التكتات</p>';
+            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
-        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التكتات</p>';
+        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
     }
 }
 
@@ -247,7 +247,7 @@ function displayTickets(tickets) {
     const container = document.getElementById('ticketsList');
     
     if (tickets.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>📭 لا توجد تكتات</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>📭 لا توجد تذكرةات</p></div>';
         return;
     }
     
@@ -276,7 +276,7 @@ function displayTickets(tickets) {
         html += `
             <div class="ticket-card">
                 <div class="ticket-card-header">
-                    <h3>التكت رقم: ${ticket.ticket_number}</h3>
+                    <h3>التذكرة رقم: ${ticket.ticket_number}</h3>
                     <span class="badge ${statusClass}">${statusText}</span>
                 </div>
                 <div class="ticket-card-body">
@@ -303,7 +303,7 @@ function displayTickets(tickets) {
 
 async function viewTicket(ticketId) {
     // يمكن إضافة modal لعرض التفاصيل
-    alert('عرض تفاصيل التكت - قيد التطوير');
+    alert('عرض تفاصيل التذكرة - قيد التطوير');
 }
 
 // Expose functions to window

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>لوحة الفريق - نظام إدارة التكتات</title>
+    <title>لوحة الفريق - نظام إدارة التذكرةات</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
             <ul class="sidebar-menu">
                 <li><a href="#" class="active" data-page="my-scores"><i>📊</i> نقاطي</a></li>
                 <li><a href="#" data-page="all-teams"><i>🏆</i> ترتيب الفرق</a></li>
-                <li><a href="#" data-page="my-tickets"><i>🎫</i> تكتاتي</a></li>
+                <li><a href="#" data-page="my-tickets"><i>🎫</i> تذكرةاتي</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
             </ul>
         </aside>
@@ -43,7 +43,7 @@
                         <div class="value" id="monthScore">0</div>
                     </div>
                     <div class="stat-card warning">
-                        <h3>عدد التكتات</h3>
+                        <h3>عدد التذكرةات</h3>
                         <div class="value" id="ticketCount">0</div>
                     </div>
                 </div>
@@ -62,7 +62,7 @@
                                         <th>الترتيب</th>
                                         <th>اسم الفريق</th>
                                         <th>النقاط</th>
-                                        <th>عدد التكتات</th>
+                                        <th>عدد التذكرةات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="allTeamsTableBody">

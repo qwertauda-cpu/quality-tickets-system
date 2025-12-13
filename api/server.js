@@ -1,6 +1,6 @@
 /**
  * Quality & Tickets Management System - Main Server
- * نظام إدارة التكتات والجودة
+ * نظام إدارة التذكرةات والجودة
  */
 
 const express = require('express');
@@ -313,16 +313,16 @@ app.get('/api/ticket-types', authenticate, async (req, res) => {
         res.json({ success: true, types });
     } catch (error) {
         console.error('Ticket types error:', error);
-        res.status(500).json({ error: 'خطأ في جلب أنواع التكتات' });
+        res.status(500).json({ error: 'خطأ في جلب أنواع التذكرةات' });
     }
 });
 
 // ==================== Create Ticket (Manual Entry) ====================
 app.post('/api/tickets', authenticate, async (req, res) => {
     try {
-        // التحقق من الصلاحيات - فقط admin و call_center يمكنهم إنشاء التكتات
+        // التحقق من الصلاحيات - فقط admin و call_center يمكنهم إنشاء التذكرةات
         if (req.user.role !== 'admin' && req.user.role !== 'call_center') {
-            return res.status(403).json({ error: 'غير مصرح لك بإنشاء التكتات' });
+            return res.status(403).json({ error: 'غير مصرح لك بإنشاء التذكرةات' });
         }
         
         console.log('Create ticket request body:', JSON.stringify(req.body, null, 2));
@@ -343,10 +343,10 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             notes
         } = req.body;
         
-        // توليد رقم التكت تلقائياً إذا لم يتم إرساله
+        // توليد رقم التذكرة تلقائياً إذا لم يتم إرساله
         let finalTicketNumber = ticket_number;
         if (!finalTicketNumber || !finalTicketNumber.trim()) {
-            // توليد رقم تكت فريد: TKT-YYYYMMDD-HHMMSS-XXX
+            // توليد رقم تذكرة فريد: TKT-YYYYMMDD-HHMMSS-XXX
             const now = moment();
             const dateStr = now.format('YYYYMMDD');
             const timeStr = now.format('HHmmss');
@@ -372,7 +372,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         }
         
         console.log('Step 1: Checking for existing ticket...');
-        // التحقق من وجود التكت بنفس الرقم
+        // التحقق من وجود التذكرة بنفس الرقم
         const existing = await db.queryOne(
             'SELECT id FROM tickets WHERE ticket_number = ?',
             [finalTicketNumber]
@@ -380,7 +380,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         
         if (existing) {
             console.log('Validation error: Ticket number already exists:', finalTicketNumber);
-            return res.status(400).json({ error: 'رقم التكت موجود مسبقاً' });
+            return res.status(400).json({ error: 'رقم التذكرة موجود مسبقاً' });
         }
         
         // إذا كان المستخدم call_center أو admin وليس لديه time_received، نستخدم الوقت الحالي
@@ -429,13 +429,13 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         // التحقق من صحة time_received بعد التنظيف
         if (!cleanedTimeReceived) {
             console.log('Validation error: cleanedTimeReceived is null');
-            return res.status(400).json({ error: 'تنسيق تاريخ ووقت استلام التكت غير صحيح. يجب أن يكون YYYY-MM-DDTHH:MM' });
+            return res.status(400).json({ error: 'تنسيق تاريخ ووقت استلام التذكرة غير صحيح. يجب أن يكون YYYY-MM-DDTHH:MM' });
         }
         
         // التحقق من صحة التاريخ باستخدام moment
         if (!moment(cleanedTimeReceived).isValid()) {
             console.log('Validation error: cleanedTimeReceived is not valid moment:', cleanedTimeReceived);
-            return res.status(400).json({ error: 'تاريخ ووقت استلام التكت غير صحيح' });
+            return res.status(400).json({ error: 'تاريخ ووقت استلام التذكرة غير صحيح' });
         }
         
         console.log('Date validation passed');
@@ -514,7 +514,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             // Regular ticket type
             if (isNaN(parseInt(ticket_type_id))) {
                 console.log('Validation error: ticket_type_id is invalid:', ticket_type_id, typeof ticket_type_id);
-                return res.status(400).json({ error: 'نوع التكت غير صحيح' });
+                return res.status(400).json({ error: 'نوع التذكرة غير صحيح' });
             }
             
             finalTicketTypeId = parseInt(ticket_type_id);
@@ -527,10 +527,10 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             
             if (!ticketTypeExists) {
                 console.log('Validation error: ticket_type_id does not exist:', finalTicketTypeId);
-                return res.status(400).json({ error: 'نوع التكت غير موجود أو غير نشط' });
+                return res.status(400).json({ error: 'نوع التذكرة غير موجود أو غير نشط' });
             }
         } else {
-            return res.status(400).json({ error: 'نوع التكت مطلوب' });
+            return res.status(400).json({ error: 'نوع التذكرة مطلوب' });
         }
         
         console.log('Parsed values - finalTicketTypeId:', finalTicketTypeId);
@@ -574,7 +574,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
         }
         
-        // إدراج التكت - فقط الحقول الأساسية للدعم الفني
+        // إدراج التذكرة - فقط الحقول الأساسية للدعم الفني
         let insertFields = `
             ticket_number, ticket_type_id, team_id, quality_staff_id,
             assigned_technician_id,
@@ -611,11 +611,11 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         
         const ticketId = result.insertId;
         
-        // إرجاع رقم التكت المُولّد في الاستجابة
+        // إرجاع رقم التذكرة المُولّد في الاستجابة
         console.log('Ticket created successfully. ID:', ticketId, 'Ticket Number:', finalTicketNumber);
         res.json({
             success: true,
-            message: 'تم إنشاء التكت بنجاح',
+            message: 'تم إنشاء التذكرة بنجاح',
             ticket: {
                 id: ticketId,
                 ticket_number: finalTicketNumber
@@ -625,7 +625,7 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         console.error('Create ticket error:', error);
         console.error('Error stack:', error.stack);
         res.status(500).json({ 
-            error: 'خطأ في إدخال التكت',
+            error: 'خطأ في إدخال التذكرة',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
@@ -639,13 +639,13 @@ app.put('/api/tickets/:id', authenticate, async (req, res) => {
         
         // Check if user is team_leader or admin
         if (req.user.role !== 'team_leader' && req.user.role !== 'admin') {
-            return res.status(403).json({ error: 'غير مصرح لك بتعديل التكت' });
+            return res.status(403).json({ error: 'غير مصرح لك بتعديل التذكرة' });
         }
         
         // Check if ticket exists
         const ticket = await db.queryOne('SELECT id FROM tickets WHERE id = ?', [ticketId]);
         if (!ticket) {
-            return res.status(404).json({ error: 'التكت غير موجود' });
+            return res.status(404).json({ error: 'التذكرة غير موجود' });
         }
         
         // Build update query
@@ -683,11 +683,11 @@ app.put('/api/tickets/:id', authenticate, async (req, res) => {
         
         res.json({
             success: true,
-            message: 'تم تحديث التكت بنجاح'
+            message: 'تم تحديث التذكرة بنجاح'
         });
     } catch (error) {
         console.error('Update ticket error:', error);
-        res.status(500).json({ error: 'خطأ في تحديث التكت' });
+        res.status(500).json({ error: 'خطأ في تحديث التذكرة' });
     }
 });
 
@@ -734,7 +734,7 @@ app.get('/api/tickets/assigned', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Get assigned tickets error:', error);
-        res.status(500).json({ error: 'خطأ في جلب التكتات' });
+        res.status(500).json({ error: 'خطأ في جلب التذكرةات' });
     }
 });
 
@@ -780,7 +780,7 @@ app.put('/api/tickets/:id/assignment', authenticate, async (req, res) => {
             WHERE ticket_id = ? AND (assigned_to = ? OR assignment_type = 'general')
         `, [status, notes || null, status, ticketId, req.user.id]);
         
-        // تحديث حالة التكت
+        // تحديث حالة التذكرة
         if (status === 'accepted') {
             await db.query(`
                 UPDATE tickets 
@@ -1012,7 +1012,7 @@ app.get('/api/tickets/:id', authenticate, async (req, res) => {
         `, [ticketId]);
         
         if (!ticket) {
-            return res.status(404).json({ error: 'التكت غير موجود' });
+            return res.status(404).json({ error: 'التذكرة غير موجود' });
         }
         
         // جلب الصور
@@ -1083,7 +1083,7 @@ app.get('/api/tickets/:id', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Get ticket error:', error);
-        res.status(500).json({ error: 'خطأ في جلب بيانات التكت' });
+        res.status(500).json({ error: 'خطأ في جلب بيانات التذكرة' });
     }
 });
 
@@ -1095,10 +1095,10 @@ app.get('/api/tickets', authenticate, async (req, res) => {
         let whereClause = '1=1';
         const params = [];
         
-        // إذا كان المستخدم موظف جودة، اعرض التكتات المكتملة من الفني افتراضياً
+        // إذا كان المستخدم موظف جودة، اعرض التذكرةات المكتملة من الفني افتراضياً
         if (req.user.role === 'quality_staff' && !status) {
-            // عرض التكتات المكتملة من الفني (جاهزة للمراجعة)
-            // أو التكتات الجديدة التي لم يتم إرسالها للفني بعد
+            // عرض التذكرةات المكتملة من الفني (جاهزة للمراجعة)
+            // أو التذكرةات الجديدة التي لم يتم إرسالها للفني بعد
             whereClause += ` AND (
                 t.status IN ('COMPLETED', 'UNDER_REVIEW') 
                 OR (t.status = 'NEW' AND t.assigned_technician_id IS NULL)
@@ -1173,7 +1173,7 @@ app.get('/api/tickets', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Get tickets error:', error);
-        res.status(500).json({ error: 'خطأ في جلب التكتات' });
+        res.status(500).json({ error: 'خطأ في جلب التذكرةات' });
     }
 });
 
@@ -1198,7 +1198,7 @@ app.get('/api/tickets/:id/generate-message', authenticate, async (req, res) => {
         `, [ticketId]);
         
         if (!ticket) {
-            return res.status(404).json({ error: 'التكت غير موجود' });
+            return res.status(404).json({ error: 'التذكرة غير موجود' });
         }
         
         // تحديد نوع الرسالة
@@ -1432,7 +1432,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                });
             
             doc.fontSize(22);
-            doc.text('تقرير يومي - إدارة التكتات والجودة', { 
+            doc.text('تقرير يومي - إدارة التذكرةات والجودة', { 
                 x: 297.5, 
                 y: 85, 
                 align: 'center',
@@ -1490,9 +1490,9 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             }
             
             const summaryData = [
-                { ar: 'إجمالي التكتات', en: 'Total Tickets', value: totalTickets, color: '#3b82f6' },
-                { ar: 'التكتات المكتملة', en: 'Completed', value: completedTickets, color: '#10b981' },
-                { ar: 'التكتات المؤجلة', en: 'Postponed', value: postponedTickets, color: '#f59e0b' },
+                { ar: 'إجمالي التذكرةات', en: 'Total Tickets', value: totalTickets, color: '#3b82f6' },
+                { ar: 'التذكرةات المكتملة', en: 'Completed', value: completedTickets, color: '#10b981' },
+                { ar: 'التذكرةات المؤجلة', en: 'Postponed', value: postponedTickets, color: '#f59e0b' },
                 { ar: 'النقاط الإيجابية', en: 'Positive Points', value: totalPositivePoints, color: '#10b981' },
                 { ar: 'النقاط السالبة', en: 'Negative Points', value: totalNegativePoints, color: '#ef4444' },
                 { ar: 'النقاط الصافية', en: 'Net Points', value: totalNetPoints, color: '#6366f1', bold: true }
@@ -1576,7 +1576,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             const headers = [
                 { text: 'Rank', ar: 'الترتيب', x: tableStartX + 10 },
                 { text: 'Team | الفريق', x: tableStartX + 60 },
-                { text: 'Tickets', ar: 'التكتات', x: tableStartX + 260 },
+                { text: 'Tickets', ar: 'التذكرةات', x: tableStartX + 260 },
                 { text: 'Positive', ar: 'إيجابية', x: tableStartX + 340 },
                 { text: 'Negative', ar: 'سالبة', x: tableStartX + 420 },
                 { text: 'Net', ar: 'صافية', x: tableStartX + 500 }
@@ -1642,7 +1642,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
             doc.moveTo(tableStartX, doc.y).lineTo(tableStartX + 495, doc.y).stroke();
             doc.moveDown();
             
-            // ========== تفاصيل التكتات (Ticket Details) ==========
+            // ========== تفاصيل التذكرةات (Ticket Details) ==========
             // عنوان القسم
             doc.fontSize(18);
             if (fs.existsSync(arabicFontBold)) {
@@ -1651,11 +1651,11 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 doc.font('Helvetica-Bold');
             }
             doc.fillColor('#1e40af');
-            writeArabicText(doc, 'تفاصيل التكتات | Ticket Details', { align: 'right', bold: true });
+            writeArabicText(doc, 'تفاصيل التذكرةات | Ticket Details', { align: 'right', bold: true });
             doc.fillColor('#000000');
             doc.moveDown(0.5);
             
-            // تجميع التكتات حسب الفريق
+            // تجميع التذكرةات حسب الفريق
             const ticketsByTeam = {};
             tickets.forEach(ticket => {
                 if (!ticketsByTeam[ticket.team_name]) {
@@ -1689,7 +1689,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                 doc.fillColor('#000000');
                 doc.moveDown(1);
                 
-                // جدول التكتات
+                // جدول التذكرةات
                 const ticketTableY = doc.y;
                 const ticketColWidths = [40, 80, 150, 60, 60, 60, 55]; // #, Ticket#, Type, Status, Time, Points, Net
                 
@@ -1739,7 +1739,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                     doc.font('Helvetica');
                     doc.text((index + 1).toString(), 55, rowY + 5, { width: 35, align: 'center' });
                     
-                    // رقم التكت
+                    // رقم التذكرة
                     doc.font('Helvetica-Bold');
                     doc.text(ticket.ticket_number, 95, rowY + 5, { width: 75 });
                     
@@ -1855,7 +1855,7 @@ app.get('/api/reports/daily-pdf', authenticate, async (req, res) => {
                         doc.font('Helvetica-Bold');
                     }
                     doc.fillColor('#dc2626');
-                    writeArabicText(doc, `${index + 1}. Ticket# ${ticket.ticket_number} | التكت رقم: ${ticket.ticket_number}`, { 
+                    writeArabicText(doc, `${index + 1}. Ticket# ${ticket.ticket_number} | التذكرة رقم: ${ticket.ticket_number}`, { 
                         x: 55, 
                         y: boxY + 5, 
                         width: 485,
@@ -2415,11 +2415,11 @@ app.get('/api/technician/tickets', authenticate, async (req, res) => {
         const params = [technicianId];
         
         if (status === 'active') {
-            // عرض التكتات المخصصة أو قيد العمل
+            // عرض التذكرةات المخصصة أو قيد العمل
             whereClause += ' AND t.status IN (?, ?)';
             params.push('ASSIGNED', 'IN_PROGRESS');
         } else if (status === 'completed') {
-            // عرض التكتات المكتملة
+            // عرض التذكرةات المكتملة
             whereClause += ' AND t.status = ?';
             params.push('COMPLETED');
         }
@@ -2440,7 +2440,7 @@ app.get('/api/technician/tickets', authenticate, async (req, res) => {
         res.json({ success: true, tickets });
     } catch (error) {
         console.error('Get technician tickets error:', error);
-        res.status(500).json({ error: 'خطأ في جلب التكتات' });
+        res.status(500).json({ error: 'خطأ في جلب التذكرةات' });
     }
 });
 
@@ -2454,14 +2454,14 @@ app.post('/api/technician/tickets/:id/start-work', authenticate, async (req, res
         const ticketId = parseInt(req.params.id);
         const technicianId = req.user.id;
         
-        // التحقق من أن التكت مخصص لهذا الفني
+        // التحقق من أن التذكرة مخصص لهذا الفني
         const ticket = await db.queryOne(`
             SELECT * FROM tickets 
             WHERE id = ? AND assigned_technician_id = ? AND status = 'ASSIGNED'
         `, [ticketId, technicianId]);
         
         if (!ticket) {
-            return res.status(404).json({ error: 'التكت غير موجود أو غير مخصص لك' });
+            return res.status(404).json({ error: 'التذكرة غير موجود أو غير مخصص لك' });
         }
         
         // تحديث الحالة إلى IN_PROGRESS
@@ -2473,7 +2473,7 @@ app.post('/api/technician/tickets/:id/start-work', authenticate, async (req, res
             WHERE id = ?
         `, [ticketId]);
         
-        res.json({ success: true, message: 'تم بدء العمل على التكت' });
+        res.json({ success: true, message: 'تم بدء العمل على التذكرة' });
     } catch (error) {
         console.error('Start work error:', error);
         res.status(500).json({ error: 'خطأ في بدء العمل' });
@@ -2490,7 +2490,7 @@ app.post('/api/technician/tickets/:id/complete', authenticate, async (req, res) 
         const ticketId = parseInt(req.params.id);
         const technicianId = req.user.id;
         
-        // التحقق من أن التكت قيد العمل
+        // التحقق من أن التذكرة قيد العمل
         const ticket = await db.queryOne(`
             SELECT t.*, 
                    TIMESTAMPDIFF(MINUTE, COALESCE(t.time_received, t.created_at), NOW()) as current_time_minutes
@@ -2500,14 +2500,14 @@ app.post('/api/technician/tickets/:id/complete', authenticate, async (req, res) 
         `, [ticketId, technicianId]);
         
         if (!ticket) {
-            return res.status(404).json({ error: 'التكت غير موجود أو لم يبدأ العمل عليه' });
+            return res.status(404).json({ error: 'التذكرة غير موجود أو لم يبدأ العمل عليه' });
         }
         
         // حساب الوقت المستغرق
         const timeReceived = ticket.time_received || ticket.created_at;
         const currentTimeMinutes = ticket.current_time_minutes || 0;
         
-        // تحديث التكت: تغيير الحالة إلى COMPLETED (جاهز للمراجعة)
+        // تحديث التذكرة: تغيير الحالة إلى COMPLETED (جاهز للمراجعة)
         await db.query(`
             UPDATE tickets 
             SET status = 'COMPLETED',
@@ -2522,17 +2522,17 @@ app.post('/api/technician/tickets/:id/complete', authenticate, async (req, res) 
         const qualityStaffId = ticket.quality_staff_id;
         await db.query(`
             INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
-            VALUES (?, 'ticket_completed', 'تكت منتهي', 
-                   CONCAT('تم إنهاء التكت رقم ', ?, ' من الفني. جاهز للمراجعة والتحقق'), ?)
+            VALUES (?, 'ticket_completed', 'تذكرة منتهي', 
+                   CONCAT('تم إنهاء التذكرة رقم ', ?, ' من الفني. جاهز للمراجعة والتحقق'), ?)
         `, [qualityStaffId, ticket.ticket_number, ticketId]);
         
         res.json({ 
             success: true, 
-            message: 'تم إنهاء التكت بنجاح. سيتم إرسال إشعار لموظف الجودة للمراجعة' 
+            message: 'تم إنهاء التذكرة بنجاح. سيتم إرسال إشعار لموظف الجودة للمراجعة' 
         });
     } catch (error) {
         console.error('Complete ticket error:', error);
-        res.status(500).json({ error: 'خطأ في إنهاء التكت' });
+        res.status(500).json({ error: 'خطأ في إنهاء التذكرة' });
     }
 });
 
@@ -2540,7 +2540,7 @@ app.post('/api/technician/tickets/:id/complete', authenticate, async (req, res) 
 app.post('/api/tickets/:id/assign-to-technician', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'quality_staff') {
-            return res.status(403).json({ error: 'غير مصرح - فقط موظف الجودة يمكنه إرسال التكتات' });
+            return res.status(403).json({ error: 'غير مصرح - فقط موظف الجودة يمكنه إرسال التذكرةات' });
         }
         
         const ticketId = parseInt(req.params.id);
@@ -2550,13 +2550,13 @@ app.post('/api/tickets/:id/assign-to-technician', authenticate, async (req, res)
             return res.status(400).json({ error: 'معرف الفني مطلوب' });
         }
         
-        // التحقق من أن التكت موجود وحالته NEW
+        // التحقق من أن التذكرة موجود وحالته NEW
         const ticket = await db.queryOne(`
             SELECT * FROM tickets WHERE id = ? AND status = 'NEW'
         `, [ticketId]);
         
         if (!ticket) {
-            return res.status(404).json({ error: 'التكت غير موجود أو تم إرساله مسبقاً' });
+            return res.status(404).json({ error: 'التذكرة غير موجود أو تم إرساله مسبقاً' });
         }
         
         // التحقق من أن الفني موجود
@@ -2568,7 +2568,7 @@ app.post('/api/tickets/:id/assign-to-technician', authenticate, async (req, res)
             return res.status(404).json({ error: 'الفني غير موجود' });
         }
         
-        // تحديث التكت
+        // تحديث التذكرة
         await db.query(`
             UPDATE tickets 
             SET status = 'ASSIGNED',
@@ -2580,17 +2580,17 @@ app.post('/api/tickets/:id/assign-to-technician', authenticate, async (req, res)
         // إنشاء إشعار للفني
         await db.query(`
             INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
-            VALUES (?, 'ticket_assigned', 'تكت جديد', 
-                   CONCAT('تم تخصيص تكت جديد لك رقم: ', ?), ?)
+            VALUES (?, 'ticket_assigned', 'تذكرة جديد', 
+                   CONCAT('تم تخصيص تذكرة جديد لك رقم: ', ?), ?)
         `, [technician_id, ticket.ticket_number, ticketId]);
         
         res.json({ 
             success: true, 
-            message: 'تم إرسال التكت للفني بنجاح' 
+            message: 'تم إرسال التذكرة للفني بنجاح' 
         });
     } catch (error) {
         console.error('Assign ticket error:', error);
-        res.status(500).json({ error: 'خطأ في إرسال التكت' });
+        res.status(500).json({ error: 'خطأ في إرسال التذكرة' });
     }
 });
 
@@ -2608,13 +2608,13 @@ app.post('/api/tickets/:id/review', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'قرار المراجعة مطلوب' });
         }
         
-        // التحقق من أن التكت موجود وحالته COMPLETED
+        // التحقق من أن التذكرة موجود وحالته COMPLETED
         const ticket = await db.queryOne(`
             SELECT * FROM tickets WHERE id = ? AND status = 'COMPLETED'
         `, [ticketId]);
         
         if (!ticket) {
-            return res.status(404).json({ error: 'التكت غير موجود أو لم يكتمل بعد' });
+            return res.status(404).json({ error: 'التذكرة غير موجود أو لم يكتمل بعد' });
         }
         
         let newStatus = 'CLOSED';
@@ -2624,7 +2624,7 @@ app.post('/api/tickets/:id/review', authenticate, async (req, res) => {
             newStatus = 'CLOSED';
         }
         
-        // تحديث التكت
+        // تحديث التذكرة
         await db.query(`
             UPDATE tickets 
             SET status = ?,
@@ -2636,11 +2636,11 @@ app.post('/api/tickets/:id/review', authenticate, async (req, res) => {
         
         res.json({ 
             success: true, 
-            message: decision === 'approve' ? 'تم إغلاق التكت بنجاح' : 'تم وضع التكت في المتابعة' 
+            message: decision === 'approve' ? 'تم إغلاق التذكرة بنجاح' : 'تم وضع التذكرة في المتابعة' 
         });
     } catch (error) {
         console.error('Review ticket error:', error);
-        res.status(500).json({ error: 'خطأ في مراجعة التكت' });
+        res.status(500).json({ error: 'خطأ في مراجعة التذكرة' });
     }
 });
 
@@ -2766,7 +2766,7 @@ app.put('/api/admin/scoring-rules/:id', authenticate, async (req, res) => {
     }
 });
 
-// إنشاء قاعدة نقاط جديدة (لنوع تكت جديد)
+// إنشاء قاعدة نقاط جديدة (لنوع تذكرة جديد)
 app.post('/api/admin/scoring-rules', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -2818,7 +2818,7 @@ app.get('/api/scoring-rules', authenticate, async (req, res) => {
 
 // ==================== Ticket Points Management (Admin Only) - DEPRECATED ====================
 
-// إدخال/تحديث نقاط التكت (المدير فقط) - DEPRECATED: سيتم حذفه بعد التحديث
+// إدخال/تحديث نقاط التذكرة (المدير فقط) - DEPRECATED: سيتم حذفه بعد التحديث
 app.post('/api/admin/tickets/:ticketId/points', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -2844,14 +2844,14 @@ app.post('/api/admin/tickets/:ticketId/points', authenticate, async (req, res) =
             manager_notes = ''
         } = req.body;
         
-        // الحصول على معلومات التكت
+        // الحصول على معلومات التذكرة
         const ticket = await db.queryOne(
             'SELECT id, ticket_type_id, time_received, time_first_contact, time_completed FROM tickets WHERE id = ?',
             [ticketId]
         );
         
         if (!ticket) {
-            return res.status(404).json({ success: false, message: 'التكت غير موجود' });
+            return res.status(404).json({ success: false, message: 'التذكرة غير موجود' });
         }
         
         // حساب الوقت الفعلي
@@ -2976,7 +2976,7 @@ app.post('/api/admin/tickets/:ticketId/points', authenticate, async (req, res) =
             ]);
         }
         
-        // تحديث النقاط في جدول التكتات
+        // تحديث النقاط في جدول التذكرةات
         await db.query(
             'UPDATE tickets SET points = ? WHERE id = ?',
             [final_points, ticketId]
@@ -3006,7 +3006,7 @@ app.get('/api/admin/tickets/:ticketId/calculate-time-points', authenticate, asyn
         
         const { ticketId } = req.params;
         
-        // جلب معلومات التكت
+        // جلب معلومات التذكرة
         const ticket = await db.queryOne(`
             SELECT t.id, t.team_id, t.ticket_type_id, t.time_received, t.time_completed,
                    tt.sla_max
@@ -3029,7 +3029,7 @@ app.get('/api/admin/tickets/:ticketId/calculate-time-points', authenticate, asyn
         const t0Date = new Date(ticket.time_received);
         const dateKey = t0Date.toISOString().split('T')[0]; // YYYY-MM-DD
         
-        // حساب Daily Load Factor (عدد التكتات لنفس الفريق في نفس اليوم)
+        // حساب Daily Load Factor (عدد التذكرةات لنفس الفريق في نفس اليوم)
         const dailyLoadResult = await db.queryOne(`
             SELECT COUNT(*) as count
             FROM tickets
@@ -3072,7 +3072,7 @@ app.get('/api/admin/tickets/:ticketId/calculate-time-points', authenticate, asyn
     }
 });
 
-// الحصول على نقاط التكت
+// الحصول على نقاط التذكرة
 app.get('/api/tickets/:ticketId/points', authenticate, async (req, res) => {
     try {
         const { ticketId } = req.params;
@@ -3098,7 +3098,7 @@ app.get('/api/tickets/:ticketId/points', authenticate, async (req, res) => {
     }
 });
 
-// حذف نقاط التكت (المدير فقط)
+// حذف نقاط التذكرة (المدير فقط)
 app.delete('/api/admin/tickets/:ticketId/points', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'admin') {
@@ -3129,7 +3129,7 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('==========================================');
     console.log(`✅ Server running on port ${PORT}`);
     // ==================== Start Background Jobs ====================
-    // فحص التكتات المتأخرة كل 5 دقائق
+    // فحص التذكرةات المتأخرة كل 5 دقائق
     setInterval(checkDelayedTickets, 5 * 60 * 1000); // 5 minutes
     checkDelayedTickets(); // Run immediately on startup
     
@@ -3140,7 +3140,7 @@ app.listen(PORT, '0.0.0.0', () => {
 // ==================== Background Job: Check Delayed Tickets ====================
 async function checkDelayedTickets() {
     try {
-        // البحث عن تكتات متأخرة أكثر من 3 ساعات
+        // البحث عن تذكرةات متأخرة أكثر من 3 ساعات
         const delayedTickets = await db.query(`
             SELECT t.*, tm.name as team_name, tt.name_ar as ticket_type_name
             FROM tickets t
@@ -3169,14 +3169,14 @@ async function checkDelayedTickets() {
                         VALUES (?, 'ticket_delayed', ?, ?, ?)
                     `, [
                         admin.id,
-                        `تأخر التكت رقم ${ticket.ticket_number}`,
-                        `التكت رقم ${ticket.ticket_number} (${ticket.ticket_type_name}) للفريق ${ticket.team_name} متأخر أكثر من 3 ساعات. الوقت المنقضي: ${Math.floor((Date.now() - new Date(ticket.time_received).getTime()) / 60000)} دقيقة`,
+                        `تأخر التذكرة رقم ${ticket.ticket_number}`,
+                        `التذكرة رقم ${ticket.ticket_number} (${ticket.ticket_type_name}) للفريق ${ticket.team_name} متأخر أكثر من 3 ساعات. الوقت المنقضي: ${Math.floor((Date.now() - new Date(ticket.time_received).getTime()) / 60000)} دقيقة`,
                         ticket.id
                     ]);
                 }
             }
             
-            console.log(`📢 تم إنشاء ${delayedTickets.length} إشعار للتكتات المتأخرة`);
+            console.log(`📢 تم إنشاء ${delayedTickets.length} إشعار للتذكرةات المتأخرة`);
         }
     } catch (error) {
         console.error('Error checking delayed tickets:', error);
@@ -3356,8 +3356,8 @@ app.post('/api/rewards/calculate', authenticate, async (req, res) => {
         });
         
         // إعدادات المكافآت (يمكن نقلها إلى جدول إعدادات)
-        const CONNECTION_BONUS = 5000; // 5000 دينار لكل تكت ربط
-        const MAINTENANCE_BONUS = 3000; // 3000 دينار لكل تكت صيانة
+        const CONNECTION_BONUS = 5000; // 5000 دينار لكل تذكرة ربط
+        const MAINTENANCE_BONUS = 3000; // 3000 دينار لكل تذكرة صيانة
         const QUALITY_BONUS_RATE = 100; // 100 دينار لكل 10 نقاط
         const RANKING_BONUS = {
             1: 50000, // المركز الأول
@@ -3535,9 +3535,9 @@ app.get('/api/export/tables', authenticate, async (req, res) => {
             { name: 'users', description: 'المستخدمين' },
             { name: 'teams', description: 'الفرق' },
             { name: 'team_members', description: 'أعضاء الفرق' },
-            { name: 'ticket_types', description: 'أنواع التكتات' },
-            { name: 'tickets', description: 'التكتات' },
-            { name: 'ticket_photos', description: 'صور التكتات' },
+            { name: 'ticket_types', description: 'أنواع التذكرةات' },
+            { name: 'tickets', description: 'التذكرةات' },
+            { name: 'ticket_photos', description: 'صور التذكرةات' },
             { name: 'quality_reviews', description: 'تقييمات الجودة' },
             { name: 'positive_scores', description: 'النقاط الإيجابية' },
             { name: 'negative_scores', description: 'النقاط السالبة' },

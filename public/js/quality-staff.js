@@ -616,7 +616,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Function to hide elements based on role
     function hideElementsForRole() {
-        // Hide "إدارة تكتات" section for technicians and quality_staff (only admin and call_center can access)
+        // Hide "إدارة تذكرةات" section for technicians and quality_staff (only admin and call_center can access)
         if (user.role === 'technician' || user.role === 'quality_staff') {
             // Hide menu item
             const ticketsManagementMenuItem = document.querySelector('a[data-page="tickets-management-new"]');
@@ -633,7 +633,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         
-        // Keep "إنشاء تكت" button visible for all users, but permissions are checked in openCreateTicketModal()
+        // Keep "إنشاء تذكرة" button visible for all users, but permissions are checked in openCreateTicketModal()
         // The button will be visible but only admin and call_center can actually use it
     }
     
@@ -845,7 +845,7 @@ function setupEventListeners() {
             e.stopPropagation();
             e.stopImmediatePropagation();
             // Show error message
-            showTicketNumberError(`❌ تم رفض الحرف/الرمز: "${e.key}" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)`);
+            showTicketNumberError(`❌ تم رفض الحرف/الرمز: "${e.key}" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)`);
             // Hide error after 3 seconds
             setTimeout(() => {
                 hideTicketNumberError();
@@ -886,7 +886,7 @@ function setupEventListeners() {
             e.target.value = cleaned;
             // Show error message
             const invalidChars = value.replace(/[0-9]/g, '');
-            showTicketNumberError(`❌ تم رفض القيم التالية: "${invalidChars}" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)`);
+            showTicketNumberError(`❌ تم رفض القيم التالية: "${invalidChars}" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)`);
             // Hide error after 5 seconds
             setTimeout(() => {
                 hideTicketNumberError();
@@ -907,7 +907,7 @@ function setupEventListeners() {
         
         // Show error if there were invalid characters
         if (invalidChars.length > 0) {
-            showTicketNumberError(`❌ تم رفض القيم المنسوخة: "${invalidChars}" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)`);
+            showTicketNumberError(`❌ تم رفض القيم المنسوخة: "${invalidChars}" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)`);
             setTimeout(() => {
                 hideTicketNumberError();
             }, 5000);
@@ -929,7 +929,7 @@ function setupEventListeners() {
         if (value !== cleaned) {
             e.target.value = cleaned;
             const invalidChars = value.replace(/[0-9]/g, '');
-            showTicketNumberError(`❌ تم رفض القيم: "${invalidChars}" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)`);
+            showTicketNumberError(`❌ تم رفض القيم: "${invalidChars}" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)`);
         } else {
             hideTicketNumberError();
         }
@@ -1011,11 +1011,11 @@ async function handleTicketSubmit(e) {
     
     // Final validation - must be only digits and not empty
     if (!ticketNumber || ticketNumber.length === 0 || !/^[0-9]+$/.test(ticketNumber)) {
-        let errorMessage = '❌ رقم التكت غير صحيح. ';
+        let errorMessage = '❌ رقم التذكرة غير صحيح. ';
         if (invalidChars.length > 0) {
             errorMessage += `تم رفض القيم: "${invalidChars}". `;
         }
-        errorMessage += 'رقم التكت يجب أن يحتوي على أرقام إنجليزية فقط (0-9)';
+        errorMessage += 'رقم التذكرة يجب أن يحتوي على أرقام إنجليزية فقط (0-9)';
         
         // Show error in page
         const errorDiv = document.getElementById('ticket_number_error');
@@ -1084,7 +1084,7 @@ async function handleTicketSubmit(e) {
                 // Don't automatically show ticket details, let user continue in modal
             }
         } catch (error) {
-            alert('خطأ في إدخال التكت: ' + (error.message || 'خطأ غير معروف'));
+            alert('خطأ في إدخال التذكرة: ' + (error.message || 'خطأ غير معروف'));
         }
     }
 }
@@ -1134,7 +1134,7 @@ function loadPhotos(photos) {
 
 async function handlePhotoUpload(files) {
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -1166,7 +1166,7 @@ async function handleQualityReviewSubmit(e) {
     e.preventDefault();
     
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -1236,7 +1236,7 @@ function loadQualityReview(review) {
 
 async function generateMessage() {
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -1308,8 +1308,8 @@ function showPage(pageName) {
     
     // Update page title
     const titles = {
-        'tickets-management': 'إدارة التكتات',
-        'tickets-management-new': 'إدارة تكتات',
+        'tickets-management': 'إدارة التذكرةات',
+        'tickets-management-new': 'إدارة تذكرةات',
         'tickets-list': 'إدارة جودة',
         'followup': 'المتابعة',
         'daily-report': 'التقرير اليومي'
@@ -1326,7 +1326,7 @@ function showPage(pageName) {
     }
 }
 
-// إدارة التكتات - تحميل التكتات مع الفلترة
+// إدارة التذكرةات - تحميل التذكرةات مع الفلترة
 let currentTicketFilter = 'NEW'; // Default: معلقة
 
 async function loadTicketsManagement(filterStatus = 'NEW') {
@@ -1337,7 +1337,7 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
             return;
         }
         
-        // جلب جميع التكتات ثم فلترتها
+        // جلب جميع التذكرةات ثم فلترتها
         const data = await window.api.getTickets({ limit: 1000 });
         if (data && data.success) {
             const tbody = document.getElementById('ticketsManagementTableBody');
@@ -1345,7 +1345,7 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
             
             tbody.innerHTML = '';
             
-            // فلترة التكتات حسب الحالة
+            // فلترة التذكرةات حسب الحالة
             let filteredTickets = data.tickets || [];
             if (filterStatus !== 'all') {
                 filteredTickets = filteredTickets.filter(ticket => ticket.status === filterStatus);
@@ -1392,14 +1392,14 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
                         <td>
                             <button class="btn btn-secondary" onclick="openTicketDetailsModal(${ticket.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">عرض</button>
                             ${ticket.status === 'NEW' && !ticket.assigned_technician_id ? `
-                                <button class="btn btn-primary" onclick="showAssignTicketModal(${ticket.id}, ${ticket.team_id})" style="padding: 6px 12px; font-size: 12px;">📤 إرسال تكت</button>
+                                <button class="btn btn-primary" onclick="showAssignTicketModal(${ticket.id}, ${ticket.team_id})" style="padding: 6px 12px; font-size: 12px;">📤 إرسال تذكرة</button>
                             ` : ''}
                         </td>
                     `;
                     tbody.appendChild(row);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تذكرةات</td></tr>';
             }
         }
     } catch (error) {
@@ -1411,12 +1411,12 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
     }
 }
 
-// دالة فلترة التكتات
+// دالة فلترة التذكرةات
 function filterTicketsByStatus(status) {
     loadTicketsManagement(status);
 }
 
-// إدارة التكتات الجديدة - تحميل التكتات مع الفلترة
+// إدارة التذكرةات الجديدة - تحميل التذكرةات مع الفلترة
 let currentTicketFilterNew = 'NEW'; // Default: معلقة
 
 async function loadTicketsManagementNew(filterStatus = 'NEW') {
@@ -1427,7 +1427,7 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
             return;
         }
         
-        // جلب جميع التكتات ثم فلترتها
+        // جلب جميع التذكرةات ثم فلترتها
         const data = await window.api.getTickets({ limit: 1000 });
         if (data && data.success) {
             const tbody = document.getElementById('ticketsManagementNewTableBody');
@@ -1435,7 +1435,7 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
             
             tbody.innerHTML = '';
             
-            // فلترة التكتات حسب الحالة
+            // فلترة التذكرةات حسب الحالة
             let filteredTickets = data.tickets || [];
             if (filterStatus !== 'all') {
                 filteredTickets = filteredTickets.filter(ticket => ticket.status === filterStatus);
@@ -1490,7 +1490,7 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
                     tbody.appendChild(row);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="8" class="loading">لا توجد تكتات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">لا توجد تذكرةات</td></tr>';
             }
         }
     } catch (error) {
@@ -1502,7 +1502,7 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
     }
 }
 
-// دالة فلترة التكتات للصفحة الجديدة
+// دالة فلترة التذكرةات للصفحة الجديدة
 function filterTicketsByStatusNew(status) {
     loadTicketsManagementNew(status);
 }
@@ -1514,7 +1514,7 @@ async function loadTicketsList() {
             return;
         }
         
-        // جلب التكتات المكتملة من الفني (جاهزة للمراجعة) أو الجديدة
+        // جلب التذكرةات المكتملة من الفني (جاهزة للمراجعة) أو الجديدة
         const data = await window.api.getTickets();
         if (data && data.success) {
             const tbody = document.getElementById('ticketsTableBody');
@@ -1565,7 +1565,7 @@ async function loadTicketsList() {
                     tbody.appendChild(row);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="8" class="loading">لا توجد تكتات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">لا توجد تذكرةات</td></tr>';
             }
         }
     } catch (error) {
@@ -1850,7 +1850,7 @@ function validateTicketDates() {
         if (t1Date < t0Date) {
             errors.push({
                 field: 'T1 (تاريخ اول رد)',
-                message: 'تاريخ اول رد (T1) لا يمكن أن يكون قبل تاريخ استلام التكت (T0)',
+                message: 'تاريخ اول رد (T1) لا يمكن أن يكون قبل تاريخ استلام التذكرة (T0)',
                 container: 'time_first_contact_container_modal'
             });
         }
@@ -1861,8 +1861,8 @@ function validateTicketDates() {
         const t2Date = new Date(timeCompletedFull);
         if (t2Date < t0Date) {
             errors.push({
-                field: 'T2 (تاريخ اكمال التكت)',
-                message: 'تاريخ اكمال التكت (T2) لا يمكن أن يكون قبل تاريخ استلام التكت (T0)',
+                field: 'T2 (تاريخ اكمال التذكرة)',
+                message: 'تاريخ اكمال التذكرة (T2) لا يمكن أن يكون قبل تاريخ استلام التذكرة (T0)',
                 container: 'time_completed_container_modal'
             });
         }
@@ -1870,8 +1870,8 @@ function validateTicketDates() {
             const t1Date = new Date(timeFirstContactFull);
             if (t2Date < t1Date) {
                 errors.push({
-                    field: 'T2 (تاريخ اكمال التكت)',
-                    message: 'تاريخ اكمال التكت (T2) لا يمكن أن يكون قبل تاريخ اول رد (T1)',
+                    field: 'T2 (تاريخ اكمال التذكرة)',
+                    message: 'تاريخ اكمال التذكرة (T2) لا يمكن أن يكون قبل تاريخ اول رد (T1)',
                     container: 'time_completed_container_modal'
                 });
             }
@@ -2106,11 +2106,11 @@ async function handleTicketSubmitModal(e) {
     const invalidChars = originalValue.replace(/[0-9]/g, '');
     
     if (!ticketNumber || ticketNumber.length === 0 || !/^[0-9]+$/.test(ticketNumber)) {
-        let errorMessage = '❌ رقم التكت غير صحيح. ';
+        let errorMessage = '❌ رقم التذكرة غير صحيح. ';
         if (invalidChars.length > 0) {
             errorMessage += `تم رفض القيم: "${invalidChars}". `;
         }
-        errorMessage += 'رقم التكت يجب أن يحتوي على أرقام إنجليزية فقط (0-9)';
+        errorMessage += 'رقم التذكرة يجب أن يحتوي على أرقام إنجليزية فقط (0-9)';
         
         const errorDiv = document.getElementById('ticket_number_error_modal');
         if (errorDiv) {
@@ -2157,7 +2157,7 @@ async function handleTicketSubmitModal(e) {
     
     // Final validation: T0 is required
     if (!timeReceivedFull) {
-        alert('⚠️ خطأ في التواريخ:\n\nيرجى إدخال تاريخ استلام التكت (T0)');
+        alert('⚠️ خطأ في التواريخ:\n\nيرجى إدخال تاريخ استلام التذكرة (T0)');
         return;
     }
     
@@ -2193,7 +2193,7 @@ async function handleTicketSubmitModal(e) {
             }
         }
     } catch (error) {
-        alert('خطأ في إدخال التكت: ' + (error.message || 'خطأ غير معروف'));
+        alert('خطأ في إدخال التذكرة: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
@@ -2619,7 +2619,7 @@ function setupPhotoUploadForModal() {
 // Handle photo upload for modal
 async function handlePhotoUploadForModal(files) {
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -2651,7 +2651,7 @@ async function handleQualityReviewSubmitModal(e) {
     e.preventDefault();
     
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -2705,7 +2705,7 @@ async function removePhotoModal(photoId) {
 // Generate message for modal
 async function generateMessageModal() {
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -2867,7 +2867,7 @@ function setupPhotoUploadForNewTicket() {
 // Handle photo upload for new ticket
 async function handlePhotoUploadForNewTicket(files) {
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -2941,7 +2941,7 @@ async function handleQualityReviewSubmitNewModal(e) {
     e.preventDefault();
     
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -2996,7 +2996,7 @@ function displayScoresForNewTicket(scores) {
 // Generate message for new ticket
 async function generateMessageNewModal() {
     if (!currentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -3101,7 +3101,7 @@ function toggleExplainedServices(ticketTypeKey) {
     
     if (!wrapper || !container) return;
     
-    // التكتات التي يجب إظهار الخدمات المشروحة لها: 1 (FTTH_NEW), 2 (REACTIVATE_SERVICE), 7 (ONU_CHANGE)
+    // التذكرةات التي يجب إظهار الخدمات المشروحة لها: 1 (FTTH_NEW), 2 (REACTIVATE_SERVICE), 7 (ONU_CHANGE)
     const allowedTypes = ['FTTH_NEW', 'REACTIVATE_SERVICE', 'ONU_CHANGE'];
     
     if (allowedTypes.includes(ticketTypeKey)) {
@@ -3389,7 +3389,7 @@ async function handleEditTicketSubmit(e, ticketId) {
     
     const user = getCurrentUser();
     if (!user || user.role !== 'team_leader') {
-        alert('غير مصرح لك بتعديل التكت');
+        alert('غير مصرح لك بتعديل التذكرة');
         return;
     }
     
@@ -3403,7 +3403,7 @@ async function handleEditTicketSubmit(e, ticketId) {
     try {
         const data = await window.api.updateTicket(ticketId, formData);
         if (data.success) {
-            alert('تم تحديث التكت بنجاح');
+            alert('تم تحديث التذكرة بنجاح');
             loadTicketDetailsForModal(ticketId);
             // Reload tickets list
             if (document.getElementById('tickets-list-page').style.display !== 'none') {
@@ -3411,7 +3411,7 @@ async function handleEditTicketSubmit(e, ticketId) {
             }
         }
     } catch (error) {
-        alert('خطأ في تحديث التكت: ' + (error.message || 'خطأ غير معروف'));
+        alert('خطأ في تحديث التذكرة: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
@@ -3543,7 +3543,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             
             if (!currentAssigningTicketId) {
-                alert('لم يتم تحديد التكت');
+                alert('لم يتم تحديد التذكرة');
                 return;
             }
             
@@ -3559,15 +3559,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 if (data && data.success) {
-                    alert('✅ ' + (data.message || 'تم إرسال التكت للفني بنجاح'));
+                    alert('✅ ' + (data.message || 'تم إرسال التذكرة للفني بنجاح'));
                     closeAssignTicketModal();
                     loadTicketsList();
                 } else {
-                    alert('❌ خطأ: ' + (data.error || 'فشل إرسال التكت'));
+                    alert('❌ خطأ: ' + (data.error || 'فشل إرسال التذكرة'));
                 }
             } catch (error) {
                 console.error('Error assigning ticket:', error);
-                alert('❌ خطأ في إرسال التكت: ' + (error.message || 'خطأ غير معروف'));
+                alert('❌ خطأ في إرسال التذكرة: ' + (error.message || 'خطأ غير معروف'));
             }
         });
     }
@@ -3580,7 +3580,7 @@ async function reviewTicket(ticketId) {
     currentReviewingTicketId = ticketId;
     await openTicketDetailsModal(ticketId);
     
-    // انتظار تحميل تفاصيل التكت ثم إظهار قسم المراجعة
+    // انتظار تحميل تفاصيل التذكرة ثم إظهار قسم المراجعة
     setTimeout(() => {
         const reviewSection = document.getElementById('reviewSection');
         if (reviewSection) {
@@ -3615,7 +3615,7 @@ function closeReviewSection() {
 
 async function submitReview() {
     if (!currentReviewingTicketId) {
-        alert('لم يتم تحديد التكت');
+        alert('لم يتم تحديد التذكرة');
         return;
     }
     
@@ -3717,7 +3717,7 @@ async function openCreateTicketModal() {
     // Check permissions - only admin and call_center can create tickets
     const user = getCurrentUser();
     if (!user || (user.role !== 'admin' && user.role !== 'call_center')) {
-        showAlertModal('غير مصرح', 'غير مصرح لك بإنشاء التكتات. فقط Admin و Call Center يمكنهم إنشاء التكتات.', 'warning');
+        showAlertModal('غير مصرح', 'غير مصرح لك بإنشاء التذكرةات. فقط Admin و Call Center يمكنهم إنشاء التذكرةات.', 'warning');
         return;
     }
     
@@ -3883,18 +3883,18 @@ function setupCreateTicketFormSubmission() {
             if (selectedType === 'custom') {
                 const customType = document.getElementById('create_custom_ticket_type')?.value.trim();
                 if (!customType) {
-                    showAlertModal('تحذير', 'الرجاء إدخال نوع التكت المخصص', 'warning');
+                    showAlertModal('تحذير', 'الرجاء إدخال نوع التذكرة المخصص', 'warning');
                     return;
                 }
                 ticketData.custom_ticket_type = customType;
             } else if (selectedType && selectedType !== '') {
                 ticketData.ticket_type_id = parseInt(selectedType);
                 if (isNaN(ticketData.ticket_type_id)) {
-                    showAlertModal('تحذير', 'نوع التكت غير صحيح', 'warning');
+                    showAlertModal('تحذير', 'نوع التذكرة غير صحيح', 'warning');
                     return;
                 }
             } else {
-                showAlertModal('تحذير', 'الرجاء اختيار نوع التكت', 'warning');
+                showAlertModal('تحذير', 'الرجاء اختيار نوع التذكرة', 'warning');
                 return;
             }
             
@@ -3907,7 +3907,7 @@ function setupCreateTicketFormSubmission() {
             try {
                 const result = await window.api.createTicket(ticketData);
                 if (result && result.success) {
-                    showAlertModal('نجح', 'تم إنشاء التكت بنجاح!\nرقم التكت: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'), 'success');
+                    showAlertModal('نجح', 'تم إنشاء التذكرة بنجاح!\nرقم التذكرة: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'), 'success');
                     closeCreateTicketModal();
                     // Reload tickets list based on current page
                     const ticketsManagementNewPage = document.getElementById('tickets-management-new-page');
@@ -3921,11 +3921,11 @@ function setupCreateTicketFormSubmission() {
                         loadTicketsManagement(currentTicketFilter || 'NEW');
                     }
                 } else {
-                    showAlertModal('خطأ', result.error || 'فشل إنشاء التكت', 'error');
+                    showAlertModal('خطأ', result.error || 'فشل إنشاء التذكرة', 'error');
                 }
             } catch (error) {
                 console.error('Error creating ticket:', error);
-                showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التكت: ' + (error.message || 'خطأ غير معروف'), 'error');
+                showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التذكرة: ' + (error.message || 'خطأ غير معروف'), 'error');
             }
         };
     }

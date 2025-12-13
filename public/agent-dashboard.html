@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>لوحة المندوب - نظام إدارة التكتات</title>
+    <title>لوحة المندوب - نظام إدارة التذكرةات</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -16,14 +16,14 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التكتات</a></li>
+                <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التذكرةات</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
             </ul>
         </aside>
 
         <main class="main-content">
             <div class="header">
-                <h1 id="pageTitle">التكتات</h1>
+                <h1 id="pageTitle">التذكرةات</h1>
                 <div class="user-info">
                     <div class="notifications-bell" id="notificationsBell" onclick="showNotifications()" style="position: relative; cursor: pointer; margin-left: 15px; font-size: 20px;">
                         🔔
@@ -58,7 +58,7 @@
             <div id="tickets-page" class="page-content">
                 <div class="card">
                     <div class="card-header">
-                        <h2>التكتات المخصصة لي</h2>
+                        <h2>التذكرةات المخصصة لي</h2>
                         <label>
                             <input type="checkbox" id="autoRefreshTickets" checked> تحديث تلقائي (30 ثانية)
                         </label>
@@ -90,7 +90,7 @@
     <div id="ticketModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="ticketModalTitle">تفاصيل التكت</h2>
+                <h2 id="ticketModalTitle">تفاصيل التذكرة</h2>
                 <button class="btn-close" onclick="closeTicketModal()">✕</button>
             </div>
             <div class="modal-body" id="ticketModalBody">

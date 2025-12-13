@@ -85,11 +85,11 @@ async function loadTickets() {
         if (response && response.success) {
             displayTickets(response.tickets || []);
         } else {
-            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التكتات</p>';
+            document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
-        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التكتات</p>';
+        document.getElementById('ticketsList').innerHTML = '<p>خطأ في جلب التذكرةات</p>';
     }
 }
 
@@ -97,7 +97,7 @@ function displayTickets(tickets) {
     const container = document.getElementById('ticketsList');
     
     if (tickets.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>📭 لا توجد تكتات مخصصة لك</p></div>';
+        container.innerHTML = '<div class="empty-state"><p>📭 لا توجد تذكرةات مخصصة لك</p></div>';
         return;
     }
     
@@ -125,7 +125,7 @@ function displayTickets(tickets) {
         html += `
             <div class="ticket-card">
                 <div class="ticket-card-header">
-                    <h3>التكت رقم: ${ticket.ticket_number}</h3>
+                    <h3>التذكرة رقم: ${ticket.ticket_number}</h3>
                     <span class="badge ${statusClass}">${statusText}</span>
                 </div>
                 <div class="ticket-card-body">
@@ -142,10 +142,10 @@ function displayTickets(tickets) {
                         <button class="btn btn-danger" onclick="postponeTicket(${ticket.id})">⏸️ تأجيل</button>
                     ` : ''}
                     ${ticket.assignment_status === 'accepted' ? `
-                        <button class="btn btn-primary" onclick="openTicket(${ticket.id})">📝 فتح التكت</button>
+                        <button class="btn btn-primary" onclick="openTicket(${ticket.id})">📝 فتح التذكرة</button>
                     ` : ''}
                     ${ticket.assignment_status === 'in_progress' ? `
-                        <button class="btn btn-primary" onclick="openTicket(${ticket.id})">📝 فتح التكت</button>
+                        <button class="btn btn-primary" onclick="openTicket(${ticket.id})">📝 فتح التذكرة</button>
                         <button class="btn btn-success" onclick="completeTicket(${ticket.id})">✅ إكمال</button>
                     ` : ''}
                 </div>
@@ -159,12 +159,12 @@ function displayTickets(tickets) {
 
 async function acceptTicket(ticketId) {
     try {
-        if (!confirm('هل تريد قبول هذا التكت؟')) return;
+        if (!confirm('هل تريد قبول هذا التذكرة؟')) return;
         
         const response = await window.api.updateTicketAssignment(ticketId, { status: 'accepted' });
         
         if (response && response.success) {
-            alert('تم قبول التكت بنجاح');
+            alert('تم قبول التذكرة بنجاح');
             loadTickets();
             loadNotifications();
         } else {
@@ -172,25 +172,25 @@ async function acceptTicket(ticketId) {
         }
     } catch (error) {
         console.error('Error accepting ticket:', error);
-        alert('خطأ في قبول التكت');
+        alert('خطأ في قبول التذكرة');
     }
 }
 
 async function waitTicket(ticketId) {
     try {
-        if (!confirm('هل تريد وضع التكت في قائمة الانتظار؟')) return;
+        if (!confirm('هل تريد وضع التذكرة في قائمة الانتظار؟')) return;
         
         const response = await window.api.updateTicketAssignment(ticketId, { status: 'waiting' });
         
         if (response && response.success) {
-            alert('تم وضع التكت في قائمة الانتظار');
+            alert('تم وضع التذكرة في قائمة الانتظار');
             loadTickets();
         } else {
             alert('خطأ: ' + (response.error || 'خطأ غير معروف'));
         }
     } catch (error) {
         console.error('Error waiting ticket:', error);
-        alert('خطأ في تحديث حالة التكت');
+        alert('خطأ في تحديث حالة التذكرة');
     }
 }
 
@@ -205,14 +205,14 @@ async function postponeTicket(ticketId) {
         });
         
         if (response && response.success) {
-            alert('تم تأجيل التكت');
+            alert('تم تأجيل التذكرة');
             loadTickets();
         } else {
             alert('خطأ: ' + (response.error || 'خطأ غير معروف'));
         }
     } catch (error) {
         console.error('Error postponing ticket:', error);
-        alert('خطأ في تأجيل التكت');
+        alert('خطأ في تأجيل التذكرة');
     }
 }
 
@@ -225,11 +225,11 @@ async function openTicket(ticketId) {
         if (response && response.success) {
             showTicketModal(response.ticket);
         } else {
-            alert('خطأ في جلب بيانات التكت');
+            alert('خطأ في جلب بيانات التذكرة');
         }
     } catch (error) {
         console.error('Error loading ticket:', error);
-        alert('خطأ في جلب بيانات التكت');
+        alert('خطأ في جلب بيانات التذكرة');
     }
 }
 
@@ -240,12 +240,12 @@ function showTicketModal(ticket) {
     modalBody.innerHTML = `
         <form id="ticketForm">
             <div class="form-group">
-                <label>رقم التكت *</label>
+                <label>رقم التذكرة *</label>
                 <input type="text" id="ticket_number" value="${ticket.ticket_number}" required>
             </div>
             
             <div class="form-group">
-                <label>نوع التكت</label>
+                <label>نوع التذكرة</label>
                 <input type="text" value="${ticket.ticket_type_name || ''}" disabled>
             </div>
             
@@ -331,13 +331,13 @@ async function handleTicketUpdate(e) {
 }
 
 async function completeTicket(ticketId) {
-    if (!confirm('هل أنت متأكد من إكمال هذا التكت؟')) return;
+    if (!confirm('هل أنت متأكد من إكمال هذا التذكرة؟')) return;
     
     try {
         const response = await window.api.updateTicketAssignment(ticketId, { status: 'completed' });
         
         if (response && response.success) {
-            alert('تم إكمال التكت بنجاح');
+            alert('تم إكمال التذكرة بنجاح');
             loadTickets();
             loadNotifications();
         } else {
@@ -345,7 +345,7 @@ async function completeTicket(ticketId) {
         }
     } catch (error) {
         console.error('Error completing ticket:', error);
-        alert('خطأ في إكمال التكت');
+        alert('خطأ في إكمال التذكرة');
     }
 }
 

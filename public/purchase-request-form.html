@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <title>طلب شراء الخدمة - نظام إدارة التذكرةات</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .request-form-container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .request-form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .request-form-header h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .request-form-header p {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        .form-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+            display: none;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="request-form-container">
+        <div class="request-form-header">
+            <h1>🚀 طلب شراء الخدمة</h1>
+            <p>نظام إدارة التذكرةات والجودة</p>
+        </div>
+        
+        <div class="form-card">
+            <div id="successMessage" class="success-message">
+                <strong>✅ تم إرسال طلبك بنجاح!</strong>
+                <p>شكراً لتواصلك معنا. سنتواصل معك قريباً.</p>
+            </div>
+            
+            <div id="errorMessage" class="error-message">
+                <strong>❌ حدث خطأ</strong>
+                <p id="errorText"></p>
+            </div>
+            
+            <form id="purchaseRequestForm">
+                <div class="form-group">
+                    <label for="company_name">اسم الشركة *</label>
+                    <input type="text" id="company_name" name="company_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_name">اسم المسؤول *</label>
+                    <input type="text" id="contact_name" name="contact_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_email">البريد الإلكتروني *</label>
+                    <input type="email" id="contact_email" name="contact_email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="contact_phone">رقم الهاتف *</label>
+                    <input type="tel" id="contact_phone" name="contact_phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="company_address">عنوان الشركة</label>
+                    <textarea id="company_address" name="company_address" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="expected_employees">عدد الموظفين المتوقع *</label>
+                    <input type="number" id="expected_employees" name="expected_employees" min="1" required>
+                    <small>عدد الموظفين الذين سيستخدمون النظام</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="message">رسالة إضافية</label>
+                    <textarea id="message" name="message" rows="4" placeholder="أخبرنا عن احتياجاتك أو أي معلومات إضافية..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-block">إرسال الطلب</button>
+                </div>
+            </form>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #7f8c8d;">
+            <p>© 2025 FTTH Quality Management System</p>
+        </div>
+    </div>
+    
+    <script src="/js/api.js"></script>
+    <script>
+        document.getElementById('purchaseRequestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Hide previous messages
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            const formData = {
+                company_name: document.getElementById('company_name').value,
+                contact_name: document.getElementById('contact_name').value,
+                contact_email: document.getElementById('contact_email').value,
+                contact_phone: document.getElementById('contact_phone').value,
+                company_address: document.getElementById('company_address').value,
+                expected_employees: parseInt(document.getElementById('expected_employees').value),
+                message: document.getElementById('message').value
+            };
+            
+            try {
+                const data = await window.api.submitPurchaseRequest(formData);
+                if (data && data.success) {
+                    document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('purchaseRequestForm').reset();
+                    
+                    // Scroll to top
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    throw new Error(data.error || 'حدث خطأ في إرسال الطلب');
+                }
+            } catch (error) {
+                console.error('Error submitting request:', error);
+                document.getElementById('errorText').textContent = error.message || 'حدث خطأ في إرسال الطلب. يرجى المحاولة مرة أخرى.';
+                document.getElementById('errorMessage').style.display = 'block';
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    </script>
+</body>
+</html>
+

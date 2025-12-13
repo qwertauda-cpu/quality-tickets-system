@@ -111,10 +111,10 @@ function showPage(pageName) {
     // Update page title
     const titles = {
         'dashboard': 'لوحة التحكم',
-        'add-ticket': 'إضافة تكت',
+        'add-ticket': 'إضافة تذكرة',
         'users': 'إدارة المستخدمين',
         'teams': 'الفرق',
-        'tickets': 'التكتات',
+        'tickets': 'التذكرةات',
         'scoring-rules': 'قواعد النقاط',
         'points-management': 'قواعد النقاط',
         'reports': 'التقارير'
@@ -220,14 +220,14 @@ async function loadTickets() {
         } else {
             const tbody = document.getElementById('ticketsTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التكتات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذكرةات</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
         const tbody = document.getElementById('ticketsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التكتات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذكرةات</td></tr>';
         }
     }
 }
@@ -337,7 +337,7 @@ function displayTickets(tickets) {
     }
     
     if (!tickets || tickets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تذكرةات</td></tr>';
         return;
     }
     
@@ -616,7 +616,7 @@ async function handleAdminTicketSubmit(e) {
     e.preventDefault();
     
     if (adminCurrentTicketId) {
-        alert('يوجد تكت مفتوح بالفعل. يرجى إكماله أو إعادة تعيين النموذج.');
+        alert('يوجد تذكرة مفتوح بالفعل. يرجى إكماله أو إعادة تعيين النموذج.');
         return;
     }
     
@@ -625,12 +625,12 @@ async function handleAdminTicketSubmit(e) {
     const teamId = document.getElementById('admin_team_id').value;
     
     if (!ticketNumber) {
-        alert('يرجى إدخال رقم التكت');
+        alert('يرجى إدخال رقم التذكرة');
         return;
     }
     
     if (!ticketTypeId || ticketTypeId === '') {
-        alert('يرجى اختيار نوع التكت');
+        alert('يرجى اختيار نوع التذكرة');
         return;
     }
     
@@ -644,7 +644,7 @@ async function handleAdminTicketSubmit(e) {
     const parsedTeamId = parseInt(teamId);
     
     if (isNaN(parsedTicketTypeId) || parsedTicketTypeId <= 0) {
-        alert('نوع التكت غير صحيح');
+        alert('نوع التذكرة غير صحيح');
         return;
     }
     
@@ -674,11 +674,11 @@ async function handleAdminTicketSubmit(e) {
         const data = await window.api.createTicket(formData);
         if (data && data.success) {
             adminCurrentTicketId = data.ticketId;
-            alert('تم إدخال التكت بنجاح! يمكنك الآن إضافة الصور وتقييم الجودة.');
+            alert('تم إدخال التذكرة بنجاح! يمكنك الآن إضافة الصور وتقييم الجودة.');
             showAdminTicketDetails(data.ticketId);
         }
     } catch (error) {
-        alert('خطأ في إدخال التكت: ' + (error.message || 'خطأ غير معروف'));
+        alert('خطأ في إدخال التذكرة: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
@@ -735,7 +735,7 @@ function loadAdminPhotos(photos) {
 
 async function handleAdminPhotoUpload(files) {
     if (!adminCurrentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -782,7 +782,7 @@ async function handleAdminQualityReviewSubmit(e) {
     e.preventDefault();
     
     if (!adminCurrentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -834,7 +834,7 @@ function loadAdminQualityReview(review) {
 
 async function generateAdminMessage() {
     if (!adminCurrentTicketId) {
-        alert('يجب إدخال التكت أولاً');
+        alert('يجب إدخال التذكرة أولاً');
         return;
     }
     
@@ -1594,18 +1594,18 @@ function setupCreateTicketFormSubmission() {
         if (selectedType === 'custom') {
             const customType = document.getElementById('create_custom_ticket_type')?.value.trim();
             if (!customType) {
-                showAlertModal('تحذير', 'الرجاء إدخال نوع التكت المخصص', 'warning');
+                showAlertModal('تحذير', 'الرجاء إدخال نوع التذكرة المخصص', 'warning');
                 return;
             }
             customTicketType = customType;
         } else if (selectedType && selectedType !== '') {
             ticketTypeId = parseInt(selectedType);
             if (isNaN(ticketTypeId)) {
-                showAlertModal('تحذير', 'نوع التكت غير صحيح', 'warning');
+                showAlertModal('تحذير', 'نوع التذكرة غير صحيح', 'warning');
                 return;
             }
         } else {
-            showAlertModal('تحذير', 'الرجاء اختيار نوع التكت', 'warning');
+            showAlertModal('تحذير', 'الرجاء اختيار نوع التذكرة', 'warning');
             return;
         }
         const subscriberName = document.getElementById('create_subscriber_name')?.value?.trim() || '';
@@ -1632,18 +1632,18 @@ function setupCreateTicketFormSubmission() {
             const result = await window.api.createTicket(formData);
             
             if (result && result.success) {
-                showAlertModal('نجح', 'تم إنشاء التكت بنجاح!\nرقم التكت: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'), 'success');
+                showAlertModal('نجح', 'تم إنشاء التذكرة بنجاح!\nرقم التذكرة: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'), 'success');
                 closeCreateTicketModal();
                 // Reload tickets if on tickets page
                 if (document.getElementById('tickets-page')?.style.display !== 'none') {
                     loadTickets();
                 }
             } else {
-                showAlertModal('خطأ', result.error || 'فشل إنشاء التكت', 'error');
+                showAlertModal('خطأ', result.error || 'فشل إنشاء التذكرة', 'error');
             }
         } catch (error) {
             console.error('Error creating ticket:', error);
-            showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التكت: ' + (error.message || 'خطأ غير معروف'), 'error');
+            showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التذكرة: ' + (error.message || 'خطأ غير معروف'), 'error');
         }
     });
 }
@@ -2032,7 +2032,7 @@ async function loadScoringRules() {
         
         const rules = response.rules;
         
-        // تحميل النقاط الأساسية لأنواع التكتات
+        // تحميل النقاط الأساسية لأنواع التذكرةات
         await loadTicketTypeBasePoints(rules);
         
         // تحميل قواعد الوقت
@@ -2052,10 +2052,10 @@ async function loadScoringRules() {
     }
 }
 
-// تحميل النقاط الأساسية لأنواع التكتات
+// تحميل النقاط الأساسية لأنواع التذكرةات
 async function loadTicketTypeBasePoints(rules) {
     try {
-        // جلب أنواع التكتات
+        // جلب أنواع التذكرةات
         const ticketTypesResponse = await window.api.getTicketTypes();
         let ticketTypes = [];
         
@@ -2078,12 +2078,12 @@ async function loadTicketTypeBasePoints(rules) {
         if (!container) return;
         
         if (!Array.isArray(ticketTypes) || ticketTypes.length === 0) {
-            container.innerHTML = '<p>لا توجد أنواع تكتات</p>';
+            container.innerHTML = '<p>لا توجد أنواع تذكرةات</p>';
             return;
         }
         
         // إنشاء جدول
-        let html = '<table class="table" style="width: 100%;"><thead><tr><th>نوع التكت</th><th>النقاط الأساسية</th><th>الإجراءات</th></tr></thead><tbody>';
+        let html = '<table class="table" style="width: 100%;"><thead><tr><th>نوع التذكرة</th><th>النقاط الأساسية</th><th>الإجراءات</th></tr></thead><tbody>';
         
         ticketTypes.forEach(tt => {
             // البحث عن القاعدة لهذا النوع
@@ -2120,7 +2120,7 @@ async function loadTicketTypeBasePoints(rules) {
     }
 }
 
-// حفظ النقاط الأساسية لنوع تكت
+// حفظ النقاط الأساسية لنوع تذكرة
 async function saveTicketTypeBasePoints(ticketTypeId, ruleId) {
     try {
         const input = document.getElementById(`ticket-type-points-${ticketTypeId}`);
@@ -2137,7 +2137,7 @@ async function saveTicketTypeBasePoints(ticketTypeId, ruleId) {
                 rule_type: 'ticket_type_base_points',
                 rule_key: ticketTypeId.toString(),
                 rule_value: value,
-                description: `النقاط الأساسية لنوع التكت ${ticketTypeId}`
+                description: `النقاط الأساسية لنوع التذكرة ${ticketTypeId}`
             });
         }
         
@@ -2344,7 +2344,7 @@ async function loadPointsManagementPage() {
     }
 }
 
-// تحميل التكتات لقائمة النقاط
+// تحميل التذكرةات لقائمة النقاط
 async function loadPointsTickets() {
     try {
         const response = await window.api.getTickets({ limit: 1000 });
@@ -2363,18 +2363,18 @@ async function loadPointsTickets() {
         console.error('Error loading tickets:', error);
         const tbody = document.getElementById('pointsTicketsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="9" class="error">❌ خطأ في تحميل التكتات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="error">❌ خطأ في تحميل التذكرةات</td></tr>';
         }
     }
 }
 
-// عرض التكتات في الجدول
+// عرض التذكرةات في الجدول
 function displayPointsTickets(tickets) {
     const tbody = document.getElementById('pointsTicketsTableBody');
     if (!tbody) return;
     
     if (!tickets || tickets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty">لا توجد تكتات</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">لا توجد تذكرةات</td></tr>';
         return;
     }
     
@@ -2428,7 +2428,7 @@ async function loadTeamsForPointsFilter() {
     }
 }
 
-// فلترة التكتات
+// فلترة التذكرةات
 function filterPointsTickets() {
     const search = document.getElementById('pointsSearch')?.value.toLowerCase() || '';
     const dateFilter = document.getElementById('pointsDateFilter')?.value || '';
@@ -2466,21 +2466,21 @@ async function openPointsManagementModal(ticketId) {
     if (!modal) return;
     
     try {
-        // جلب معلومات التكت
+        // جلب معلومات التذكرة
         const ticketResponse = await window.api.getTicket(ticketId);
         if (!ticketResponse || (!ticketResponse.success && !ticketResponse.ticket)) {
-            alert('خطأ في جلب معلومات التكت');
+            alert('خطأ في جلب معلومات التذكرة');
             return;
         }
         
         const ticket = (ticketResponse && ticketResponse.ticket) ? ticketResponse.ticket : ticketResponse;
         
         if (!ticket || !ticket.ticket_number) {
-            alert('خطأ في جلب معلومات التكت');
+            alert('خطأ في جلب معلومات التذكرة');
             return;
         }
         
-        // عرض معلومات التكت
+        // عرض معلومات التذكرة
         document.getElementById('points-ticket-number').textContent = ticket.ticket_number;
         document.getElementById('points-ticket-type').textContent = ticket.ticket_type_name || '-';
         document.getElementById('points-time-received').textContent = ticket.time_received ? formatDateTime(ticket.time_received) : '-';
@@ -2508,7 +2508,7 @@ async function openPointsManagementModal(ticketId) {
                 if (timeInfoDiv) {
                     timeInfoDiv.innerHTML = `
                         <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; margin-top: 10px;">
-                            <div><strong>عدد التكتات في اليوم:</strong> ${calculatedTimeData.dailyLoad}</div>
+                            <div><strong>عدد التذكرةات في اليوم:</strong> ${calculatedTimeData.dailyLoad}</div>
                             <div><strong>الوقت الفعلي:</strong> ${calculatedTimeData.actualMinutes} دقيقة</div>
                             <div><strong>الوقت المعدل (Adjusted):</strong> ${calculatedTimeData.adjustedMinutes.toFixed(2)} دقيقة</div>
                             <div><strong>نقاط الوقت المقترحة:</strong> ${calculatedTimeData.suggestedSpeedPoints} / 10</div>
@@ -2520,7 +2520,7 @@ async function openPointsManagementModal(ticketId) {
             console.error('Error calculating time points:', error);
         }
         
-        // جلب قائمة Checklist items بناءً على نوع التكت
+        // جلب قائمة Checklist items بناءً على نوع التذكرة
         const ticketTypeKey = ticketTypeMapping[ticket.ticket_type_name] || null;
         const checklistItems = ticketTypeKey ? ticketChecklists[ticketTypeKey] : [];
         
@@ -2601,7 +2601,7 @@ function renderChecklistItemsForPoints(items) {
     if (!container) return;
     
     if (!items || items.length === 0) {
-        container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 20px;">لا توجد تاسكات لهذا النوع من التكتات</p>';
+        container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 20px;">لا توجد تاسكات لهذا النوع من التذكرةات</p>';
         return;
     }
     
@@ -2746,7 +2746,7 @@ function calculatePointsTotals() {
 // حفظ النقاط
 async function saveTicketPoints() {
     if (!currentPointsTicketId) {
-        alert('لم يتم تحديد التكت');
+        alert('لم يتم تحديد التذكرة');
         return;
     }
     
@@ -2783,7 +2783,7 @@ async function saveTicketPoints() {
         if (response && response.success) {
             alert('تم حفظ النقاط بنجاح');
             closePointsManagementModal();
-            // إعادة تحميل قائمة التكتات
+            // إعادة تحميل قائمة التذكرةات
             await loadPointsTickets();
         } else {
             alert('خطأ في حفظ النقاط: ' + (response?.message || 'خطأ غير معروف'));

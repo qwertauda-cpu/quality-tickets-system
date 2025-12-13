@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>لوحة العامل - نظام إدارة التكتات</title>
+    <title>لوحة العامل - نظام إدارة التذكرةات</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -16,8 +16,8 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="active-tickets"><i>📋</i> لوحة التكتات</a></li>
-                <li><a href="#" data-page="completed-tickets"><i>✅</i> لوحة التكتات المنجزة</a></li>
+                <li><a href="#" class="active" data-page="active-tickets"><i>📋</i> لوحة التذكرةات</a></li>
+                <li><a href="#" data-page="completed-tickets"><i>✅</i> لوحة التذكرةات المنجزة</a></li>
                 <li><a href="#" data-page="dashboard"><i>📊</i> لوحة التحكم</a></li>
                 <li><a href="#" data-page="rankings"><i>🏆</i> التصنيف</a></li>
                 <li><a href="#" data-page="my-team"><i>👥</i> فريقي</a></li>
@@ -38,7 +38,7 @@
             <div id="active-tickets-page" class="page-content">
                 <div class="card">
                     <div class="card-header">
-                        <h2>لوحة التكتات</h2>
+                        <h2>لوحة التذكرةات</h2>
                         <button class="btn btn-secondary" onclick="loadActiveTickets()">🔄 تحديث</button>
                     </div>
                     <div class="card-body">
@@ -46,10 +46,10 @@
                             <table id="activeTicketsTable">
                                 <thead>
                                     <tr>
-                                        <th>رقم التكت</th>
+                                        <th>رقم التذكرة</th>
                                         <th>اسم المشترك</th>
                                         <th>رقم المشترك</th>
-                                        <th>نوع التكت</th>
+                                        <th>نوع التذكرة</th>
                                         <th>الفريق</th>
                                         <th>تاريخ الاستلام</th>
                                         <th>الإجراءات</th>
@@ -70,7 +70,7 @@
             <div id="completed-tickets-page" class="page-content" style="display: none;">
                 <div class="card">
                     <div class="card-header">
-                        <h2>لوحة التكتات المنجزة</h2>
+                        <h2>لوحة التذكرةات المنجزة</h2>
                         <button class="btn btn-secondary" onclick="loadCompletedTickets()">🔄 تحديث</button>
                     </div>
                     <div class="card-body">
@@ -78,9 +78,9 @@
                             <table id="completedTicketsTable">
                                 <thead>
                                     <tr>
-                                        <th>رقم التكت</th>
+                                        <th>رقم التذكرة</th>
                                         <th>اسم المشترك</th>
-                                        <th>نوع التكت</th>
+                                        <th>نوع التذكرة</th>
                                         <th>الوقت المستغرق</th>
                                         <th>تاريخ الإنهاء</th>
                                         <th>حالة التقييم</th>
@@ -102,7 +102,7 @@
             <div id="ticket-details-modal" class="modal-overlay" style="display: none;">
                 <div class="modal" style="max-width: 800px;">
                     <div class="modal-header">
-                        <h2>تفاصيل التكت #<span id="modal-ticket-number"></span></h2>
+                        <h2>تفاصيل التذكرة #<span id="modal-ticket-number"></span></h2>
                         <button class="modal-close-btn" onclick="closeTicketDetailsModal()">×</button>
                     </div>
                     <div class="modal-body">
@@ -110,7 +110,7 @@
                             <p class="loading">جاري التحميل...</p>
                         </div>
                         <div id="ticket-complete-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color);">
-                            <button class="btn btn-success" onclick="completeTicket()" style="width: 100%;">✅ إنهاء التكت</button>
+                            <button class="btn btn-success" onclick="completeTicket()" style="width: 100%;">✅ إنهاء التذكرة</button>
                         </div>
                     </div>
                 </div>
@@ -124,7 +124,7 @@
                         <div class="value" id="myTeamPoints">0</div>
                     </div>
                     <div class="stat-card secondary">
-                        <h3>عدد التكتات اليوم</h3>
+                        <h3>عدد التذكرةات اليوم</h3>
                         <div class="value" id="myTeamTickets">0</div>
                     </div>
                     <div class="stat-card warning">
@@ -172,7 +172,7 @@
                                         <th>اسم الفريق</th>
                                         <th>الوردية</th>
                                         <th>النقاط الإجمالية</th>
-                                        <th>عدد التكتات</th>
+                                        <th>عدد التذكرةات</th>
                                         <th>النقاط الموجبة</th>
                                         <th>النقاط السالبة</th>
                                     </tr>

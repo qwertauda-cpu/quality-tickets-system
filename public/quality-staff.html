@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>واجهة موظف الجودة - نظام إدارة التكتات</title>
+    <title>واجهة موظف الجودة - نظام إدارة التذكرةات</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -17,8 +17,8 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="tickets-management"><i>📝</i> إدارة التكتات</a></li>
-                <li><a href="#" data-page="tickets-management-new"><i>📋</i> إدارة تكتات</a></li>
+                <li><a href="#" class="active" data-page="tickets-management"><i>📝</i> إدارة التذكرةات</a></li>
+                <li><a href="#" data-page="tickets-management-new"><i>📋</i> إدارة تذكرةات</a></li>
                 <li><a href="#" data-page="tickets-list"><i>📋</i> إدارة جودة</a></li>
                 <li><a href="#" data-page="followup"><i>🔔</i> المتابعة</a></li>
                 <li><a href="#" data-page="daily-report"><i>📄</i> التقرير اليومي</a></li>
@@ -29,7 +29,7 @@
         <!-- Main Content -->
         <main class="main-content">
             <div class="header">
-                <h1 id="pageTitle">إدارة التكتات</h1>
+                <h1 id="pageTitle">إدارة التذكرةات</h1>
                 <div class="user-info">
                     <span id="currentUser"></span>
                     <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
@@ -40,7 +40,7 @@
             <div id="ticket-details-page" class="page-content" style="display: none;">
                 <div class="card">
                     <div class="card-header">
-                        <h2>تفاصيل التكت #<span id="detail-ticket-number"></span></h2>
+                        <h2>تفاصيل التذكرة #<span id="detail-ticket-number"></span></h2>
                         <button class="btn btn-secondary" onclick="showPage('new-ticket')">← رجوع</button>
                     </div>
                     <div class="card-body">
@@ -208,24 +208,24 @@
             <div id="tickets-management-page" class="page-content">
                 <div class="card">
                     <div class="card-header">
-                        <h2>إدارة التكتات</h2>
-                        <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تكت</button>
+                        <h2>إدارة التذكرةات</h2>
+                        <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تذكرة</button>
                     </div>
                     <div class="card-body">
                         <!-- Tabs/Filters -->
                         <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap;">
-                            <button class="btn btn-tab active" onclick="filterTicketsByStatus('NEW')" data-status="NEW">التكتات المعلقة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('COMPLETED')" data-status="COMPLETED">التكتات المنجزة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('FOLLOW_UP')" data-status="FOLLOW_UP">التكتات المؤجلة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('CLOSED')" data-status="CLOSED">التكتات المنتهية</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatus('all')" data-status="all">جميع التكتات</button>
+                            <button class="btn btn-tab active" onclick="filterTicketsByStatus('NEW')" data-status="NEW">التذكرةات المعلقة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('COMPLETED')" data-status="COMPLETED">التذكرةات المنجزة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('FOLLOW_UP')" data-status="FOLLOW_UP">التذكرةات المؤجلة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('CLOSED')" data-status="CLOSED">التذكرةات المنتهية</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('all')" data-status="all">جميع التذكرةات</button>
                         </div>
                         
                         <div class="table-container">
                             <table id="ticketsManagementTable">
                                 <thead>
                                     <tr>
-                                        <th>رقم التكت</th>
+                                        <th>رقم التذكرة</th>
                                         <th>اسم المشترك</th>
                                         <th>الفريق</th>
                                         <th>الحالة</th>
@@ -249,27 +249,27 @@
             <div id="tickets-management-new-page" class="page-content" style="display: none;">
                 <div class="card">
                     <div class="card-header">
-                        <h2>إدارة تكتات</h2>
-                        <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تكت</button>
+                        <h2>إدارة تذكرةات</h2>
+                        <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تذكرة</button>
                     </div>
                     <div class="card-body">
                         <!-- Tabs/Filters -->
                         <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap;">
-                            <button class="btn btn-tab active" onclick="filterTicketsByStatusNew('NEW')" data-status="NEW">التكتات المعلقة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('COMPLETED')" data-status="COMPLETED">التكتات المنجزة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('FOLLOW_UP')" data-status="FOLLOW_UP">التكتات المؤجلة</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('CLOSED')" data-status="CLOSED">التكتات المنتهية</button>
-                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('all')" data-status="all">جميع التكتات</button>
+                            <button class="btn btn-tab active" onclick="filterTicketsByStatusNew('NEW')" data-status="NEW">التذكرةات المعلقة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('COMPLETED')" data-status="COMPLETED">التذكرةات المنجزة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('FOLLOW_UP')" data-status="FOLLOW_UP">التذكرةات المؤجلة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('CLOSED')" data-status="CLOSED">التذكرةات المنتهية</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('all')" data-status="all">جميع التذكرةات</button>
                         </div>
                         
                         <div class="table-container">
                             <table id="ticketsManagementNewTable">
                                 <thead>
                                     <tr>
-                                        <th>رقم التكت</th>
+                                        <th>رقم التذكرة</th>
                                         <th>اسم المشترك</th>
                                         <th>رقم الهاتف</th>
-                                        <th>نوع التكت</th>
+                                        <th>نوع التذكرة</th>
                                         <th>المنطقة</th>
                                         <th>الحالة</th>
                                         <th>تاريخ الإنشاء</th>
@@ -298,7 +298,7 @@
                             <table id="ticketsTable">
                                 <thead>
                                     <tr>
-                                        <th>رقم التكت</th>
+                                        <th>رقم التذكرة</th>
                                         <th>اسم المشترك</th>
                                         <th>الفريق</th>
                                         <th>الحالة</th>
@@ -325,7 +325,7 @@
     <div id="new-ticket-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h2>إدخال تكت جديد 
+                <h2>إدخال تذكرة جديد 
                     <span style="font-size: 0.8em; font-weight: normal; color: var(--text-secondary); margin-right: 15px;">
                         النقاط المكتسبة: <span id="headerQualityPoints">0</span> | 
                         النقاط المخصومة: <span id="headerPenaltyPoints">0</span> | 
@@ -338,7 +338,7 @@
                 <form id="ticketFormModal">
                     <div class="form-grid">
                         <div class="form-group">
-                            <label for="ticket_number_modal">رقم التكت *</label>
+                            <label for="ticket_number_modal">رقم التذكرة *</label>
                             <input type="text" id="ticket_number_modal" pattern="[0-9]+" inputmode="numeric" autocomplete="off" required>
                             <small class="form-text" style="color: #666; font-size: 0.85em;">يجب أن يحتوي على أرقام إنجليزية فقط (0-9)</small>
                             <div id="ticket_number_error_modal" class="error-message" style="display: none; color: #dc3545; font-size: 0.875em; margin-top: 5px; padding: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;"></div>
@@ -357,7 +357,7 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="ticket_type_id_modal">نوع التكت *</label>
+                            <label for="ticket_type_id_modal">نوع التذكرة *</label>
                             <select id="ticket_type_id_modal" required>
                                 <option value="">اختر النوع</option>
                             </select>
@@ -375,13 +375,13 @@
                             <select id="assigned_technician_id_modal">
                                 <option value="">اختر الفني (اختياري)</option>
                             </select>
-                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">إذا لم تختر فني، سيتم إرسال التكت للفريق فقط</small>
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">إذا لم تختر فني، سيتم إرسال التذكرة للفريق فقط</small>
                         </div>
                         
                         <!-- حقول التاريخ - مرتبة عمودياً -->
                         <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 20px;">
                             <div class="form-group" style="padding: 18px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); margin: 0;">
-                                <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 1.05em; color: var(--text-primary);">تاريخ استلام التكت (T0) *</label>
+                                <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 1.05em; color: var(--text-primary);">تاريخ استلام التذكرة (T0) *</label>
                                 <div id="time_received_container_modal"></div>
                                 <div id="time_received_time_container_modal" style="margin-top: 10px;"></div>
                             </div>
@@ -393,7 +393,7 @@
                             </div>
                             
                             <div class="form-group" style="padding: 18px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); margin: 0;">
-                                <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 1.05em; color: var(--text-primary);">تاريخ اكمال التكت (T2)</label>
+                                <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 1.05em; color: var(--text-primary);">تاريخ اكمال التذكرة (T2)</label>
                                 <div id="time_completed_container_modal"></div>
                                 <div id="time_completed_time_container_modal" style="margin-top: 10px;"></div>
                             </div>
@@ -589,7 +589,7 @@
                     <div class="btn-group" style="justify-content: flex-end;">
                         <button type="button" class="btn btn-secondary" onclick="closeNewTicketModal()">إغلاق</button>
                         <button type="button" class="btn btn-secondary" onclick="resetFormModal()">إعادة تعيين</button>
-                        <button type="submit" form="ticketFormModal" class="btn btn-primary">حفظ التكت</button>
+                        <button type="submit" form="ticketFormModal" class="btn btn-primary">حفظ التذكرة</button>
                     </div>
                 </div>
             </div>
@@ -600,7 +600,7 @@
     <div id="assignTicketModal" class="modal-overlay" style="display: none;">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>إرسال تكت للفني</h2>
+                <h2>إرسال تذكرة للفني</h2>
                 <button class="modal-close-btn" onclick="closeAssignTicketModal()">×</button>
             </div>
             <div class="modal-body">
@@ -661,7 +661,7 @@
                     ✓
                 </div>
                 <h3 style="color: var(--text-primary); font-size: 24px; margin-bottom: 15px; font-weight: 600;">
-                    تم إدخال التكت بنجاح!
+                    تم إدخال التذكرة بنجاح!
                 </h3>
                 <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
                     يمكنك الآن إضافة الصور وتقييم الجودة.
@@ -678,13 +678,13 @@
     <div id="ticket-details-modal" class="modal-overlay">
         <div class="modal">
             <div class="modal-header">
-                <h2>تفاصيل التكت #<span id="detail-ticket-number-modal"></span></h2>
+                <h2>تفاصيل التذكرة #<span id="detail-ticket-number-modal"></span></h2>
                 <button class="modal-close-btn" onclick="closeTicketDetailsModal()">×</button>
             </div>
             <div class="modal-body">
                 <!-- Ticket Basic Info (Read-only) -->
                 <div id="ticketViewInfo" style="margin-bottom: 30px;">
-                    <h3>معلومات التكت</h3>
+                    <h3>معلومات التذكرة</h3>
                     <div class="form-grid">
                         <div class="form-group">
                             <label>اسم المشترك:</label>
@@ -695,7 +695,7 @@
                             <div class="read-only-field" id="view_subscriber_phone">-</div>
                         </div>
                         <div class="form-group">
-                            <label>نوع التكت:</label>
+                            <label>نوع التذكرة:</label>
                             <div class="read-only-field" id="view_ticket_type">-</div>
                         </div>
                         <div class="form-group">
@@ -711,7 +711,7 @@
                             <div class="read-only-field" id="view_time_first_contact">-</div>
                         </div>
                         <div class="form-group">
-                            <label>تاريخ اكمال التكت (T2):</label>
+                            <label>تاريخ اكمال التذكرة (T2):</label>
                             <div class="read-only-field" id="view_time_completed">-</div>
                         </div>
                         <div class="form-group">
@@ -774,7 +774,7 @@
 
                 <!-- Edit Section (Only for Team Leader) -->
                 <div id="editSectionForTeamLeader" style="display: none; margin-top: 30px; border-top: 2px solid var(--border-color); padding-top: 20px;">
-                    <h3>تعديل التكت (Team Leader فقط)</h3>
+                    <h3>تعديل التذكرة (Team Leader فقط)</h3>
                     
                     <!-- Edit Ticket Form -->
                     <form id="editTicketFormModal">
@@ -788,7 +788,7 @@
                                 <input type="text" id="edit_subscriber_phone">
                             </div>
                             <div class="form-group">
-                                <label for="edit_ticket_type_id">نوع التكت</label>
+                                <label for="edit_ticket_type_id">نوع التذكرة</label>
                                 <select id="edit_ticket_type_id">
                                     <option value="">اختر النوع</option>
                                 </select>
@@ -914,13 +914,13 @@
             
             <!-- Review Section (for COMPLETED tickets) -->
             <div id="reviewSection" style="display: none; margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border-color);">
-                <h3 style="margin-bottom: 20px; color: var(--primary-color);">مراجعة التكت</h3>
+                <h3 style="margin-bottom: 20px; color: var(--primary-color);">مراجعة التذكرة</h3>
                 <form id="reviewForm">
                     <div class="form-group">
                         <label for="review_decision">قرار المراجعة *</label>
                         <select id="review_decision" required>
                             <option value="">اختر القرار</option>
-                            <option value="approve">موافق - إغلاق التكت</option>
+                            <option value="approve">موافق - إغلاق التذكرة</option>
                             <option value="followup">يحتاج متابعة</option>
                         </select>
                     </div>
@@ -1051,7 +1051,7 @@
                         e.preventDefault();
                         e.stopPropagation();
                         e.stopImmediatePropagation();
-                        showError('❌ تم رفض الحرف/الرمز: "' + e.key + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                        showError('❌ تم رفض الحرف/الرمز: "' + e.key + '" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)');
                         setTimeout(hideError, 3000);
                         return false;
                     } else {
@@ -1066,7 +1066,7 @@
                     if (value !== cleaned) {
                         e.target.value = cleaned;
                         const invalidChars = value.replace(/[0-9]/g, '');
-                        showError('❌ تم رفض القيم التالية: "' + invalidChars + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                        showError('❌ تم رفض القيم التالية: "' + invalidChars + '" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)');
                         setTimeout(hideError, 5000);
                     } else {
                         hideError();
@@ -1082,7 +1082,7 @@
                     const invalidChars = pastedText.replace(/[0-9]/g, '');
                     
                     if (invalidChars.length > 0) {
-                        showError('❌ تم رفض القيم المنسوخة: "' + invalidChars + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                        showError('❌ تم رفض القيم المنسوخة: "' + invalidChars + '" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)');
                         setTimeout(hideError, 5000);
                     }
                     
@@ -1101,7 +1101,7 @@
                     if (value !== cleaned) {
                         e.target.value = cleaned;
                         const invalidChars = value.replace(/[0-9]/g, '');
-                        showError('❌ تم رفض القيم: "' + invalidChars + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                        showError('❌ تم رفض القيم: "' + invalidChars + '" - رقم التذكرة يقبل أرقام إنجليزية فقط (0-9)');
                     } else {
                         hideError();
                     }
@@ -1120,15 +1120,15 @@
     <div id="create-ticket-modal" class="modal-overlay">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <h2>إنشاء تكت جديد</h2>
+                <h2>إنشاء تذكرة جديد</h2>
                 <button class="modal-close-btn" onclick="closeCreateTicketModal()">×</button>
             </div>
             <div class="modal-body">
                 <form id="createTicketForm">
                     <div class="form-grid">
-                        <!-- رقم التكت - توليد تلقائي (للعرض فقط) -->
+                        <!-- رقم التذكرة - توليد تلقائي (للعرض فقط) -->
                         <div class="form-group" style="grid-column: 1 / -1;">
-                            <label for="create_ticket_number">رقم التكت</label>
+                            <label for="create_ticket_number">رقم التذكرة</label>
                             <input type="text" id="create_ticket_number" readonly style="background-color: var(--bg-tertiary); color: var(--text-secondary); cursor: not-allowed;">
                             <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">سيتم توليده تلقائياً من النظام</small>
                         </div>
@@ -1147,18 +1147,18 @@
                             <div id="create_subscriber_phone_error" class="error-message" style="display: none;"></div>
                         </div>
                         
-                        <!-- نوع التكت -->
+                        <!-- نوع التذكرة -->
                         <div class="form-group">
-                            <label for="create_ticket_type_id">نوع التكت *</label>
+                            <label for="create_ticket_type_id">نوع التذكرة *</label>
                             <select id="create_ticket_type_id" required onchange="handleTicketTypeChange()">
                                 <option value="">اختر النوع</option>
                             </select>
                         </div>
                         
-                        <!-- نوع التكت المخصص (يظهر فقط عند اختيار "مخصص") -->
+                        <!-- نوع التذكرة المخصص (يظهر فقط عند اختيار "مخصص") -->
                         <div class="form-group" id="create_custom_ticket_type_group" style="display: none;">
-                            <label for="create_custom_ticket_type">اكتب نوع التكت المخصص *</label>
-                            <input type="text" id="create_custom_ticket_type" placeholder="أدخل نوع التكت المطلوب">
+                            <label for="create_custom_ticket_type">اكتب نوع التذكرة المخصص *</label>
+                            <input type="text" id="create_custom_ticket_type" placeholder="أدخل نوع التذكرة المطلوب">
                         </div>
                         
                         <!-- المنطقة -->
@@ -1176,7 +1176,7 @@
                     
                     <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
                         <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
-                        <button type="submit" class="btn btn-primary">إنشاء التكت</button>
+                        <button type="submit" class="btn btn-primary">إنشاء التذكرة</button>
                     </div>
                 </form>
             </div>

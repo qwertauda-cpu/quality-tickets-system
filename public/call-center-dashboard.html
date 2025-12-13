@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
-    <title>لوحة الكول سنتر - نظام إدارة التكتات</title>
+    <title>لوحة الكول سنتر - نظام إدارة التذكرةات</title>
     <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -16,14 +16,14 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التكتات</a></li>
+                <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التذكرةات</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
             </ul>
         </aside>
 
         <main class="main-content">
             <div class="header">
-                <h1 id="pageTitle">التكتات</h1>
+                <h1 id="pageTitle">التذكرةات</h1>
                 <div class="user-info">
                     <div class="notifications-bell" id="notificationsBell" onclick="showNotifications()" style="position: relative; cursor: pointer; margin-left: 15px; font-size: 20px;">
                         🔔
@@ -59,9 +59,9 @@
             <div id="tickets-page" class="page-content">
                 <div class="card">
                     <div class="card-header">
-                        <h2>التكتات</h2>
+                        <h2>التذكرةات</h2>
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <button class="btn btn-primary" onclick="openCreateTicketModal()">➕ إنشاء تكت</button>
+                            <button class="btn btn-primary" onclick="openCreateTicketModal()">➕ إنشاء تذكرة</button>
                             <label>
                                 <input type="checkbox" id="autoRefreshTickets" checked> تحديث تلقائي (30 ثانية)
                             </label>
@@ -109,15 +109,15 @@
             <div id="create-ticket-modal" class="modal-overlay">
                 <div class="modal" style="max-width: 600px;">
                     <div class="modal-header">
-                        <h2>إنشاء تكت جديد</h2>
+                        <h2>إنشاء تذكرة جديد</h2>
                         <button class="modal-close-btn" onclick="closeCreateTicketModal()">×</button>
                     </div>
                     <div class="modal-body">
                         <form id="createTicketForm">
                             <div class="form-grid">
-                                <!-- رقم التكت - توليد تلقائي (للعرض فقط) -->
+                                <!-- رقم التذكرة - توليد تلقائي (للعرض فقط) -->
                                 <div class="form-group" style="grid-column: 1 / -1;">
-                                    <label for="create_ticket_number">رقم التكت</label>
+                                    <label for="create_ticket_number">رقم التذكرة</label>
                                     <input type="text" id="create_ticket_number" readonly style="background-color: var(--bg-tertiary); color: var(--text-secondary); cursor: not-allowed;">
                                     <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">سيتم توليده تلقائياً من النظام</small>
                                 </div>
@@ -136,18 +136,18 @@
                                     <div id="create_subscriber_phone_error" class="error-message" style="display: none;"></div>
                                 </div>
                                 
-                                <!-- نوع التكت -->
+                                <!-- نوع التذكرة -->
                                 <div class="form-group">
-                                    <label for="create_ticket_type_id">نوع التكت *</label>
+                                    <label for="create_ticket_type_id">نوع التذكرة *</label>
                                     <select id="create_ticket_type_id" required onchange="handleTicketTypeChange()">
                                         <option value="">اختر النوع</option>
                                     </select>
                                 </div>
                                 
-                                <!-- نوع التكت المخصص (يظهر فقط عند اختيار "مخصص") -->
+                                <!-- نوع التذكرة المخصص (يظهر فقط عند اختيار "مخصص") -->
                                 <div class="form-group" id="create_custom_ticket_type_group" style="display: none;">
-                                    <label for="create_custom_ticket_type">اكتب نوع التكت المخصص *</label>
-                                    <input type="text" id="create_custom_ticket_type" placeholder="أدخل نوع التكت المطلوب">
+                                    <label for="create_custom_ticket_type">اكتب نوع التذكرة المخصص *</label>
+                                    <input type="text" id="create_custom_ticket_type" placeholder="أدخل نوع التذكرة المطلوب">
                                 </div>
                                 
                                 <!-- المنطقة -->
@@ -165,7 +165,7 @@
                             
                             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
                                 <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
-                                <button type="submit" class="btn btn-primary">إنشاء التكت</button>
+                                <button type="submit" class="btn btn-primary">إنشاء التذكرة</button>
                             </div>
                         </form>
                     </div>
