@@ -347,6 +347,11 @@ api.getAdminWhatsAppQR = () => apiRequest('/admin/whatsapp-qr');
 api.logoutAdminWhatsApp = () => apiRequest('/admin/whatsapp-logout', {
     method: 'POST'
 });
+api.getQualityStaffUsers = () => apiRequest('/admin/quality-staff');
+api.updateUserPermission = (userId, data) => apiRequest(`/admin/users/${userId}/permission`, {
+    method: 'PUT',
+    body: JSON.stringify(data)
+});
 
 // Make API available globally
 window.api = api;

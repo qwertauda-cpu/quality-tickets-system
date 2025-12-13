@@ -947,6 +947,38 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Quality Staff Permissions Section -->
+                <div class="form-section" style="margin-top: 24px;">
+                    <button type="button" class="accordion-header" onclick="toggleQualityStaffPermissionsAccordion()" style="width: 100%; text-align: right; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
+                        <h3 class="form-section-title" style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                            <span>👥</span>
+                            <span>إدارة صلاحيات موظفي الجودة</span>
+                        </h3>
+                        <span class="accordion-icon" id="qualityStaffPermissionsAccordionIcon" style="transition: transform 0.3s;">▼</span>
+                    </button>
+                    <div id="qualityStaffPermissionsAccordionContent" class="accordion-content" style="display: none; padding: 20px; background: var(--bg-tertiary); border: 1px solid var(--border-color); border-top: none; border-radius: 0 0 8px 8px;">
+                        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">
+                            حدد من يستطيع إرسال تنبيهات للفنيين عبر الواتساب عند إنشاء التذاكر
+                        </p>
+                        <div class="table-container">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color);">
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">اسم الموظف</th>
+                                        <th style="padding: 12px; text-align: right; font-weight: 600;">اسم المستخدم</th>
+                                        <th style="padding: 12px; text-align: center; font-weight: 600;">صلاحية إرسال تنبيهات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="qualityStaffPermissionsTableBody">
+                                    <tr>
+                                        <td colspan="3" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري تحميل قائمة موظفي الجودة...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -100,6 +100,29 @@ async function authenticate(req, res, next) {
     }
 }
 
+// ==================== Get Current User ====================
+app.get('/api/me', authenticate, async (req, res) => {
+    try {
+        const user = await db.queryOne(`
+            SELECT id, username, full_name, role, company_id, can_notify_technicians, is_active
+            FROM users
+            WHERE id = ?
+        `, [req.user.id]);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'المستخدم غير موجود' });
+        }
+        
+        res.json({
+            success: true,
+            user: user
+        });
+    } catch (error) {
+        console.error('Get current user error:', error);
+        res.status(500).json({ error: 'خطأ في جلب معلومات المستخدم' });
+    }
+});
+
 // ==================== Login ====================
 app.post('/api/login', async (req, res) => {
     try {
@@ -4991,6 +5014,76 @@ app.post('/api/admin/whatsapp-logout', authenticate, async (req, res) => {
     } catch (error) {
         console.error('Logout admin WhatsApp error:', error);
         res.status(500).json({ error: 'خطأ في تسجيل الخروج' });
+    }
+});
+
+// Get quality staff users (for permissions management)
+app.get('/api/admin/quality-staff', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        if (!req.user.company_id) {
+            return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+        }
+        
+        const users = await db.query(`
+            SELECT id, username, full_name, can_notify_technicians
+            FROM users
+            WHERE company_id = ? AND role = 'quality_staff' AND is_active = 1
+            ORDER BY full_name ASC
+        `, [req.user.company_id]);
+        
+        res.json({
+            success: true,
+            users: users || []
+        });
+    } catch (error) {
+        console.error('Get quality staff users error:', error);
+        res.status(500).json({ error: 'خطأ في جلب قائمة موظفي الجودة' });
+    }
+});
+
+// Update user permission
+app.put('/api/admin/users/:id/permission', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح - فقط المديرين' });
+        }
+        
+        if (!req.user.company_id) {
+            return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+        }
+        
+        const userId = req.params.id;
+        const { can_notify_technicians } = req.body;
+        
+        // التحقق من أن المستخدم ينتمي لنفس الشركة
+        const user = await db.queryOne(`
+            SELECT id, company_id, role
+            FROM users
+            WHERE id = ? AND company_id = ?
+        `, [userId, req.user.company_id]);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'المستخدم غير موجود أو لا ينتمي لشركتك' });
+        }
+        
+        // تحديث الصلاحية
+        await db.query(`
+            UPDATE users
+            SET can_notify_technicians = ?
+            WHERE id = ?
+        `, [can_notify_technicians ? 1 : 0, userId]);
+        
+        res.json({
+            success: true,
+            message: 'تم تحديث الصلاحية بنجاح'
+        });
+    } catch (error) {
+        console.error('Update user permission error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث الصلاحية' });
     }
 });
 

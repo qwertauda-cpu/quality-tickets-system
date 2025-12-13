@@ -3862,6 +3862,40 @@ async function saveTicketAndNotifyQuality() {
 
 // Create ticket with optional notification - Quality Staff
 async function createTicketWithNotificationQuality(sendNotification = false) {
+    // التحقق من الصلاحية إذا كان يريد إرسال تنبيه
+    if (sendNotification) {
+        try {
+            if (!window.api) {
+                showAlertModal('خطأ', 'API غير متاح');
+                return;
+            }
+            
+            // جلب معلومات المستخدم الحالي
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                showAlertModal('خطأ', 'غير قادر على تحديد المستخدم');
+                return;
+            }
+            
+            // التحقق من الصلاحية
+            const userData = await window.api.getUser(currentUser.id);
+            if (!userData || !userData.success || !userData.user) {
+                showAlertModal('خطأ', 'غير قادر على جلب معلومات المستخدم');
+                return;
+            }
+            
+            const canNotify = userData.user.can_notify_technicians === 1 || userData.user.can_notify_technicians === true;
+            if (!canNotify && currentUser.role !== 'admin') {
+                showAlertModal('تحذير', 'ليس لديك صلاحية لإرسال تنبيهات للفنيين. يرجى التواصل مع المدير.', 'warning');
+                return;
+            }
+        } catch (error) {
+            console.error('Error checking permission:', error);
+            showAlertModal('خطأ', 'حدث خطأ أثناء التحقق من الصلاحية', 'error');
+            return;
+        }
+    }
+    
     // Validate phone number
     const phone = document.getElementById('create_subscriber_phone')?.value?.trim() || '';
     if (phone && phone.length !== 11) {

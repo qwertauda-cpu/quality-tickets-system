@@ -2847,6 +2847,107 @@ function closePointsManagementModal() {
 async function loadNotifications() {
     await loadAdminWhatsAppSettings();
     checkAdminWhatsAppStatus();
+    await loadQualityStaffPermissions();
+}
+
+// Toggle Quality Staff Permissions accordion
+function toggleQualityStaffPermissionsAccordion() {
+    const content = document.getElementById('qualityStaffPermissionsAccordionContent');
+    const icon = document.getElementById('qualityStaffPermissionsAccordionIcon');
+    if (content && icon) {
+        const isOpen = content.style.display !== 'none';
+        content.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+    }
+}
+
+// Load quality staff permissions
+async function loadQualityStaffPermissions() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getQualityStaffUsers();
+        if (data && data.success && data.users) {
+            const tbody = document.getElementById('qualityStaffPermissionsTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            if (data.users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" style="padding: 20px; text-align: center; color: var(--text-muted);">لا يوجد موظفي جودة</td></tr>';
+                return;
+            }
+            
+            data.users.forEach(user => {
+                const row = document.createElement('tr');
+                row.style.borderBottom = '1px solid var(--border-color)';
+                row.innerHTML = `
+                    <td style="padding: 12px; text-align: right;">${user.full_name || 'غير محدد'}</td>
+                    <td style="padding: 12px; text-align: right; color: var(--text-secondary); font-size: 13px;">${user.username || 'غير محدد'}</td>
+                    <td style="padding: 12px; text-align: center;">
+                        <label style="display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" 
+                                   class="notify-permission-checkbox" 
+                                   data-user-id="${user.id}"
+                                   ${user.can_notify_technicians ? 'checked' : ''}
+                                   onchange="updateQualityStaffPermission(${user.id}, this.checked)"
+                                   style="width: 18px; height: 18px; cursor: pointer;">
+                            <span style="font-size: 14px; color: var(--text-primary);">${user.can_notify_technicians ? '✅ مفعل' : '❌ معطل'}</span>
+                        </label>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading quality staff permissions:', error);
+        const tbody = document.getElementById('qualityStaffPermissionsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="3" style="padding: 20px; text-align: center; color: var(--error-color);">خطأ في تحميل قائمة موظفي الجودة</td></tr>';
+        }
+    }
+}
+
+// Update quality staff permission
+async function updateQualityStaffPermission(userId, canNotify) {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.updateUserPermission(userId, { can_notify_technicians: canNotify ? 1 : 0 });
+        if (data && data.success) {
+            // Update the label text
+            const checkbox = document.querySelector(`.notify-permission-checkbox[data-user-id="${userId}"]`);
+            if (checkbox) {
+                const label = checkbox.closest('label');
+                const span = label.querySelector('span');
+                if (span) {
+                    span.textContent = canNotify ? '✅ مفعل' : '❌ معطل';
+                }
+            }
+            showAlertModal('نجح', 'تم تحديث الصلاحية بنجاح', 'success');
+        } else {
+            showAlertModal('خطأ', data.error || 'فشل تحديث الصلاحية', 'error');
+            // Revert checkbox
+            const checkbox = document.querySelector(`.notify-permission-checkbox[data-user-id="${userId}"]`);
+            if (checkbox) {
+                checkbox.checked = !canNotify;
+            }
+        }
+    } catch (error) {
+        console.error('Error updating permission:', error);
+        showAlertModal('خطأ', 'حدث خطأ أثناء تحديث الصلاحية', 'error');
+        // Revert checkbox
+        const checkbox = document.querySelector(`.notify-permission-checkbox[data-user-id="${userId}"]`);
+        if (checkbox) {
+            checkbox.checked = !canNotify;
+        }
+    }
 }
 
 // Toggle WhatsApp accordion
