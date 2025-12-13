@@ -620,6 +620,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (ticketsManagementPage) {
             ticketsManagementPage.style.display = 'none';
         }
+        
+        // Hide "إنشاء تكت" button from tickets-management-page for quality_staff and technicians
+        const createTicketButtons = document.querySelectorAll('button[onclick="openCreateTicketModal()"]');
+        createTicketButtons.forEach(btn => {
+            btn.style.display = 'none';
+        });
     }
     
     // Load initial data
@@ -3639,6 +3645,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Create Ticket Modal Functions
 async function openCreateTicketModal() {
+    // Check permissions - only admin and call_center can create tickets
+    const user = getCurrentUser();
+    if (!user || (user.role !== 'admin' && user.role !== 'call_center')) {
+        alert('غير مصرح لك بإنشاء التكتات. فقط Admin و Call Center يمكنهم إنشاء التكتات.');
+        return;
+    }
+    
     const modal = document.getElementById('create-ticket-modal');
     if (modal) {
         modal.classList.add('active');
