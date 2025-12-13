@@ -99,6 +99,10 @@ function showPage(pageName) {
             break;
         case 'settings':
             loadSettings();
+            // Check WhatsApp connection status when settings page loads
+            setTimeout(() => {
+                checkConnectionStatusOnLoad();
+            }, 500);
             break;
     }
 }
