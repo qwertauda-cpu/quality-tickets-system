@@ -108,8 +108,6 @@ function showPage(pageName) {
             setTimeout(() => {
                 checkConnectionStatusOnLoad();
             }, 500);
-            // Load managers for manual message sending
-            loadManagersForManualMessage();
             break;
     }
 }
@@ -2009,21 +2007,13 @@ async function sendManualWhatsAppMessages() {
 // Clear manual message form
 function clearManualMessageForm() {
     const messageText = document.getElementById('manualMessageText');
-    const managersSelect = document.getElementById('managersSelect');
     const statusDiv = document.getElementById('manualMessageStatus');
     
     if (messageText) messageText.value = '';
-    if (managersSelect) {
-        Array.from(managersSelect.selectedOptions).forEach(option => {
-            option.selected = false;
-        });
-    }
     if (statusDiv) {
         statusDiv.style.display = 'none';
         statusDiv.innerHTML = '';
     }
-    
-    updateSelectedManagersPreview();
 }
 
 // Make functions globally accessible
@@ -2035,9 +2025,12 @@ window.checkForQRCode = checkForQRCode;
 window.checkWhatsAppStatus = checkWhatsAppStatus;
 window.logoutWhatsApp = logoutWhatsApp;
 window.generateWhatsAppQR = generateWhatsAppQR;
-window.updateSelectedManagersPreview = updateSelectedManagersPreview;
-window.removeManagerFromSelection = removeManagerFromSelection;
-window.clearSelectedManagers = clearSelectedManagers;
+window.openSelectManagersModal = openSelectManagersModal;
+window.closeSelectManagersModal = closeSelectManagersModal;
+window.selectAllManagersInModal = selectAllManagersInModal;
+window.deselectAllManagersInModal = deselectAllManagersInModal;
+window.updateSelectedManagersPreviewModal = updateSelectedManagersPreviewModal;
+window.confirmSendMessages = confirmSendMessages;
 window.sendManualWhatsAppMessages = sendManualWhatsAppMessages;
 window.clearManualMessageForm = clearManualMessageForm;
 

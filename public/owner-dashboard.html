@@ -546,28 +546,8 @@
                                         <small class="form-hint">اكتب الرسالة التي تريد إرسالها. يمكنك استخدام متغيرات مثل {company_name} و {admin_name}</small>
                                     </div>
                                     
-                                    <div class="form-group" style="margin-bottom: 20px;">
-                                        <label for="managersSelect" style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">اختر المدراء (الشركات) المراد إرسال الرسالة لهم <span class="required">*</span></label>
-                                        <select id="managersSelect" multiple size="6" style="width: 100%; padding: 12px 16px; padding-left: 44px; background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: 'Cairo', sans-serif; color: var(--text-primary); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-sizing: border-box; min-height: 200px; line-height: 1.8; cursor: pointer;">
-                                            <option value="" disabled style="color: var(--text-muted); font-style: italic; padding: 12px;">جاري تحميل قائمة المدراء...</option>
-                                        </select>
-                                        <small class="form-hint">💡 اضغط Ctrl (أو Cmd على Mac) للاختيار المتعدد</small>
-                                    </div>
-                                    
-                                    <div id="selectedManagersPreview" style="display: none; margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, rgba(37, 211, 102, 0.15) 0%, rgba(37, 211, 102, 0.08) 100%); border-radius: 12px; border-right: 3px solid #25D366; border: 1px solid rgba(37, 211, 102, 0.3);">
-                                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                                            <p style="color: var(--text-primary); font-size: 15px; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                                                <span>✅</span>
-                                                <span id="selectedCount">0</span>
-                                                <span>مدراء مختارون</span>
-                                            </p>
-                                            <button type="button" onclick="clearSelectedManagers()" class="btn btn-sm" style="padding: 6px 12px; font-size: 12px; background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3);">مسح الكل</button>
-                                        </div>
-                                        <div id="selectedManagersList" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;"></div>
-                                    </div>
-                                    
                                     <div class="form-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                        <button type="button" onclick="sendManualWhatsAppMessages()" class="btn btn-success" id="sendManualMessagesBtn" disabled>📤 إرسال الرسائل</button>
+                                        <button type="button" onclick="openSelectManagersModal()" class="btn btn-success" id="sendManualMessagesBtn">📤 إرسال الرسائل</button>
                                         <button type="button" onclick="clearManualMessageForm()" class="btn btn-secondary">🗑️ مسح النموذج</button>
                                     </div>
                                     
