@@ -3548,26 +3548,26 @@ app.post('/api/owner/send-expiring-notifications', authenticate, async (req, res
                 }
             }
             
-            // إرسال رسالة واتساب إذا كان رقم الهاتف موجود
-            if (company.contact_phone) {
-                try {
-                    const whatsappResult = await sendWhatsAppMessage(
-                        company.contact_phone,
-                        `🔔 تنبيه من نظام إدارة التذاكر\n\n` +
-                        `عزيزي/عزيزتي ${company.contact_name || 'المدير'},\n\n` +
-                        `اشتراك شركة ${company.name} سينتهي خلال ${daysRemaining} يوم.\n` +
-                        `تاريخ الانتهاء: ${moment(company.subscription_end_date).format('YYYY-MM-DD')}\n\n` +
-                        `يرجى التواصل معنا لتجديد الاشتراك في أقرب وقت ممكن.\n\n` +
-                        `شكراً لاستخدامك خدماتنا.`
-                    );
-                    result.whatsapp_sent = true;
-                    result.whatsapp_url = whatsappResult.url;
-                    console.log(`✅ تم إرسال رسالة واتساب إلى ${company.contact_phone} عن انتهاء اشتراك ${company.name}`);
-                } catch (whatsappError) {
-                    result.errors.push(`خطأ في إرسال الواتساب: ${whatsappError.message}`);
-                    console.error(`❌ خطأ في إرسال رسالة واتساب إلى ${company.contact_phone}:`, whatsappError);
-                }
-            } else {
+            // إرسال رسالة واتساب معطل - يتم الإرسال يدوياً فقط من خلال واجهة المالك
+            // if (company.contact_phone) {
+            //     try {
+            //         const whatsappResult = await sendWhatsAppMessage(
+            //             company.contact_phone,
+            //             `🔔 تنبيه من نظام إدارة التذاكر\n\n` +
+            //             `عزيزي/عزيزتي ${company.contact_name || 'المدير'},\n\n` +
+            //             `اشتراك شركة ${company.name} سينتهي خلال ${daysRemaining} يوم.\n` +
+            //             `تاريخ الانتهاء: ${moment(company.subscription_end_date).format('YYYY-MM-DD')}\n\n` +
+            //             `يرجى التواصل معنا لتجديد الاشتراك في أقرب وقت ممكن.\n\n` +
+            //             `شكراً لاستخدامك خدماتنا.`
+            //         );
+            //         result.whatsapp_sent = true;
+            //         result.whatsapp_url = whatsappResult.url;
+            //         console.log(`✅ تم إرسال رسالة واتساب إلى ${company.contact_phone} عن انتهاء اشتراك ${company.name}`);
+            //     } catch (whatsappError) {
+            //         result.errors.push(`خطأ في إرسال الواتساب: ${whatsappError.message}`);
+            //         console.error(`❌ خطأ في إرسال رسالة واتساب إلى ${company.contact_phone}:`, whatsappError);
+            //     }
+            // } else {
                 result.errors.push('لا يوجد رقم هاتف للشركة');
             }
             
