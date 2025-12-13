@@ -96,8 +96,14 @@ function showPage(pageName) {
         case 'database':
             loadDatabaseTables();
             break;
+        case 'settings':
+            loadSettings();
+            break;
     }
 }
+
+// Make loadSettings globally accessible
+window.loadSettings = loadSettings;
 
 // ==================== Dashboard ====================
 async function loadDashboard() {

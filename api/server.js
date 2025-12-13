@@ -3264,6 +3264,14 @@ async function checkExpiringSubscriptions() {
 // ==================== Send WhatsApp Message ====================
 async function sendWhatsAppMessage(phoneNumber, message) {
     try {
+        // جلب إعدادات الواتساب
+        const settings = await getWhatsAppSettings();
+        
+        if (!settings.whatsapp_enabled) {
+            console.log('⚠️ إرسال الواتساب معطل في الإعدادات');
+            return { success: false, message: 'إرسال الواتساب معطل' };
+        }
+        
         // تنظيف رقم الهاتف (إزالة المسافات والرموز)
         const cleanPhone = phoneNumber.replace(/[\s\-\(\)\+]/g, '');
         
@@ -3277,31 +3285,99 @@ async function sendWhatsAppMessage(phoneNumber, message) {
             }
         }
         
-        // استخدام WhatsApp Business API أو خدمة خارجية
-        // هنا يمكنك استخدام Twilio, WhatsApp Business API, أو أي خدمة أخرى
-        // مثال باستخدام رابط WhatsApp Web:
+        // إذا كان هناك API URL و API Key، استخدم API
+        if (settings.whatsapp_api_url && settings.whatsapp_api_key) {
+            try {
+                // استخدام API لإرسال الرسالة
+                const axios = require('axios');
+                const response = await axios.post(settings.whatsapp_api_url, {
+                    phone: formattedPhone,
+                    message: message,
+                    api_key: settings.whatsapp_api_key
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${settings.whatsapp_api_key}`
+                    }
+                });
+                
+                console.log(`✅ تم إرسال رسالة واتساب عبر API إلى ${formattedPhone}`);
+                return { success: true, method: 'api', phone: formattedPhone };
+            } catch (apiError) {
+                console.error('❌ خطأ في إرسال الرسالة عبر API:', apiError.message);
+                // Fallback to WhatsApp Web link
+            }
+        }
+        
+        // استخدام رابط WhatsApp Web (الطريقة الافتراضية)
         const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
         
-        // في بيئة الإنتاج، يمكنك استخدام API حقيقي مثل:
-        // - Twilio WhatsApp API
-        // - WhatsApp Business API
-        // - أو أي خدمة أخرى متاحة
+        // إذا كان هناك رقم واتساب محدد في الإعدادات، استخدمه كمرسل
+        if (settings.whatsapp_phone) {
+            const ownerPhone = settings.whatsapp_phone.replace(/[\s\-\(\)\+]/g, '');
+            let formattedOwnerPhone = ownerPhone;
+            if (!formattedOwnerPhone.startsWith('964')) {
+                if (formattedOwnerPhone.startsWith('0')) {
+                    formattedOwnerPhone = '964' + formattedOwnerPhone.substring(1);
+                } else {
+                    formattedOwnerPhone = '964' + formattedOwnerPhone;
+                }
+            }
+            
+            // يمكن استخدام رقم المالك في رابط خاص إذا كانت الخدمة تدعم ذلك
+            console.log(`📱 WhatsApp Message from ${formattedOwnerPhone} to ${formattedPhone}:`);
+        } else {
+            console.log(`📱 WhatsApp Message to ${formattedPhone}:`);
+        }
         
-        // للآن، سنقوم بتسجيل الرسالة فقط (يمكنك تفعيل الإرسال الفعلي لاحقاً)
-        console.log(`📱 WhatsApp Message to ${formattedPhone}:`);
         console.log(`   ${message}`);
         console.log(`   URL: ${whatsappUrl}`);
         
-        // TODO: تفعيل الإرسال الفعلي عند توفر API
-        // يمكنك إضافة كود هنا لإرسال الرسالة عبر API حقيقي
-        
-        // محاولة فتح رابط الواتساب في المتصفح (اختياري)
+        // TODO: يمكن إضافة كود هنا لإرسال الرسالة عبر API حقيقي
         // يمكن استخدام axios أو fetch لإرسال الرسالة عبر API حقيقي
         
-        return { success: true, url: whatsappUrl, phone: formattedPhone };
+        return { success: true, url: whatsappUrl, phone: formattedPhone, method: 'web' };
     } catch (error) {
         console.error('Error sending WhatsApp message:', error);
         throw error;
+    }
+}
+
+// Helper function to get WhatsApp settings
+async function getWhatsAppSettings() {
+    try {
+        const settingsRows = await db.query(`
+            SELECT setting_key, setting_value, setting_type
+            FROM settings
+            WHERE category = 'whatsapp' AND is_active = 1
+        `);
+        
+        const settings = {
+            whatsapp_phone: '',
+            whatsapp_api_key: '',
+            whatsapp_api_url: '',
+            whatsapp_enabled: false
+        };
+        
+        settingsRows.forEach(row => {
+            let value = row.setting_value;
+            
+            if (row.setting_type === 'boolean') {
+                value = value === '1' || value === true || value === 'true';
+            }
+            
+            settings[row.setting_key] = value;
+        });
+        
+        return settings;
+    } catch (error) {
+        console.error('Error getting WhatsApp settings:', error);
+        return {
+            whatsapp_phone: '',
+            whatsapp_api_key: '',
+            whatsapp_api_url: '',
+            whatsapp_enabled: false
+        };
     }
 }
 
@@ -4274,6 +4350,85 @@ app.get('/api/owner/dashboard', authenticate, async (req, res) => {
     } catch (error) {
         console.error('Get owner dashboard error:', error);
         res.status(500).json({ error: 'خطأ في جلب إحصائيات لوحة التحكم' });
+    }
+});
+
+// ==================== Settings API ====================
+// Get all settings (Owner only)
+app.get('/api/owner/settings', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const settingsRows = await db.query(`
+            SELECT setting_key, setting_value, setting_type
+            FROM settings
+            WHERE is_active = 1
+        `);
+        
+        const settings = {};
+        settingsRows.forEach(row => {
+            let value = row.setting_value;
+            
+            // Convert based on type
+            if (row.setting_type === 'boolean') {
+                value = value === '1' || value === true || value === 'true';
+            } else if (row.setting_type === 'number') {
+                value = parseFloat(value) || 0;
+            } else if (row.setting_type === 'json') {
+                try {
+                    value = JSON.parse(value);
+                } catch (e) {
+                    value = value;
+                }
+            }
+            
+            settings[row.setting_key] = value;
+        });
+        
+        res.json({ success: true, settings });
+    } catch (error) {
+        console.error('Get settings error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الإعدادات' });
+    }
+});
+
+// Save settings (Owner only)
+app.post('/api/owner/settings', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const { whatsapp_phone, whatsapp_api_key, whatsapp_api_url, whatsapp_enabled } = req.body;
+        
+        if (!whatsapp_phone) {
+            return res.status(400).json({ error: 'رقم الواتساب مطلوب' });
+        }
+        
+        // Update or insert settings
+        const settings = [
+            { key: 'whatsapp_phone', value: whatsapp_phone, type: 'text' },
+            { key: 'whatsapp_api_key', value: whatsapp_api_key || '', type: 'text' },
+            { key: 'whatsapp_api_url', value: whatsapp_api_url || '', type: 'text' },
+            { key: 'whatsapp_enabled', value: whatsapp_enabled || '0', type: 'boolean' }
+        ];
+        
+        for (const setting of settings) {
+            await db.query(`
+                INSERT INTO settings (setting_key, setting_value, setting_type, category)
+                VALUES (?, ?, ?, 'whatsapp')
+                ON DUPLICATE KEY UPDATE
+                    setting_value = VALUES(setting_value),
+                    updated_at = CURRENT_TIMESTAMP
+            `, [setting.key, setting.value, setting.type]);
+        }
+        
+        res.json({ success: true, message: 'تم حفظ الإعدادات بنجاح' });
+    } catch (error) {
+        console.error('Save settings error:', error);
+        res.status(500).json({ error: 'خطأ في حفظ الإعدادات' });
     }
 });
 
