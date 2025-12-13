@@ -507,6 +507,17 @@
                                     </div>
                                 </form>
                                 
+                                <!-- Connection Status -->
+                                <div id="whatsappConnectionStatus" style="display: none; margin-top: 24px; padding: 20px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); border-radius: 8px; color: white; text-align: center;">
+                                    <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+                                    <h4 style="margin-bottom: 8px; color: white; font-weight: 600;">تم الاتصال بـ WhatsApp بنجاح!</h4>
+                                    <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">النظام جاهز الآن لإرسال الرسائل تلقائياً</p>
+                                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                                        <button onclick="checkWhatsAppStatus()" class="btn btn-sm" style="background: white; color: #25D366; border: none;">🔄 تحديث الحالة</button>
+                                        <button onclick="logoutWhatsApp()" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;">🚪 تسجيل الخروج</button>
+                                    </div>
+                                </div>
+                                
                                 <!-- QR Code Display -->
                                 <div id="whatsappQRContainer" style="display: none; margin-top: 24px; text-align: center; padding: 24px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
                                     <h4 style="margin-bottom: 16px; color: var(--text-primary);">📱 مسح الباركود للاتصال بـ WhatsApp</h4>
@@ -515,6 +526,23 @@
                                     <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: center; flex-wrap: wrap;">
                                         <button onclick="checkWhatsAppStatus()" class="btn btn-sm btn-secondary">🔄 التحقق من حالة الاتصال</button>
                                         <button onclick="logoutWhatsApp()" class="btn btn-sm btn-danger">🚪 تسجيل الخروج من WhatsApp</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Instructions -->
+                                <div style="margin-top: 24px; padding: 20px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <h4 style="margin-bottom: 16px; color: var(--text-primary);">📋 كيفية استخدام النظام:</h4>
+                                    <ol style="color: var(--text-secondary); font-size: 14px; line-height: 2; padding-right: 20px; margin: 0;">
+                                        <li>أدخل رقم الواتساب الخاص بك في الحقل أعلاه</li>
+                                        <li>فعّل "تفعيل إرسال رسائل الواتساب"</li>
+                                        <li>اضغط "حفظ الإعدادات" لحفظ البيانات</li>
+                                        <li>اضغط "توليد QR واتساب" لربط حسابك</li>
+                                        <li>امسح QR Code باستخدام WhatsApp على هاتفك</li>
+                                        <li>بعد الربط، سيتم إرسال الرسائل تلقائياً عند الحاجة</li>
+                                    </ol>
+                                    <div style="margin-top: 16px; padding: 12px; background: rgba(37, 211, 102, 0.1); border-radius: 6px; border-right: 3px solid #25D366;">
+                                        <p style="color: var(--text-primary); font-size: 14px; margin: 0; font-weight: 500;">💡 ملاحظة:</p>
+                                        <p style="color: var(--text-secondary); font-size: 13px; margin: 4px 0 0 0;">بعد الربط الناجح، سيتم إرسال الرسائل تلقائياً للمشتركين عند انتهاء الاشتراكات القريبة. لا حاجة لأي إجراء إضافي!</p>
                                     </div>
                                 </div>
                             </div>

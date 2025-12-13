@@ -1583,6 +1583,31 @@ function hideQRCode() {
     }
 }
 
+// Show Connection Status
+function showConnectionStatus() {
+    const statusContainer = document.getElementById('whatsappConnectionStatus');
+    const qrContainer = document.getElementById('whatsappQRContainer');
+    if (statusContainer) {
+        statusContainer.style.display = 'block';
+    }
+    if (qrContainer) {
+        qrContainer.style.display = 'none';
+    }
+    // Open accordion if closed
+    const accordionSection = document.querySelector('.accordion-section');
+    if (accordionSection && !accordionSection.classList.contains('active')) {
+        accordionSection.classList.add('active');
+    }
+}
+
+// Hide Connection Status
+function hideConnectionStatus() {
+    const statusContainer = document.getElementById('whatsappConnectionStatus');
+    if (statusContainer) {
+        statusContainer.style.display = 'none';
+    }
+}
+
 // Check for QR Code
 async function checkForQRCode() {
     try {
@@ -1619,7 +1644,8 @@ async function checkWhatsAppStatus() {
                 showAlertModal('معلومات', 'QR Code متاح، يرجى مسح الباركود');
             } else if (data.connected) {
                 hideQRCode();
-                showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!');
+                showConnectionStatus();
+                showAlertModal('نجح', '✅ تم الاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً للمشتركين.');
             } else {
                 showAlertModal('معلومات', 'لم يتم الاتصال بعد، يرجى المحاولة لاحقاً');
             }
@@ -1662,7 +1688,8 @@ async function generateWhatsAppQR() {
                 showAlertModal('نجح', 'تم توليد QR Code بنجاح! يرجى مسح الباركود باستخدام WhatsApp');
             } else if (data.connected) {
                 hideQRCode();
-                showAlertModal('معلومات', 'أنت متصل بالفعل بـ WhatsApp!');
+                showConnectionStatus();
+                showAlertModal('نجح', '✅ أنت متصل بالفعل بـ WhatsApp!\n\nالنظام جاهز لإرسال الرسائل.');
             } else {
                 // إذا لم يكن هناك QR Code، نحاول تهيئة WhatsApp Client
                 showAlertModal('معلومات', 'جاري تهيئة WhatsApp... يرجى الانتظار قليلاً ثم اضغط الزر مرة أخرى');
@@ -1703,6 +1730,7 @@ async function logoutWhatsApp() {
         const data = await window.api.logoutWhatsApp();
         if (data && data.success) {
             hideQRCode();
+            hideConnectionStatus();
             showAlertModal('نجح', data.message || 'تم تسجيل الخروج من WhatsApp بنجاح');
         } else {
             showAlertModal('خطأ', data.error || 'حدث خطأ في تسجيل الخروج');
@@ -1716,10 +1744,30 @@ async function logoutWhatsApp() {
 // Make functions globally accessible
 window.displayQRCode = displayQRCode;
 window.hideQRCode = hideQRCode;
+window.showConnectionStatus = showConnectionStatus;
+window.hideConnectionStatus = hideConnectionStatus;
 window.checkForQRCode = checkForQRCode;
 window.checkWhatsAppStatus = checkWhatsAppStatus;
 window.logoutWhatsApp = logoutWhatsApp;
 window.generateWhatsAppQR = generateWhatsAppQR;
+
+// Auto-check connection status on page load
+async function checkConnectionStatusOnLoad() {
+    try {
+        if (!window.api) return;
+        
+        const data = await window.api.getWhatsAppQR();
+        if (data && data.success) {
+            if (data.connected) {
+                showConnectionStatus();
+            } else if (data.qr_code) {
+                displayQRCode(data.qr_code);
+            }
+        }
+    } catch (error) {
+        console.error('Error checking connection status on load:', error);
+    }
+}
 
 // Setup settings form submission
 document.addEventListener('DOMContentLoaded', function() {
@@ -1754,7 +1802,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         showAlertModal('نجح', 'تم حفظ الإعدادات بنجاح! يرجى مسح الباركود');
                     } else if (data.connected) {
                         hideQRCode();
-                        showAlertModal('نجح', 'تم حفظ الإعدادات والاتصال بـ WhatsApp بنجاح!');
+                        showConnectionStatus();
+                        showAlertModal('نجح', '✅ تم حفظ الإعدادات والاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً.');
                     } else if (data.needs_qr) {
                         // إذا كان يحتاج QR Code، نبدأ بالتحقق بشكل دوري
                         showAlertModal('معلومات', 'تم حفظ الإعدادات. جاري تحميل QR Code...');
@@ -1774,7 +1823,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                     } else if (qrData.connected) {
                                         clearInterval(checkInterval);
                                         hideQRCode();
-                                        showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!');
+                                        showConnectionStatus();
+                                        showAlertModal('نجح', '✅ تم الاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً.');
                                     }
                                 }
                             } catch (error) {
