@@ -352,7 +352,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>إنشاء فاتورة</h2>
-                    <span class="close" onclick="closeCreateInvoiceModal()">&times;</span>
+                    <button type="button" class="modal-close" onclick="closeCreateInvoiceModal()" aria-label="إغلاق">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
             <form id="createInvoiceForm">
                 <div class="form-group">
@@ -403,7 +407,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h2>تفاصيل طلب الشراء</h2>
-                    <span class="close" onclick="closePurchaseRequestModal()">&times;</span>
+                    <button type="button" class="modal-close" onclick="closePurchaseRequestModal()" aria-label="إغلاق">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
                 <div id="purchaseRequestDetails"></div>
             </div>
@@ -416,7 +424,11 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h2 id="alertTitle">تنبيه</h2>
-                    <span class="close" onclick="closeAlertModal()">&times;</span>
+                    <button type="button" class="modal-close" onclick="closeAlertModal()" aria-label="إغلاق">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </div>
             <div class="modal-body">
                 <p id="alertMessage"></p>
