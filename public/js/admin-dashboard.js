@@ -71,7 +71,8 @@ function initAdminDashboard() {
     // Setup navigation
     setupNavigation();
     
-    loadDashboard();
+    // Show dashboard page by default
+    showPage('dashboard');
     
     // Initialize notifications
     setTimeout(initNotifications, 1000);
