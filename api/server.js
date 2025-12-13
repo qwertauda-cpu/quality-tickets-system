@@ -2090,13 +2090,22 @@ app.get('/api/users', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح' });
         }
         
+        // Filter by company_id if admin (not owner)
+        let whereClause = '1=1';
+        let params = [];
+        if (req.user.role === 'admin' && req.user.company_id) {
+            whereClause = 'u.company_id = ?';
+            params.push(req.user.company_id);
+        }
+        
         const users = await db.query(`
-            SELECT u.id, u.username, u.full_name, u.role, u.team_id, u.is_active, u.created_at,
+            SELECT u.id, u.username, u.full_name, u.role, u.team_id, u.is_active, u.created_at, u.can_notify_technicians,
                    t.name as team_name
             FROM users u
             LEFT JOIN teams t ON u.team_id = t.id
+            WHERE ${whereClause}
             ORDER BY u.created_at DESC
-        `);
+        `, params);
         
         console.log('Users found:', users.length);
         res.json({ success: true, users });
@@ -2227,7 +2236,7 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
         }
         
         const userId = req.params.id;
-        const { username, password, full_name, team_id, is_active } = req.body;
+        const { username, password, full_name, team_id, is_active, can_notify_technicians } = req.body;
         
         // Don't allow updating admin users
         const user = await db.queryOne('SELECT role FROM users WHERE id = ?', [userId]);
@@ -2257,6 +2266,11 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
         if (is_active !== undefined) {
             updateQuery += ', is_active = ?';
             updateParams.push(is_active ? 1 : 0);
+        }
+        
+        if (can_notify_technicians !== undefined) {
+            updateQuery += ', can_notify_technicians = ?';
+            updateParams.push(can_notify_technicians ? 1 : 0);
         }
         
         updateQuery += ' WHERE id = ?';
