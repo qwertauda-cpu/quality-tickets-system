@@ -676,6 +676,40 @@ table tbody tr:last-child td {
     box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
+.btn-large {
+    padding: 18px 35px;
+    font-size: 16px;
+    font-weight: 600;
+    min-width: 220px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-large:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-xl);
+}
+
+.quick-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .quick-actions {
+        flex-direction: column;
+    }
+    
+    .btn-large {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
 .btn-danger {
     background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);
     color: white;
