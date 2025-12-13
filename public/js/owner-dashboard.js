@@ -32,6 +32,11 @@ function initOwnerDashboard() {
     // Setup navigation
     setupNavigation();
     
+    // Check WhatsApp connection status on page load
+    updateWhatsAppStatusIndicator();
+    // Update status every 30 seconds
+    setInterval(updateWhatsAppStatusIndicator, 30000);
+    
     loadDashboard();
 }
 
@@ -1649,6 +1654,7 @@ async function checkWhatsAppStatus() {
             } else if (data.connected) {
                 hideQRCode();
                 showConnectionStatus();
+                updateWhatsAppStatusIndicator();
                 showAlertModal('نجح', '✅ تم الاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً للمشتركين.');
             } else {
                 showAlertModal('معلومات', 'لم يتم الاتصال بعد، يرجى المحاولة لاحقاً');
@@ -1693,6 +1699,7 @@ async function generateWhatsAppQR() {
             } else if (data.connected) {
                 hideQRCode();
                 showConnectionStatus();
+                updateWhatsAppStatusIndicator();
                 showAlertModal('نجح', '✅ أنت متصل بالفعل بـ WhatsApp!\n\nالنظام جاهز لإرسال الرسائل.');
             } else {
                 // إذا لم يكن هناك QR Code، نحاول تهيئة WhatsApp Client
@@ -1735,6 +1742,7 @@ async function logoutWhatsApp() {
         if (data && data.success) {
             hideQRCode();
             hideConnectionStatus();
+            updateWhatsAppStatusIndicator();
             showAlertModal('نجح', data.message || 'تم تسجيل الخروج من WhatsApp بنجاح');
         } else {
             showAlertModal('خطأ', data.error || 'حدث خطأ في تسجيل الخروج');
@@ -1755,6 +1763,57 @@ window.checkWhatsAppStatus = checkWhatsAppStatus;
 window.logoutWhatsApp = logoutWhatsApp;
 window.generateWhatsAppQR = generateWhatsAppQR;
 
+// Update WhatsApp status indicator in header
+async function updateWhatsAppStatusIndicator() {
+    try {
+        const statusIcon = document.getElementById('whatsappStatusIcon');
+        const statusText = document.getElementById('whatsappStatusIndicator');
+        
+        if (!statusIcon || !statusText) return;
+        
+        if (!window.api) {
+            statusIcon.textContent = '❌';
+            statusText.querySelector('#whatsappStatusText').textContent = 'API غير متاح';
+            statusText.style.background = 'rgba(255, 0, 0, 0.1)';
+            return;
+        }
+        
+        const data = await window.api.getWhatsAppQR();
+        if (data && data.success) {
+            if (data.connected) {
+                statusIcon.textContent = '✅';
+                statusText.querySelector('#whatsappStatusText').textContent = 'واتساب مربوط';
+                statusText.style.background = 'rgba(37, 211, 102, 0.2)';
+                statusText.style.border = '1px solid rgba(37, 211, 102, 0.3)';
+            } else if (data.qr_code) {
+                statusIcon.textContent = '⏳';
+                statusText.querySelector('#whatsappStatusText').textContent = 'في انتظار الربط';
+                statusText.style.background = 'rgba(255, 193, 7, 0.2)';
+                statusText.style.border = '1px solid rgba(255, 193, 7, 0.3)';
+            } else {
+                statusIcon.textContent = '❌';
+                statusText.querySelector('#whatsappStatusText').textContent = 'واتساب غير مربوط';
+                statusText.style.background = 'rgba(255, 0, 0, 0.1)';
+                statusText.style.border = '1px solid rgba(255, 0, 0, 0.3)';
+            }
+        } else {
+            statusIcon.textContent = '❌';
+            statusText.querySelector('#whatsappStatusText').textContent = 'واتساب غير مربوط';
+            statusText.style.background = 'rgba(255, 0, 0, 0.1)';
+            statusText.style.border = '1px solid rgba(255, 0, 0, 0.3)';
+        }
+    } catch (error) {
+        console.error('Error updating WhatsApp status indicator:', error);
+        const statusIcon = document.getElementById('whatsappStatusIcon');
+        const statusText = document.getElementById('whatsappStatusIndicator');
+        if (statusIcon && statusText) {
+            statusIcon.textContent = '❌';
+            statusText.querySelector('#whatsappStatusText').textContent = 'خطأ في التحقق';
+            statusText.style.background = 'rgba(255, 0, 0, 0.1)';
+        }
+    }
+}
+
 // Auto-check connection status on page load
 async function checkConnectionStatusOnLoad() {
     try {
@@ -1768,6 +1827,8 @@ async function checkConnectionStatusOnLoad() {
                 displayQRCode(data.qr_code);
             }
         }
+        // Update status indicator
+        updateWhatsAppStatusIndicator();
     } catch (error) {
         console.error('Error checking connection status on load:', error);
     }
@@ -1807,6 +1868,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else if (data.connected) {
                         hideQRCode();
                         showConnectionStatus();
+                        updateWhatsAppStatusIndicator();
                         showAlertModal('نجح', '✅ تم حفظ الإعدادات والاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً.');
                     } else if (data.needs_qr) {
                         // إذا كان يحتاج QR Code، نبدأ بالتحقق بشكل دوري
@@ -1828,6 +1890,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         clearInterval(checkInterval);
                                         hideQRCode();
                                         showConnectionStatus();
+                                        updateWhatsAppStatusIndicator();
                                         showAlertModal('نجح', '✅ تم الاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً.');
                                     }
                                 }
