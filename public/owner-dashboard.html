@@ -544,10 +544,44 @@
                                         <li>امسح QR Code باستخدام WhatsApp على هاتفك</li>
                                         <li>بعد الربط، سيتم إرسال الرسائل تلقائياً عند الحاجة</li>
                                     </ol>
-                                    <div style="margin-top: 16px; padding: 12px; background: rgba(37, 211, 102, 0.1); border-radius: 6px; border-right: 3px solid #25D366;">
-                                        <p style="color: var(--text-primary); font-size: 14px; margin: 0; font-weight: 500;">💡 ملاحظة:</p>
-                                        <p style="color: var(--text-secondary); font-size: 13px; margin: 4px 0 0 0;">بعد الربط الناجح، سيتم إرسال الرسائل تلقائياً للمشتركين عند انتهاء الاشتراكات القريبة. لا حاجة لأي إجراء إضافي!</p>
+                                </div>
+                                
+                                <!-- Manual Message Sending -->
+                                <div style="margin-top: 32px; padding: 24px; background: var(--card-bg); border-radius: 8px; border: 1px solid var(--border-color);">
+                                    <h4 style="margin-bottom: 20px; color: var(--text-primary);">📨 إرسال رسائل WhatsApp يدوياً</h4>
+                                    
+                                    <div class="form-group" style="margin-bottom: 20px;">
+                                        <label for="manualMessageText" style="display: block; margin-bottom: 8px; font-weight: 600; color: var(--text-primary);">نص الرسالة <span class="required">*</span></label>
+                                        <textarea id="manualMessageText" rows="5" placeholder="اكتب الرسالة التي تريد إرسالها للمدراء المختارين..." style="width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical; min-height: 120px;"></textarea>
+                                        <small class="form-hint">اكتب الرسالة التي تريد إرسالها. يمكنك استخدام متغيرات مثل {company_name} و {admin_name}</small>
                                     </div>
+                                    
+                                    <div class="form-group" style="margin-bottom: 20px;">
+                                        <label style="display: block; margin-bottom: 12px; font-weight: 600; color: var(--text-primary);">اختر المدراء (الشركات) المراد إرسال الرسالة لهم:</label>
+                                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; background: var(--bg-secondary);">
+                                            <div style="margin-bottom: 8px;">
+                                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;">
+                                                    <input type="checkbox" id="selectAllManagers" onchange="toggleAllManagers(this.checked)" style="cursor: pointer;">
+                                                    <span style="font-weight: 600; color: var(--text-primary);">تحديد الكل</span>
+                                                </label>
+                                            </div>
+                                            <div id="managersList" style="display: flex; flex-direction: column; gap: 8px;">
+                                                <div style="padding: 12px; text-align: center; color: var(--text-secondary);">جاري تحميل قائمة المدراء...</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="selectedManagersPreview" style="display: none; margin-bottom: 20px; padding: 16px; background: rgba(37, 211, 102, 0.1); border-radius: 6px; border-right: 3px solid #25D366;">
+                                        <p style="color: var(--text-primary); font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">المدراء المختارون:</p>
+                                        <div id="selectedManagersList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                                    </div>
+                                    
+                                    <div class="form-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                        <button type="button" onclick="sendManualWhatsAppMessages()" class="btn btn-success" id="sendManualMessagesBtn" disabled>📤 إرسال الرسائل</button>
+                                        <button type="button" onclick="clearManualMessageForm()" class="btn btn-secondary">🗑️ مسح النموذج</button>
+                                    </div>
+                                    
+                                    <div id="manualMessageStatus" style="margin-top: 16px; display: none;"></div>
                                 </div>
                             </div>
                         </div>

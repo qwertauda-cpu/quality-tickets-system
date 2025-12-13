@@ -108,6 +108,8 @@ function showPage(pageName) {
             setTimeout(() => {
                 checkConnectionStatusOnLoad();
             }, 500);
+            // Load managers for manual message sending
+            loadManagersForManualMessage();
             break;
     }
 }
@@ -1753,6 +1755,225 @@ async function logoutWhatsApp() {
     }
 }
 
+// Load managers/companies for manual message sending
+async function loadManagersForManualMessage() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getOwnerCompanies();
+        if (data && data.success && data.companies) {
+            const managersList = document.getElementById('managersList');
+            if (!managersList) return;
+            
+            managersList.innerHTML = '';
+            
+            if (data.companies.length === 0) {
+                managersList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--text-secondary);">لا توجد شركات متاحة</div>';
+                return;
+            }
+            
+            data.companies.forEach(company => {
+                const managerItem = document.createElement('div');
+                managerItem.style.cssText = 'padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--card-bg); transition: all 0.2s;';
+                managerItem.innerHTML = `
+                    <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; width: 100%;">
+                        <input type="checkbox" class="manager-checkbox" value="${company.id}" data-company-name="${company.company_name}" data-admin-name="${company.admin_name || company.admin_username || ''}" data-contact-phone="${company.contact_phone || ''}" onchange="updateSelectedManagersPreview()" style="cursor: pointer; width: 18px; height: 18px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">${company.company_name || 'غير محدد'}</div>
+                            <div style="font-size: 12px; color: var(--text-secondary);">
+                                <span>👤 ${company.admin_name || company.admin_username || 'غير محدد'}</span>
+                                ${company.contact_phone ? `<span style="margin-right: 12px;">📱 ${company.contact_phone}</span>` : ''}
+                            </div>
+                        </div>
+                    </label>
+                `;
+                managersList.appendChild(managerItem);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading managers:', error);
+        const managersList = document.getElementById('managersList');
+        if (managersList) {
+            managersList.innerHTML = '<div style="padding: 12px; text-align: center; color: var(--error-color);">خطأ في تحميل قائمة المدراء</div>';
+        }
+    }
+}
+
+// Toggle all managers selection
+function toggleAllManagers(checked) {
+    const checkboxes = document.querySelectorAll('.manager-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = checked;
+    });
+    updateSelectedManagersPreview();
+}
+
+// Update selected managers preview
+function updateSelectedManagersPreview() {
+    const checkboxes = document.querySelectorAll('.manager-checkbox:checked');
+    const previewContainer = document.getElementById('selectedManagersPreview');
+    const previewList = document.getElementById('selectedManagersList');
+    const sendBtn = document.getElementById('sendManualMessagesBtn');
+    
+    if (!previewContainer || !previewList || !sendBtn) return;
+    
+    if (checkboxes.length === 0) {
+        previewContainer.style.display = 'none';
+        sendBtn.disabled = true;
+        return;
+    }
+    
+    previewContainer.style.display = 'block';
+    sendBtn.disabled = false;
+    previewList.innerHTML = '';
+    
+    checkboxes.forEach(checkbox => {
+        const item = document.createElement('div');
+        item.style.cssText = 'padding: 8px 12px; background: white; border-radius: 4px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;';
+        item.innerHTML = `
+            <div>
+                <span style="font-weight: 600; color: var(--text-primary);">${checkbox.dataset.companyName}</span>
+                <span style="margin-right: 8px; color: var(--text-secondary); font-size: 12px;">(${checkbox.dataset.adminName})</span>
+            </div>
+            ${checkbox.dataset.contactPhone ? `<span style="color: var(--text-secondary); font-size: 12px;">📱 ${checkbox.dataset.contactPhone}</span>` : '<span style="color: var(--error-color); font-size: 12px;">⚠️ لا يوجد رقم</span>'}
+        `;
+        previewList.appendChild(item);
+    });
+}
+
+// Send manual WhatsApp messages
+async function sendManualWhatsAppMessages() {
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const messageText = document.getElementById('manualMessageText')?.value.trim();
+        if (!messageText) {
+            showAlertModal('خطأ', 'يرجى إدخال نص الرسالة');
+            return;
+        }
+        
+        const checkboxes = document.querySelectorAll('.manager-checkbox:checked');
+        if (checkboxes.length === 0) {
+            showAlertModal('خطأ', 'يرجى اختيار شركة واحدة على الأقل');
+            return;
+        }
+        
+        const companyIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        
+        // التحقق من وجود أرقام هواتف
+        const companiesWithoutPhone = Array.from(checkboxes).filter(cb => !cb.dataset.contactPhone);
+        if (companiesWithoutPhone.length > 0) {
+            const companyNames = companiesWithoutPhone.map(cb => cb.dataset.companyName).join(', ');
+            if (!confirm(`تحذير: بعض الشركات المختارة لا تحتوي على رقم هاتف:\n${companyNames}\n\nهل تريد المتابعة؟`)) {
+                return;
+            }
+        }
+        
+        // تأكيد الإرسال
+        if (!confirm(`هل أنت متأكد من إرسال الرسالة إلى ${checkboxes.length} شركة؟`)) {
+            return;
+        }
+        
+        const sendBtn = document.getElementById('sendManualMessagesBtn');
+        const statusDiv = document.getElementById('manualMessageStatus');
+        
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.textContent = '⏳ جاري الإرسال...';
+        }
+        
+        if (statusDiv) {
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = '<div style="padding: 12px; background: rgba(255, 193, 7, 0.1); border-radius: 6px; color: var(--text-primary);">⏳ جاري إرسال الرسائل...</div>';
+        }
+        
+        const data = await window.api.sendManualWhatsAppMessages({
+            message: messageText,
+            company_ids: companyIds
+        });
+        
+        if (data && data.success) {
+            // عرض النتائج
+            let statusHTML = `<div style="padding: 16px; background: rgba(37, 211, 102, 0.1); border-radius: 6px; border-right: 3px solid #25D366; margin-bottom: 12px;">
+                <p style="color: var(--text-primary); font-weight: 600; margin: 0 0 8px 0;">✅ ${data.message}</p>
+                <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">إجمالي: ${data.summary.total} | نجح: ${data.summary.success} | فشل: ${data.summary.failed}</p>
+            </div>`;
+            
+            if (data.results && data.results.length > 0) {
+                statusHTML += '<div style="max-height: 300px; overflow-y: auto;">';
+                data.results.forEach(result => {
+                    const bgColor = result.success ? 'rgba(37, 211, 102, 0.1)' : 'rgba(255, 0, 0, 0.1)';
+                    const borderColor = result.success ? '#25D366' : '#ff0000';
+                    const icon = result.success ? '✅' : '❌';
+                    statusHTML += `
+                        <div style="padding: 10px; margin-bottom: 8px; background: ${bgColor}; border-radius: 4px; border-right: 2px solid ${borderColor};">
+                            <div style="font-weight: 600; color: var(--text-primary);">${icon} ${result.company_name}</div>
+                            ${result.phone ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">📱 ${result.phone}</div>` : ''}
+                            ${result.error ? `<div style="font-size: 12px; color: var(--error-color); margin-top: 4px;">⚠️ ${result.error}</div>` : ''}
+                        </div>
+                    `;
+                });
+                statusHTML += '</div>';
+            }
+            
+            if (statusDiv) {
+                statusDiv.innerHTML = statusHTML;
+            }
+            
+            showAlertModal('نجح', data.message);
+        } else {
+            if (statusDiv) {
+                statusDiv.innerHTML = `<div style="padding: 12px; background: rgba(255, 0, 0, 0.1); border-radius: 6px; color: var(--error-color);">❌ ${data.error || 'حدث خطأ في إرسال الرسائل'}</div>`;
+            }
+            showAlertModal('خطأ', data.error || 'حدث خطأ في إرسال الرسائل');
+        }
+        
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = '📤 إرسال الرسائل';
+        }
+    } catch (error) {
+        console.error('Error sending manual messages:', error);
+        const sendBtn = document.getElementById('sendManualMessagesBtn');
+        const statusDiv = document.getElementById('manualMessageStatus');
+        
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.textContent = '📤 إرسال الرسائل';
+        }
+        
+        if (statusDiv) {
+            statusDiv.innerHTML = `<div style="padding: 12px; background: rgba(255, 0, 0, 0.1); border-radius: 6px; color: var(--error-color);">❌ حدث خطأ: ${error.message || 'خطأ غير معروف'}</div>`;
+        }
+        
+        showAlertModal('خطأ', 'حدث خطأ في إرسال الرسائل');
+    }
+}
+
+// Clear manual message form
+function clearManualMessageForm() {
+    const messageText = document.getElementById('manualMessageText');
+    const checkboxes = document.querySelectorAll('.manager-checkbox');
+    const selectAll = document.getElementById('selectAllManagers');
+    const statusDiv = document.getElementById('manualMessageStatus');
+    
+    if (messageText) messageText.value = '';
+    checkboxes.forEach(cb => cb.checked = false);
+    if (selectAll) selectAll.checked = false;
+    if (statusDiv) {
+        statusDiv.style.display = 'none';
+        statusDiv.innerHTML = '';
+    }
+    
+    updateSelectedManagersPreview();
+}
+
 // Make functions globally accessible
 window.displayQRCode = displayQRCode;
 window.hideQRCode = hideQRCode;
@@ -1762,6 +1983,10 @@ window.checkForQRCode = checkForQRCode;
 window.checkWhatsAppStatus = checkWhatsAppStatus;
 window.logoutWhatsApp = logoutWhatsApp;
 window.generateWhatsAppQR = generateWhatsAppQR;
+window.toggleAllManagers = toggleAllManagers;
+window.updateSelectedManagersPreview = updateSelectedManagersPreview;
+window.sendManualWhatsAppMessages = sendManualWhatsAppMessages;
+window.clearManualMessageForm = clearManualMessageForm;
 
 // Update WhatsApp status indicator in header
 async function updateWhatsAppStatusIndicator() {

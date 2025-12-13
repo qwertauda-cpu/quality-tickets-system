@@ -4669,6 +4669,103 @@ app.post('/api/owner/whatsapp-logout', authenticate, async (req, res) => {
     }
 });
 
+// Send manual WhatsApp messages (Owner only)
+app.post('/api/owner/send-whatsapp-messages', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const { message, company_ids } = req.body;
+        
+        if (!message || !message.trim()) {
+            return res.status(400).json({ error: 'يرجى إدخال نص الرسالة' });
+        }
+        
+        if (!company_ids || !Array.isArray(company_ids) || company_ids.length === 0) {
+            return res.status(400).json({ error: 'يرجى اختيار شركة واحدة على الأقل' });
+        }
+        
+        // جلب معلومات الشركات المختارة
+        const placeholders = company_ids.map(() => '?').join(',');
+        const companies = await db.query(`
+            SELECT c.*, 
+                   u.username as admin_username,
+                   u.full_name as admin_name,
+                   u.phone as admin_phone
+            FROM companies c
+            LEFT JOIN users u ON c.owner_user_id = u.id
+            WHERE c.id IN (${placeholders})
+        `, company_ids);
+        
+        if (companies.length === 0) {
+            return res.status(404).json({ error: 'لم يتم العثور على الشركات المختارة' });
+        }
+        
+        const results = [];
+        
+        for (const company of companies) {
+            try {
+                // استبدال المتغيرات في الرسالة
+                let finalMessage = message
+                    .replace(/{company_name}/g, company.company_name || '')
+                    .replace(/{admin_name}/g, company.admin_name || company.admin_username || '')
+                    .replace(/{contact_phone}/g, company.contact_phone || '')
+                    .replace(/{domain}/g, company.domain || '');
+                
+                // استخدام رقم الاتصال للشركة أو رقم المدير
+                const phoneNumber = company.contact_phone || company.admin_phone;
+                
+                if (!phoneNumber) {
+                    results.push({
+                        company_id: company.id,
+                        company_name: company.company_name,
+                        success: false,
+                        error: 'لا يوجد رقم هاتف للشركة'
+                    });
+                    continue;
+                }
+                
+                // إرسال الرسالة
+                const sendResult = await sendWhatsAppMessage(phoneNumber, finalMessage);
+                
+                results.push({
+                    company_id: company.id,
+                    company_name: company.company_name,
+                    phone: phoneNumber,
+                    success: sendResult.success || false,
+                    error: sendResult.message || sendResult.error || null
+                });
+            } catch (error) {
+                console.error(`Error sending message to company ${company.id}:`, error);
+                results.push({
+                    company_id: company.id,
+                    company_name: company.company_name,
+                    success: false,
+                    error: error.message || 'حدث خطأ أثناء الإرسال'
+                });
+            }
+        }
+        
+        const successCount = results.filter(r => r.success).length;
+        const failCount = results.filter(r => !r.success).length;
+        
+        res.json({
+            success: true,
+            message: `تم إرسال ${successCount} رسالة بنجاح${failCount > 0 ? ` و ${failCount} فشلت` : ''}`,
+            results: results,
+            summary: {
+                total: results.length,
+                success: successCount,
+                failed: failCount
+            }
+        });
+    } catch (error) {
+        console.error('Send manual WhatsApp messages error:', error);
+        res.status(500).json({ error: 'خطأ في إرسال الرسائل' });
+    }
+});
+
 app.get('/api/owner/whatsapp-qr', authenticate, async (req, res) => {
     try {
         if (req.user.role !== 'owner') {
