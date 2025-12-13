@@ -137,8 +137,7 @@ const ticketTypeMapping = {
     'قطع فايبر': 'FIBER_CUT',
     'تفعيل بدون سحب كيبل': 'ACTIVATION_NO_CABLE',
     'عبث مشترك / كهرباء': 'SUBSCRIBER_TAMPERING'
-    };
-}
+};
 
 // Store checklist state
 let checklistState = {};
