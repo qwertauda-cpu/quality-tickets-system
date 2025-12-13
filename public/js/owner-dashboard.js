@@ -1212,12 +1212,36 @@ window.closeEditCompanyModal = function() {
 })();
 
 window.exportTable = function(tableName) {
+    if (!window.api) {
+        showAlertModal('خطأ', 'API غير متاح');
+        return;
+    }
+    
     window.api.exportDatabase([tableName]).then(result => {
         if (result && result.success) {
             showAlertModal('نجح', 'تم تصدير الجدول بنجاح!');
         }
     }).catch(error => {
         showAlertModal('خطأ', error.message || 'حدث خطأ في تصدير الجدول');
+    });
+};
+
+window.exportAllDatabase = function() {
+    if (!window.api) {
+        showAlertModal('خطأ', 'API غير متاح');
+        return;
+    }
+    
+    if (!confirm('هل أنت متأكد من تصدير قاعدة البيانات كاملة؟\n\nسيتم تصدير جميع الجداول.')) {
+        return;
+    }
+    
+    window.api.exportDatabase([]).then(result => {
+        if (result && result.success) {
+            showAlertModal('نجح', 'تم تصدير قاعدة البيانات كاملة بنجاح!');
+        }
+    }).catch(error => {
+        showAlertModal('خطأ', error.message || 'حدث خطأ في تصدير قاعدة البيانات');
     });
 };
 
@@ -1228,43 +1252,64 @@ async function loadDatabaseTables() {
             console.error('API not available');
             return;
         }
+        const tbody = document.getElementById('databaseTablesTableBody');
+        if (!tbody) {
+            console.error('databaseTablesTableBody element not found');
+            return;
+        }
+        
+        tbody.innerHTML = '<tr><td colspan="5" class="loading">جاري التحميل...</td></tr>';
+        
         const data = await window.api.getExportTables();
         if (data && data.success) {
-            const tbody = document.getElementById('databaseTablesTableBody');
-            if (!tbody) {
-                console.error('databaseTablesTableBody element not found');
-                return;
-            }
             tbody.innerHTML = '';
             
             if (!data.tables || data.tables.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">لا توجد جداول</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد جداول</td></tr>';
                 return;
             }
             
+            let currentCategory = '';
             data.tables.forEach(table => {
+                // إضافة عنوان الفئة إذا تغيرت
+                if (table.category && table.category !== currentCategory) {
+                    currentCategory = table.category;
+                    const categoryRow = document.createElement('tr');
+                    categoryRow.className = 'category-header';
+                    categoryRow.innerHTML = `
+                        <td colspan="5" class="category-title">
+                            <strong>${currentCategory}</strong>
+                        </td>
+                    `;
+                    tbody.appendChild(categoryRow);
+                }
+                
                 const row = document.createElement('tr');
+                const recordCount = table.record_count !== undefined ? table.record_count : '-';
+                const countClass = recordCount === 0 ? 'text-muted' : 'text-primary';
+                const countDisplay = typeof recordCount === 'number' ? recordCount.toLocaleString('ar-IQ') : recordCount;
+                
                 row.innerHTML = `
-                    <td>${table.name || '-'}</td>
+                    <td><code>${table.name || '-'}</code></td>
                     <td>${table.description || '-'}</td>
-                    <td>-</td>
+                    <td class="${countClass}" style="font-weight: 600;">${countDisplay}</td>
+                    <td><span class="badge badge-info">${table.category || '-'}</span></td>
                     <td>
-                        <button class="btn btn-sm btn-primary" onclick="exportTable('${table.name || ''}')">تصدير</button>
+                        <button class="btn btn-sm btn-primary" onclick="exportTable('${table.name || ''}')" title="تصدير الجدول">
+                            📥 تصدير
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
         } else {
-            const tbody = document.getElementById('databaseTablesTableBody');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center error">خطأ في تحميل البيانات</td></tr>';
-            }
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center error">خطأ في تحميل البيانات</td></tr>';
         }
     } catch (error) {
         console.error('Error loading database tables:', error);
         const tbody = document.getElementById('databaseTablesTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center error">خطأ في تحميل البيانات: ' + (error.message || 'خطأ غير معروف') + '</td></tr>';
         }
     }
 }

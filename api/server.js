@@ -3747,28 +3747,67 @@ app.get('/api/export/tables', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح' });
         }
         
-        const tables = [
-            { name: 'users', description: 'المستخدمين' },
-            { name: 'teams', description: 'الفرق' },
-            { name: 'team_members', description: 'أعضاء الفرق' },
-            { name: 'ticket_types', description: 'أنواع التذاكر' },
-            { name: 'tickets', description: 'التذاكر' },
-            { name: 'ticket_photos', description: 'صور التذاكر' },
-            { name: 'quality_reviews', description: 'تقييمات الجودة' },
-            { name: 'positive_scores', description: 'النقاط الإيجابية' },
-            { name: 'negative_scores', description: 'النقاط السالبة' },
-            { name: 'followup_reports', description: 'تقارير المتابعة' },
-            { name: 'daily_summaries', description: 'الملخصات اليومية' },
-            { name: 'monthly_summaries', description: 'الملخصات الشهرية' },
-            { name: 'message_templates', description: 'قوالب الرسائل' },
-            { name: 'notifications', description: 'الإشعارات' },
-            { name: 'rewards', description: 'المكافآت' },
-            { name: 'companies', description: 'الشركات' },
-            { name: 'invoices', description: 'الفواتير' },
-            { name: 'purchase_requests', description: 'طلبات الشراء' }
+        const tablesConfig = [
+            { name: 'users', description: 'المستخدمين', category: 'المستخدمين والصلاحيات' },
+            { name: 'teams', description: 'الفرق', category: 'المستخدمين والصلاحيات' },
+            { name: 'team_members', description: 'أعضاء الفرق', category: 'المستخدمين والصلاحيات' },
+            { name: 'companies', description: 'الشركات', category: 'الشركات والفواتير' },
+            { name: 'invoices', description: 'الفواتير', category: 'الشركات والفواتير' },
+            { name: 'purchase_requests', description: 'طلبات الشراء', category: 'الشركات والفواتير' },
+            { name: 'ticket_types', description: 'أنواع التذاكر', category: 'التذاكر والجودة' },
+            { name: 'tickets', description: 'التذاكر', category: 'التذاكر والجودة' },
+            { name: 'ticket_photos', description: 'صور التذاكر', category: 'التذاكر والجودة' },
+            { name: 'quality_reviews', description: 'تقييمات الجودة', category: 'التذاكر والجودة' },
+            { name: 'positive_scores', description: 'النقاط الإيجابية', category: 'التذاكر والجودة' },
+            { name: 'negative_scores', description: 'النقاط السالبة', category: 'التذاكر والجودة' },
+            { name: 'followup_reports', description: 'تقارير المتابعة', category: 'التذاكر والجودة' },
+            { name: 'daily_summaries', description: 'الملخصات اليومية', category: 'التقارير والإحصائيات' },
+            { name: 'monthly_summaries', description: 'الملخصات الشهرية', category: 'التقارير والإحصائيات' },
+            { name: 'message_templates', description: 'قوالب الرسائل', category: 'الإعدادات' },
+            { name: 'notifications', description: 'الإشعارات', category: 'الإعدادات' },
+            { name: 'rewards', description: 'المكافآت', category: 'الإعدادات' }
         ];
         
-        res.json({ success: true, tables });
+        // جلب عدد السجلات لكل جدول
+        const tablesWithCounts = await Promise.all(
+            tablesConfig.map(async (table) => {
+                try {
+                    const countResult = await db.queryOne(`SELECT COUNT(*) as count FROM ${table.name}`);
+                    return {
+                        ...table,
+                        record_count: countResult?.count || 0
+                    };
+                } catch (error) {
+                    console.error(`Error getting count for table ${table.name}:`, error);
+                    return {
+                        ...table,
+                        record_count: 0,
+                        error: 'خطأ في جلب العدد'
+                    };
+                }
+            })
+        );
+        
+        // ترتيب الجداول حسب الفئة ثم حسب الاسم
+        const sortedTables = tablesWithCounts.sort((a, b) => {
+            // أولاً حسب الفئة
+            if (a.category !== b.category) {
+                const categoryOrder = [
+                    'المستخدمين والصلاحيات',
+                    'الشركات والفواتير',
+                    'التذاكر والجودة',
+                    'التقارير والإحصائيات',
+                    'الإعدادات'
+                ];
+                const aIndex = categoryOrder.indexOf(a.category);
+                const bIndex = categoryOrder.indexOf(b.category);
+                return aIndex - bIndex;
+            }
+            // ثم حسب الاسم
+            return a.name.localeCompare(b.name);
+        });
+        
+        res.json({ success: true, tables: sortedTables });
     } catch (error) {
         console.error('Get tables error:', error);
         res.status(500).json({ error: 'خطأ في جلب قائمة الجداول' });

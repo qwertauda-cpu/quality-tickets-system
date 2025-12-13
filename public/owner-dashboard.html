@@ -364,22 +364,26 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>إدارة قاعدة البيانات</h2>
-                        <button class="btn btn-primary" onclick="loadDatabaseTables()">🔄 تحديث القائمة</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-primary" onclick="loadDatabaseTables()">🔄 تحديث القائمة</button>
+                            <button class="btn btn-success" onclick="exportAllDatabase()">📥 تصدير قاعدة البيانات كاملة</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="table-container">
                             <table id="databaseTablesTable">
                                 <thead>
                                     <tr>
-                                        <th>اسم الجدول</th>
-                                        <th>الوصف</th>
-                                        <th>عدد السجلات</th>
-                                        <th>الإجراءات</th>
+                                        <th style="width: 20%;">اسم الجدول</th>
+                                        <th style="width: 25%;">الوصف</th>
+                                        <th style="width: 15%;">عدد السجلات</th>
+                                        <th style="width: 20%;">الفئة</th>
+                                        <th style="width: 20%;">الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="databaseTablesTableBody">
                                     <tr>
-                                        <td colspan="4" class="loading">جاري التحميل...</td>
+                                        <td colspan="5" class="loading">جاري التحميل...</td>
                                     </tr>
                                 </tbody>
                             </table>
