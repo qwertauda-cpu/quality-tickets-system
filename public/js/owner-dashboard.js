@@ -2567,14 +2567,18 @@ function openCreateOwnerTemplateModal() {
         // Show modal - CSS requires active class for display
         // First remove inline display:none style (it overrides CSS)
         modal.style.removeProperty('display');
+        // Ensure z-index is high enough
+        modal.style.zIndex = '10000';
         // Then add active class - CSS will set display:flex and opacity:1
         modal.classList.add('active');
         
         console.log('Modal should be visible now');
         console.log('Modal classes:', modal.className);
         console.log('Modal inline style display:', modal.style.display);
+        console.log('Modal inline style z-index:', modal.style.zIndex);
         console.log('Modal computed style display:', window.getComputedStyle(modal).display);
         console.log('Modal computed style opacity:', window.getComputedStyle(modal).opacity);
+        console.log('Modal computed style z-index:', window.getComputedStyle(modal).zIndex);
     } catch (error) {
         console.error('Error in openCreateOwnerTemplateModal:', error);
         alert('خطأ: ' + error.message);
