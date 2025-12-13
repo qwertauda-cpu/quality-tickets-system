@@ -3187,6 +3187,218 @@ async function checkDelayedTickets() {
     }
 }
 
+// ==================== Background Job: Check Expiring Subscriptions ====================
+async function checkExpiringSubscriptions() {
+    try {
+        // البحث عن شركات قريبة على الانتهاء (خلال 30 يوم)
+        const thirtyDaysFromNow = moment().add(30, 'days').format('YYYY-MM-DD');
+        const today = moment().format('YYYY-MM-DD');
+        
+        const expiringCompanies = await db.query(`
+            SELECT c.*, 
+                   u.id as admin_user_id,
+                   u.username as admin_username,
+                   u.full_name as admin_name,
+                   c.contact_phone,
+                   DATEDIFF(c.subscription_end_date, CURDATE()) as days_remaining
+            FROM companies c
+            LEFT JOIN users u ON c.owner_user_id = u.id
+            WHERE c.is_active = 1 
+            AND c.subscription_end_date IS NOT NULL 
+            AND c.subscription_end_date BETWEEN ? AND ?
+            AND NOT EXISTS (
+                SELECT 1 FROM notifications n 
+                WHERE n.user_id = u.id
+                AND n.type = 'subscription_expiring' 
+                AND n.is_read = 0
+                AND DATE(n.created_at) = CURDATE()
+            )
+        `, [today, thirtyDaysFromNow]);
+        
+        if (expiringCompanies.length > 0) {
+            console.log(`📢 تم العثور على ${expiringCompanies.length} شركة قريبة على الانتهاء`);
+            
+            for (const company of expiringCompanies) {
+                const daysRemaining = company.days_remaining || 0;
+                
+                // إنشاء إشعار للمدير عبر الموقع
+                if (company.admin_user_id) {
+                    const notificationMessage = `تنبيه: اشتراك شركة ${company.name} سينتهي خلال ${daysRemaining} يوم. تاريخ الانتهاء: ${moment(company.subscription_end_date).format('YYYY-MM-DD')}. يرجى تجديد الاشتراك قريباً.`;
+                    
+                    await db.query(`
+                        INSERT INTO notifications (user_id, type, title, message)
+                        VALUES (?, 'subscription_expiring', ?, ?)
+                    `, [
+                        company.admin_user_id,
+                        `اشتراك قريب على الانتهاء - ${company.name}`,
+                        notificationMessage
+                    ]);
+                    
+                    console.log(`✅ تم إرسال إشعار للمدير ${company.admin_username} عن انتهاء اشتراك ${company.name}`);
+                }
+                
+                // إرسال رسالة واتساب إذا كان رقم الهاتف موجود
+                if (company.contact_phone) {
+                    try {
+                        await sendWhatsAppMessage(
+                            company.contact_phone,
+                            `🔔 تنبيه من نظام إدارة التذاكر\n\n` +
+                            `عزيزي/عزيزتي ${company.contact_name || 'المدير'},\n\n` +
+                            `اشتراك شركة ${company.name} سينتهي خلال ${daysRemaining} يوم.\n` +
+                            `تاريخ الانتهاء: ${moment(company.subscription_end_date).format('YYYY-MM-DD')}\n\n` +
+                            `يرجى التواصل معنا لتجديد الاشتراك في أقرب وقت ممكن.\n\n` +
+                            `شكراً لاستخدامك خدماتنا.`
+                        );
+                        console.log(`✅ تم إرسال رسالة واتساب إلى ${company.contact_phone} عن انتهاء اشتراك ${company.name}`);
+                    } catch (whatsappError) {
+                        console.error(`❌ خطأ في إرسال رسالة واتساب إلى ${company.contact_phone}:`, whatsappError);
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error checking expiring subscriptions:', error);
+    }
+}
+
+// ==================== Send WhatsApp Message ====================
+async function sendWhatsAppMessage(phoneNumber, message) {
+    try {
+        // تنظيف رقم الهاتف (إزالة المسافات والرموز)
+        const cleanPhone = phoneNumber.replace(/[\s\-\(\)\+]/g, '');
+        
+        // التحقق من أن الرقم يبدأ بـ 964 (العراق) أو إضافته
+        let formattedPhone = cleanPhone;
+        if (!formattedPhone.startsWith('964')) {
+            if (formattedPhone.startsWith('0')) {
+                formattedPhone = '964' + formattedPhone.substring(1);
+            } else {
+                formattedPhone = '964' + formattedPhone;
+            }
+        }
+        
+        // استخدام WhatsApp Business API أو خدمة خارجية
+        // هنا يمكنك استخدام Twilio, WhatsApp Business API, أو أي خدمة أخرى
+        // مثال باستخدام رابط WhatsApp Web:
+        const whatsappUrl = `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+        
+        // في بيئة الإنتاج، يمكنك استخدام API حقيقي مثل:
+        // - Twilio WhatsApp API
+        // - WhatsApp Business API
+        // - أو أي خدمة أخرى متاحة
+        
+        // للآن، سنقوم بتسجيل الرسالة فقط (يمكنك تفعيل الإرسال الفعلي لاحقاً)
+        console.log(`📱 WhatsApp Message to ${formattedPhone}:`);
+        console.log(`   ${message}`);
+        console.log(`   URL: ${whatsappUrl}`);
+        
+        // TODO: تفعيل الإرسال الفعلي عند توفر API
+        // يمكنك إضافة كود هنا لإرسال الرسالة عبر API حقيقي
+        
+        // محاولة فتح رابط الواتساب في المتصفح (اختياري)
+        // يمكن استخدام axios أو fetch لإرسال الرسالة عبر API حقيقي
+        
+        return { success: true, url: whatsappUrl, phone: formattedPhone };
+    } catch (error) {
+        console.error('Error sending WhatsApp message:', error);
+        throw error;
+    }
+}
+
+// API endpoint to manually send WhatsApp notification for expiring subscriptions
+app.post('/api/owner/send-expiring-notifications', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        // البحث عن شركات قريبة على الانتهاء (خلال 30 يوم)
+        const thirtyDaysFromNow = moment().add(30, 'days').format('YYYY-MM-DD');
+        const today = moment().format('YYYY-MM-DD');
+        
+        const expiringCompanies = await db.query(`
+            SELECT c.*, 
+                   u.id as admin_user_id,
+                   u.username as admin_username,
+                   u.full_name as admin_name,
+                   c.contact_phone,
+                   DATEDIFF(c.subscription_end_date, CURDATE()) as days_remaining
+            FROM companies c
+            LEFT JOIN users u ON c.owner_user_id = u.id
+            WHERE c.is_active = 1 
+            AND c.subscription_end_date IS NOT NULL 
+            AND c.subscription_end_date BETWEEN ? AND ?
+        `, [today, thirtyDaysFromNow]);
+        
+        const results = [];
+        
+        for (const company of expiringCompanies) {
+            const daysRemaining = company.days_remaining || 0;
+            const result = { company_id: company.id, company_name: company.name, success: false, errors: [] };
+            
+            // إنشاء إشعار للمدير عبر الموقع
+            if (company.admin_user_id) {
+                try {
+                    const notificationMessage = `تنبيه: اشتراك شركة ${company.name} سينتهي خلال ${daysRemaining} يوم. تاريخ الانتهاء: ${moment(company.subscription_end_date).format('YYYY-MM-DD')}. يرجى تجديد الاشتراك قريباً.`;
+                    
+                    await db.query(`
+                        INSERT INTO notifications (user_id, type, title, message)
+                        VALUES (?, 'subscription_expiring', ?, ?)
+                    `, [
+                        company.admin_user_id,
+                        `اشتراك قريب على الانتهاء - ${company.name}`,
+                        notificationMessage
+                    ]);
+                    
+                    result.notification_sent = true;
+                    console.log(`✅ تم إرسال إشعار للمدير ${company.admin_username} عن انتهاء اشتراك ${company.name}`);
+                } catch (notifError) {
+                    result.errors.push(`خطأ في إرسال الإشعار: ${notifError.message}`);
+                    console.error(`❌ خطأ في إرسال إشعار للمدير ${company.admin_username}:`, notifError);
+                }
+            }
+            
+            // إرسال رسالة واتساب إذا كان رقم الهاتف موجود
+            if (company.contact_phone) {
+                try {
+                    const whatsappResult = await sendWhatsAppMessage(
+                        company.contact_phone,
+                        `🔔 تنبيه من نظام إدارة التذاكر\n\n` +
+                        `عزيزي/عزيزتي ${company.contact_name || 'المدير'},\n\n` +
+                        `اشتراك شركة ${company.name} سينتهي خلال ${daysRemaining} يوم.\n` +
+                        `تاريخ الانتهاء: ${moment(company.subscription_end_date).format('YYYY-MM-DD')}\n\n` +
+                        `يرجى التواصل معنا لتجديد الاشتراك في أقرب وقت ممكن.\n\n` +
+                        `شكراً لاستخدامك خدماتنا.`
+                    );
+                    result.whatsapp_sent = true;
+                    result.whatsapp_url = whatsappResult.url;
+                    console.log(`✅ تم إرسال رسالة واتساب إلى ${company.contact_phone} عن انتهاء اشتراك ${company.name}`);
+                } catch (whatsappError) {
+                    result.errors.push(`خطأ في إرسال الواتساب: ${whatsappError.message}`);
+                    console.error(`❌ خطأ في إرسال رسالة واتساب إلى ${company.contact_phone}:`, whatsappError);
+                }
+            } else {
+                result.errors.push('لا يوجد رقم هاتف للشركة');
+            }
+            
+            if (result.notification_sent || result.whatsapp_sent) {
+                result.success = true;
+            }
+            
+            results.push(result);
+        }
+        
+        res.json({
+            success: true,
+            message: `تم معالجة ${expiringCompanies.length} شركة`,
+            results: results
+        });
+    } catch (error) {
+        console.error('Error sending expiring notifications:', error);
+        res.status(500).json({ error: 'خطأ في إرسال الإشعارات' });
+    }
+});
+
 // ==================== Notifications API ====================
 // Get notifications for current user
 app.get('/api/notifications', authenticate, async (req, res) => {
