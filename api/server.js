@@ -55,18 +55,16 @@ async function authenticate(req, res, next) {
         }
         
         // Simple token-based auth (in production, use JWT)
-        const [user] = await db.query(`
+        const userData = await db.queryOne(`
             SELECT u.*, c.is_active as company_is_active, c.owner_user_id
             FROM users u
             LEFT JOIN companies c ON u.company_id = c.id
             WHERE u.id = ? AND u.is_active = 1
         `, [token]);
         
-        if (!user || user.length === 0) {
+        if (!userData) {
             return res.status(401).json({ error: 'غير مصرح' });
         }
-        
-        const userData = user[0];
         
         // التحقق من حالة الشركة ومديرها
         if (userData.company_id) {
@@ -97,6 +95,7 @@ async function authenticate(req, res, next) {
         req.user = userData;
         next();
     } catch (error) {
+        console.error('Authentication error:', error);
         res.status(500).json({ error: 'خطأ في المصادقة' });
     }
 }
