@@ -612,10 +612,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Hide "إدارة تكتات" section for technicians and quality_staff (only admin and call_center can access)
     if (user.role === 'technician' || user.role === 'quality_staff') {
+        // Hide menu item
         const ticketsManagementMenuItem = document.querySelector('a[data-page="tickets-management-new"]');
         if (ticketsManagementMenuItem) {
-            ticketsManagementMenuItem.parentElement.style.display = 'none';
+            const listItem = ticketsManagementMenuItem.closest('li');
+            if (listItem) {
+                listItem.style.display = 'none';
+            }
         }
+        // Hide page content
         const ticketsManagementPage = document.getElementById('tickets-management-new-page');
         if (ticketsManagementPage) {
             ticketsManagementPage.style.display = 'none';
