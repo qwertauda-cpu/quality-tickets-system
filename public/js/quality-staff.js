@@ -2785,7 +2785,7 @@ function loadQualityReviewForView(review) {
     };
     document.getElementById('view_behavior_rating').textContent = behaviorMap[review.behavior_rating] || review.behavior_rating || '-';
     
-    document.getElementById('view_subscription_amount').textContent = review.subscription_amount ? review.subscription_amount + ' ريال' : '-';
+    document.getElementById('view_subscription_amount').textContent = review.subscription_amount ? review.subscription_amount + ' دينار' : '-';
     
     // Upsell
     const upsellItems = [];
