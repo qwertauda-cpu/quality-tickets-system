@@ -3465,12 +3465,15 @@ async function getWhatsAppSettings() {
         
         const settings = {
             whatsapp_phone: '',
-            whatsapp_api_key: '',
-            whatsapp_api_url: '',
             whatsapp_enabled: false
         };
         
         settingsRows.forEach(row => {
+            // تجاهل حقول API القديمة
+            if (row.setting_key === 'whatsapp_api_key' || row.setting_key === 'whatsapp_api_url') {
+                return;
+            }
+            
             let value = row.setting_value;
             
             if (row.setting_type === 'boolean') {
@@ -4519,8 +4522,6 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
         // Update or insert settings
         const settings = [
             { key: 'whatsapp_phone', value: whatsapp_phone, type: 'text' },
-            { key: 'whatsapp_api_key', value: whatsapp_api_key || '', type: 'text' },
-            { key: 'whatsapp_api_url', value: whatsapp_api_url || '', type: 'text' },
             { key: 'whatsapp_enabled', value: whatsapp_enabled || '0', type: 'boolean' }
         ];
         

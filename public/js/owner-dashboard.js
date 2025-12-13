@@ -1455,13 +1455,9 @@ async function loadSettings() {
             
             // Fill WhatsApp settings
             const whatsappPhoneEl = document.getElementById('whatsapp_phone');
-            const whatsappApiKeyEl = document.getElementById('whatsapp_api_key');
-            const whatsappApiUrlEl = document.getElementById('whatsapp_api_url');
             const whatsappEnabledEl = document.getElementById('whatsapp_enabled');
             
             if (whatsappPhoneEl) whatsappPhoneEl.value = settings.whatsapp_phone || '';
-            if (whatsappApiKeyEl) whatsappApiKeyEl.value = settings.whatsapp_api_key || '';
-            if (whatsappApiUrlEl) whatsappApiUrlEl.value = settings.whatsapp_api_url || '';
             if (whatsappEnabledEl) whatsappEnabledEl.checked = settings.whatsapp_enabled === '1' || settings.whatsapp_enabled === true || settings.whatsapp_enabled === 'true';
         }
     } catch (error) {
