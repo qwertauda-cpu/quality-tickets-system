@@ -3412,26 +3412,26 @@ app.post('/api/owner/companies', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'اسم المستخدم موجود بالفعل' });
         }
         
-        // إنشاء الشركة مع owner_user_id كـ NULL مؤقتاً
-        const companyResult = await db.query(`
-            INSERT INTO companies (name, domain, contact_name, contact_email, contact_phone, address, 
-                                 max_employees, price_per_employee, subscription_start_date, owner_user_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), NULL)
-        `, [name, domain, contact_name, contact_email, contact_phone || null, address || null, max_employees || 0, finalPricePerEmployee]);
-        
-        const companyId = companyResult.insertId;
-        
-        // إنشاء حساب admin@domain
+        // إنشاء حساب admin@domain أولاً (بدون company_id مؤقتاً)
         const passwordHash = await bcrypt.hash(admin_password, 10);
         const adminResult = await db.query(`
             INSERT INTO users (username, password_hash, full_name, role, company_id)
-            VALUES (?, ?, ?, 'admin', ?)
-        `, [adminUsername, passwordHash, `مدير ${name}`, companyId]);
+            VALUES (?, ?, ?, 'admin', NULL)
+        `, [adminUsername, passwordHash, `مدير ${name}`]);
         
         const adminUserId = adminResult.insertId;
         
-        // تحديث owner_user_id في الشركة
-        await db.query('UPDATE companies SET owner_user_id = ? WHERE id = ?', [adminUserId, companyId]);
+        // إنشاء الشركة مع owner_user_id
+        const companyResult = await db.query(`
+            INSERT INTO companies (name, domain, contact_name, contact_email, contact_phone, address, 
+                                 max_employees, price_per_employee, subscription_start_date, owner_user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURDATE(), ?)
+        `, [name, domain, contact_name, contact_email, contact_phone || null, address || null, max_employees || 0, finalPricePerEmployee, adminUserId]);
+        
+        const companyId = companyResult.insertId;
+        
+        // تحديث حساب admin@domain بـ company_id
+        await db.query('UPDATE users SET company_id = ? WHERE id = ?', [companyId, adminUserId]);
         
         res.json({
             success: true,
