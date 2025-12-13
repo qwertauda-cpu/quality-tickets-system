@@ -16,7 +16,9 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="dashboard"><i>📊</i> لوحة التحكم</a></li>
+                <li><a href="#" class="active" data-page="active-tickets"><i>📋</i> لوحة التكتات</a></li>
+                <li><a href="#" data-page="completed-tickets"><i>✅</i> لوحة التكتات المنجزة</a></li>
+                <li><a href="#" data-page="dashboard"><i>📊</i> لوحة التحكم</a></li>
                 <li><a href="#" data-page="rankings"><i>🏆</i> التصنيف</a></li>
                 <li><a href="#" data-page="my-team"><i>👥</i> فريقي</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
@@ -32,8 +34,90 @@
                 </div>
             </div>
 
+            <!-- Active Tickets Page -->
+            <div id="active-tickets-page" class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>لوحة التكتات</h2>
+                        <button class="btn btn-secondary" onclick="loadActiveTickets()">🔄 تحديث</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="activeTicketsTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم التكت</th>
+                                        <th>اسم المشترك</th>
+                                        <th>رقم المشترك</th>
+                                        <th>نوع التكت</th>
+                                        <th>الفريق</th>
+                                        <th>تاريخ الاستلام</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activeTicketsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Tickets Page -->
+            <div id="completed-tickets-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>لوحة التكتات المنجزة</h2>
+                        <button class="btn btn-secondary" onclick="loadCompletedTickets()">🔄 تحديث</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="completedTicketsTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم التكت</th>
+                                        <th>اسم المشترك</th>
+                                        <th>نوع التكت</th>
+                                        <th>الوقت المستغرق</th>
+                                        <th>تاريخ الإنهاء</th>
+                                        <th>حالة التقييم</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="completedTicketsTableBody">
+                                    <tr>
+                                        <td colspan="7" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ticket Details Modal -->
+            <div id="ticket-details-modal" class="modal-overlay" style="display: none;">
+                <div class="modal" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h2>تفاصيل التكت #<span id="modal-ticket-number"></span></h2>
+                        <button class="modal-close-btn" onclick="closeTicketDetailsModal()">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="ticket-details-content">
+                            <p class="loading">جاري التحميل...</p>
+                        </div>
+                        <div id="ticket-complete-section" style="margin-top: 20px; padding-top: 20px; border-top: 2px solid var(--border-color);">
+                            <button class="btn btn-success" onclick="completeTicket()" style="width: 100%;">✅ إنهاء التكت</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Dashboard Page -->
-            <div id="dashboard-page" class="page-content">
+            <div id="dashboard-page" class="page-content" style="display: none;">
                 <div class="stats-grid">
                     <div class="stat-card">
                         <h3>نقاط فريقي اليوم</h3>

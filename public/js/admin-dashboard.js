@@ -1,5 +1,44 @@
 // Admin Dashboard JavaScript
 
+// Copy ticketChecklists and ticketTypeMapping from quality-staff.js
+const ticketChecklists = {
+    FTTH_NEW: ["صورة الفات قبل العمل", "صورة الفات بعد الربط", "صورة الفات مغلق", "القدرة المستلمه RX (الباور)", "Broadband", "Network", "WiFi", "البنك", "Speed Test", "الأجهزة"],
+    ONU_CHANGE: ["صورة للجهاز القديم", "صورة للجهاز الجديد", "القدرة المستلمه RX (الباور)", "Network", "WiFi", "البنك", "Speed Test", "الأجهزة"],
+    RX_ISSUE: ["القدرة المستلمه RX (الباور) قبل", "القدرة المستلمه RX (الباور) بعد", "الفات / الكيبل", "Speed Test", "WiFi", "البنك", "الأجهزة"],
+    PPPOE: ["القدرة المستلمه RX (الباور)", "Broadband", "Network", "حالة الاتصال", "WiFi", "البنك", "Speed Test", "الأجهزة"],
+    WIFI_SIMPLE: ["WiFi", "البنك", "Speed Test", "الأجهزة"],
+    REACTIVATE_SERVICE: ["صورة الفات قبل العمل", "صورة الفات بعد الربط", "صورة الفات مغلق", "القدرة المستلمه RX (الباور)", "Broadband", "Network", "WiFi", "البنك", "Speed Test", "الأجهزة"],
+    CHECK_ONLY: ["القدرة المستلمه RX (الباور)", "Broadband", "Network", "WiFi", "البنك", "Speed Test", "الأجهزة"],
+    EXTERNAL_MAINTENANCE: ["صورة الفات قبل العمل", "صورة الفات بعد العمل", "صورة السبليتر"],
+    FIBER_CUT: ["صورة للقطع", "صورة لصلاح القطع", "القدرة المستلمه RX (الباور)", "Broadband", "Network", "WiFi", "البنك", "Speed Test", "الأجهزة"],
+    ACTIVATION_NO_CABLE: ["القدرة المستلمه RX (الباور)", "Broadband", "Network", "WiFi", "البنك", "Speed Test", "الأجهزة"],
+    SUBSCRIBER_TAMPERING: ["القدرة المستلمه RX (الباور)", "Broadband", "Network", "WiFi", "البنك", "Speed Test", "الأجهزة"]
+};
+
+const ticketTypeMapping = {
+    'ربط مشترك جديد FTTH': 'FTTH_NEW',
+    'ربط جديد FTTH': 'FTTH_NEW',
+    'تبديل او صيانه راوتر/ONU': 'ONU_CHANGE',
+    'تبديل راوتر/ONU': 'ONU_CHANGE',
+    'ضعف إشارة البور RX': 'RX_ISSUE',
+    'ضعف إشارة RX': 'RX_ISSUE',
+    'إعداد PPPoE / DHCP': 'PPPOE',
+    'إعداد PPPoE/DHCP': 'PPPOE',
+    'PPPoE / DHCP': 'PPPOE',
+    'PPPoE/DHCP': 'PPPOE',
+    'PPPoE': 'PPPOE',
+    'PPPOE': 'PPPOE',
+    'WiFi بدون تمديد': 'WIFI_SIMPLE',
+    'إعادة مشترك إلى الخدمة': 'REACTIVATE_SERVICE',
+    'إعادة ربط': 'REACTIVATE_SERVICE',
+    'فحص فقط': 'CHECK_ONLY',
+    'صيانة خارجية': 'EXTERNAL_MAINTENANCE',
+    'صيانة خارجية / فات': 'EXTERNAL_MAINTENANCE',
+    'قطع فايبر': 'FIBER_CUT',
+    'تفعيل بدون سحب كيبل': 'ACTIVATION_NO_CABLE',
+    'عبث مشترك / كهرباء': 'SUBSCRIBER_TAMPERING'
+};
+
 // Wait for scripts to load
 function initAdminDashboard() {
     // Check if required functions are available
@@ -75,6 +114,8 @@ function showPage(pageName) {
         'users': 'إدارة المستخدمين',
         'teams': 'الفرق',
         'tickets': 'التكتات',
+        'scoring-rules': 'قواعد النقاط',
+        'points-management': 'قواعد النقاط',
         'reports': 'التقارير'
     };
     const titleEl = document.getElementById('pageTitle');
@@ -94,6 +135,12 @@ function showPage(pageName) {
     } else if (pageName === 'tickets') {
         loadTickets();
         setupTicketsAutoRefresh();
+    } else if (pageName === 'scoring-rules') {
+        loadScoringRulesPage();
+    } else if (pageName === 'points-management') {
+        // DEPRECATED: Redirect to scoring-rules
+        showPage('scoring-rules');
+        return;
     } else if (pageName === 'reports') {
         loadReports();
     }
@@ -941,9 +988,23 @@ function handleRoleChange() {
     const teamGroup = document.getElementById('user_team_group');
     const teamSelect = document.getElementById('user_team_id');
     
-    if (role === 'quality_staff') {
+    // الفريق مطلوب للفني وموظف الجودة
+    if (role === 'technician' || role === 'quality_staff') {
         teamGroup.style.display = 'block';
-        teamSelect.required = false;
+        if (role === 'technician') {
+            teamSelect.required = true;
+            // تحديث النص التوضيحي
+            const smallText = teamGroup.querySelector('small');
+            if (smallText) {
+                smallText.textContent = 'مطلوب - يجب اختيار الفريق للفني';
+            }
+        } else {
+            teamSelect.required = false;
+            const smallText = teamGroup.querySelector('small');
+            if (smallText) {
+                smallText.textContent = 'اختياري - فقط لموظف الجودة';
+            }
+        }
     } else {
         teamGroup.style.display = 'none';
         teamSelect.required = false;
@@ -1043,9 +1104,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 username: document.getElementById('user_username').value,
                 full_name: document.getElementById('user_full_name').value,
                 role: role,
-                team_id: (role === 'quality_staff' && teamId) ? parseInt(teamId) : null,
+                team_id: ((role === 'technician' || role === 'quality_staff') && teamId) ? parseInt(teamId) : null,
                 is_active: document.getElementById('user_is_active').checked ? 1 : 0
             };
+            
+            // التحقق من أن الفريق مطلوب للفني
+            if (role === 'technician' && !teamId) {
+                alert('يرجى اختيار الفريق للفني');
+                return;
+            }
             
             const password = document.getElementById('user_password').value;
             if (password) {
@@ -1398,4 +1465,834 @@ if (document.readyState === 'loading') {
 } else {
     setTimeout(initNotifications, 1000);
 }
+
+// ==================== Scoring Rules Management Functions ====================
+
+// تحميل صفحة قواعد النقاط
+async function loadScoringRulesPage() {
+    try {
+        await loadScoringRules();
+    } catch (error) {
+        console.error('Error loading scoring rules page:', error);
+    }
+}
+
+// تحميل قواعد النقاط
+async function loadScoringRules() {
+    try {
+        const response = await window.api.getScoringRules();
+        if (!response || !response.success || !response.rules) {
+            console.error('Error loading scoring rules:', response);
+            return;
+        }
+        
+        const rules = response.rules;
+        
+        // تحميل النقاط الأساسية لأنواع التكتات
+        await loadTicketTypeBasePoints(rules);
+        
+        // تحميل قواعد الوقت
+        loadSpeedPointsRules(rules);
+        
+        // تحميل قاعدة Checklist
+        loadChecklistPointsRule(rules);
+        
+        // تحميل قواعد تقييم الفني
+        loadPerformanceRatingRules(rules);
+        
+        // تحميل قواعد البيع
+        loadUpsellRules(rules);
+        
+    } catch (error) {
+        console.error('Error loading scoring rules:', error);
+    }
+}
+
+// تحميل النقاط الأساسية لأنواع التكتات
+async function loadTicketTypeBasePoints(rules) {
+    try {
+        // جلب أنواع التكتات
+        const ticketTypesResponse = await window.api.getTicketTypes();
+        let ticketTypes = [];
+        
+        // معالجة بنية البيانات المختلفة - API يرجع { success: true, types: [...] }
+        if (ticketTypesResponse) {
+            if (ticketTypesResponse.success && Array.isArray(ticketTypesResponse.types)) {
+                ticketTypes = ticketTypesResponse.types;
+            } else if (ticketTypesResponse.success && Array.isArray(ticketTypesResponse.ticketTypes)) {
+                ticketTypes = ticketTypesResponse.ticketTypes;
+            } else if (Array.isArray(ticketTypesResponse.types)) {
+                ticketTypes = ticketTypesResponse.types;
+            } else if (Array.isArray(ticketTypesResponse.ticketTypes)) {
+                ticketTypes = ticketTypesResponse.ticketTypes;
+            } else if (Array.isArray(ticketTypesResponse)) {
+                ticketTypes = ticketTypesResponse;
+            }
+        }
+        
+        const container = document.getElementById('ticket-type-base-points-container');
+        if (!container) return;
+        
+        if (!Array.isArray(ticketTypes) || ticketTypes.length === 0) {
+            container.innerHTML = '<p>لا توجد أنواع تكتات</p>';
+            return;
+        }
+        
+        // إنشاء جدول
+        let html = '<table class="table" style="width: 100%;"><thead><tr><th>نوع التكت</th><th>النقاط الأساسية</th><th>الإجراءات</th></tr></thead><tbody>';
+        
+        ticketTypes.forEach(tt => {
+            // البحث عن القاعدة لهذا النوع
+            const rule = rules.find(r => r.rule_type === 'ticket_type_base_points' && r.rule_key === tt.id.toString());
+            const points = rule ? rule.rule_value : (tt.base_points || 0);
+            const ruleId = rule ? rule.id : null;
+            
+            html += `
+                <tr>
+                    <td>${tt.name_ar}</td>
+                    <td>
+                        <input type="number" 
+                               id="ticket-type-points-${tt.id}" 
+                               class="form-control" 
+                               value="${points}" 
+                               min="0" 
+                               step="0.01"
+                               style="width: 150px; display: inline-block;">
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="saveTicketTypeBasePoints(${tt.id}, ${ruleId || 'null'})">
+                            💾 حفظ
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Error loading ticket type base points:', error);
+    }
+}
+
+// حفظ النقاط الأساسية لنوع تكت
+async function saveTicketTypeBasePoints(ticketTypeId, ruleId) {
+    try {
+        const input = document.getElementById(`ticket-type-points-${ticketTypeId}`);
+        if (!input) return;
+        
+        const value = parseFloat(input.value) || 0;
+        
+        if (ruleId) {
+            // تحديث القاعدة الموجودة
+            await window.api.updateScoringRule(ruleId, { rule_value: value });
+        } else {
+            // إنشاء قاعدة جديدة
+            await window.api.createScoringRule({
+                rule_type: 'ticket_type_base_points',
+                rule_key: ticketTypeId.toString(),
+                rule_value: value,
+                description: `النقاط الأساسية لنوع التكت ${ticketTypeId}`
+            });
+        }
+        
+        alert('✅ تم حفظ النقاط بنجاح');
+        await loadScoringRules(); // إعادة تحميل
+        
+    } catch (error) {
+        console.error('Error saving ticket type base points:', error);
+        alert('❌ خطأ في حفظ النقاط: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// تحميل قواعد الوقت
+function loadSpeedPointsRules(rules) {
+    const excellent = rules.find(r => r.rule_type === 'speed_points_excellent' && !r.rule_key);
+    const acceptable = rules.find(r => r.rule_type === 'speed_points_acceptable' && !r.rule_key);
+    const late = rules.find(r => r.rule_type === 'speed_points_late' && !r.rule_key);
+    const multiplier = rules.find(r => r.rule_type === 'speed_sla_multiplier' && !r.rule_key);
+    
+    if (excellent) document.getElementById('speed-points-excellent').value = excellent.rule_value;
+    if (acceptable) document.getElementById('speed-points-acceptable').value = acceptable.rule_value;
+    if (late) document.getElementById('speed-points-late').value = late.rule_value;
+    if (multiplier) document.getElementById('speed-sla-multiplier').value = multiplier.rule_value;
+}
+
+// حفظ قواعد الوقت
+async function saveSpeedPointsRules() {
+    try {
+        const excellent = parseFloat(document.getElementById('speed-points-excellent').value) || 0;
+        const acceptable = parseFloat(document.getElementById('speed-points-acceptable').value) || 0;
+        const late = parseFloat(document.getElementById('speed-points-late').value) || 0;
+        const multiplier = parseFloat(document.getElementById('speed-sla-multiplier').value) || 1.5;
+        
+        const response = await window.api.getScoringRules();
+        const rules = response && response.success && response.rules ? response.rules : [];
+        
+        // حفظ/تحديث كل قاعدة
+        for (const { type, value, desc } of [
+            { type: 'speed_points_excellent', value: excellent, desc: 'نقاط الوقت للمثالي (ضمن SLA)' },
+            { type: 'speed_points_acceptable', value: acceptable, desc: 'نقاط الوقت للمقبول (تجاوز بسيط)' },
+            { type: 'speed_points_late', value: late, desc: 'نقاط الوقت للمتأخر' },
+            { type: 'speed_sla_multiplier', value: multiplier, desc: 'معامل تجاوز SLA' }
+        ]) {
+            const existingRule = rules.find(r => r.rule_type === type && !r.rule_key);
+            if (existingRule) {
+                await window.api.updateScoringRule(existingRule.id, { rule_value: value, description: desc });
+            } else {
+                await window.api.createScoringRule({ rule_type: type, rule_key: null, rule_value: value, description: desc });
+            }
+        }
+        
+        alert('✅ تم حفظ قواعد الوقت بنجاح');
+        
+    } catch (error) {
+        console.error('Error saving speed points rules:', error);
+        alert('❌ خطأ في حفظ القواعد: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// تحميل قاعدة Checklist
+function loadChecklistPointsRule(rules) {
+    const rule = rules.find(r => r.rule_type === 'checklist_item_points' && !r.rule_key);
+    if (rule) document.getElementById('checklist-item-points').value = rule.rule_value;
+}
+
+// حفظ قاعدة Checklist
+async function saveChecklistPointsRule() {
+    try {
+        const value = parseFloat(document.getElementById('checklist-item-points').value) || 0;
+        
+        const response = await window.api.getScoringRules();
+        const rules = response && response.success && response.rules ? response.rules : [];
+        const existingRule = rules.find(r => r.rule_type === 'checklist_item_points' && !r.rule_key);
+        
+        if (existingRule) {
+            await window.api.updateScoringRule(existingRule.id, { rule_value: value });
+        } else {
+            await window.api.createScoringRule({ 
+                rule_type: 'checklist_item_points', 
+                rule_key: null, 
+                rule_value: value, 
+                description: 'نقاط كل صورة/تاسك مكتمل' 
+            });
+        }
+        
+        alert('✅ تم حفظ قاعدة Checklist بنجاح');
+        
+    } catch (error) {
+        console.error('Error saving checklist points rule:', error);
+        alert('❌ خطأ في حفظ القاعدة: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// تحميل قواعد تقييم أداء الفريق
+function loadPerformanceRatingRules(rules) {
+    const rating5 = rules.find(r => r.rule_type === 'performance_rating_excellent' && r.rule_key === '5');
+    const rating4 = rules.find(r => r.rule_type === 'performance_rating_good' && r.rule_key === '4');
+    const rating3 = rules.find(r => r.rule_type === 'performance_rating_average' && r.rule_key === '3');
+    const rating2 = rules.find(r => r.rule_type === 'performance_rating_poor' && r.rule_key === '2');
+    const rating1 = rules.find(r => r.rule_type === 'performance_rating_very_poor' && r.rule_key === '1');
+    
+    if (rating5) document.getElementById('performance-rating-5').value = rating5.rule_value;
+    if (rating4) document.getElementById('performance-rating-4').value = rating4.rule_value;
+    if (rating3) document.getElementById('performance-rating-3').value = rating3.rule_value;
+    if (rating2) {
+        const el = document.getElementById('performance-rating-2');
+        if (el) el.value = rating2.rule_value;
+    }
+    if (rating1) {
+        const el = document.getElementById('performance-rating-1');
+        if (el) el.value = rating1.rule_value;
+    }
+}
+
+// حفظ قواعد تقييم أداء الفريق
+async function savePerformanceRatingRules() {
+    try {
+        const rating5 = parseFloat(document.getElementById('performance-rating-5').value) || 0;
+        const rating4 = parseFloat(document.getElementById('performance-rating-4').value) || 0;
+        const rating3 = parseFloat(document.getElementById('performance-rating-3').value) || 0;
+        const rating2 = parseFloat(document.getElementById('performance-rating-2').value) || 0;
+        const rating1 = parseFloat(document.getElementById('performance-rating-1').value) || 0;
+        
+        const response = await window.api.getScoringRules();
+        const rules = response && response.success && response.rules ? response.rules : [];
+        
+        for (const { type, key, value, desc } of [
+            { type: 'performance_rating_excellent', key: '5', value: rating5, desc: 'تقييم ممتاز (5) - لا خصم' },
+            { type: 'performance_rating_good', key: '4', value: rating4, desc: 'تقييم جيد (4) - لا خصم' },
+            { type: 'performance_rating_average', key: '3', value: rating3, desc: 'تقييم عادي (3) - خصم نقطة واحدة' },
+            { type: 'performance_rating_poor', key: '2', value: rating2, desc: 'تقييم ضعيف (2) - خصم نقطتين' },
+            { type: 'performance_rating_very_poor', key: '1', value: rating1, desc: 'تقييم ضعيف جداً (1) - خصم 3 نقاط' }
+        ]) {
+            const existingRule = rules.find(r => r.rule_type === type && r.rule_key === key);
+            if (existingRule) {
+                await window.api.updateScoringRule(existingRule.id, { rule_value: value, description: desc });
+            } else {
+                await window.api.createScoringRule({ rule_type: type, rule_key: key, rule_value: value, description: desc });
+            }
+        }
+        
+        alert('✅ تم حفظ قواعد التقييم بنجاح');
+        
+    } catch (error) {
+        console.error('Error saving performance rating rules:', error);
+        alert('❌ خطأ في حفظ القواعد: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// تحميل قواعد البيع
+function loadUpsellRules(rules) {
+    const router = rules.find(r => r.rule_type === 'upsell_router' && !r.rule_key);
+    const onu = rules.find(r => r.rule_type === 'upsell_onu' && !r.rule_key);
+    const ups = rules.find(r => r.rule_type === 'upsell_ups' && !r.rule_key);
+    
+    if (router) document.getElementById('upsell-router').value = router.rule_value;
+    if (onu) document.getElementById('upsell-onu').value = onu.rule_value;
+    if (ups) document.getElementById('upsell-ups').value = ups.rule_value;
+}
+
+// حفظ قواعد البيع
+async function saveUpsellRules() {
+    try {
+        const router = parseFloat(document.getElementById('upsell-router').value) || 0;
+        const onu = parseFloat(document.getElementById('upsell-onu').value) || 0;
+        const ups = parseFloat(document.getElementById('upsell-ups').value) || 0;
+        
+        const response = await window.api.getScoringRules();
+        const rules = response && response.success && response.rules ? response.rules : [];
+        
+        for (const { type, value, desc } of [
+            { type: 'upsell_router', value: router, desc: 'نقاط بيع Router' },
+            { type: 'upsell_onu', value: onu, desc: 'نقاط بيع ONU' },
+            { type: 'upsell_ups', value: ups, desc: 'نقاط بيع UPS' }
+        ]) {
+            const existingRule = rules.find(r => r.rule_type === type && !r.rule_key);
+            if (existingRule) {
+                await window.api.updateScoringRule(existingRule.id, { rule_value: value, description: desc });
+            } else {
+                await window.api.createScoringRule({ rule_type: type, rule_key: null, rule_value: value, description: desc });
+            }
+        }
+        
+        alert('✅ تم حفظ قواعد البيع بنجاح');
+        
+    } catch (error) {
+        console.error('Error saving upsell rules:', error);
+        alert('❌ خطأ في حفظ القواعد: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// ==================== DEPRECATED: Points Management Functions (Will be removed) ====================
+
+let currentPointsTicketId = null;
+let pointsTicketsData = [];
+
+// تحميل صفحة إدارة النقاط
+async function loadPointsManagementPage() {
+    try {
+        await loadPointsTickets();
+        await loadTeamsForPointsFilter();
+    } catch (error) {
+        console.error('Error loading points management page:', error);
+    }
+}
+
+// تحميل التكتات لقائمة النقاط
+async function loadPointsTickets() {
+    try {
+        const response = await window.api.getTickets({ limit: 1000 });
+        if (response && response.success && response.tickets) {
+            pointsTicketsData = response.tickets;
+            displayPointsTickets(pointsTicketsData);
+        } else if (response && response.tickets) {
+            // Fallback if response structure is different
+            pointsTicketsData = response.tickets;
+            displayPointsTickets(pointsTicketsData);
+        } else {
+            pointsTicketsData = [];
+            displayPointsTickets([]);
+        }
+    } catch (error) {
+        console.error('Error loading tickets:', error);
+        const tbody = document.getElementById('pointsTicketsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="9" class="error">❌ خطأ في تحميل التكتات</td></tr>';
+        }
+    }
+}
+
+// عرض التكتات في الجدول
+function displayPointsTickets(tickets) {
+    const tbody = document.getElementById('pointsTicketsTableBody');
+    if (!tbody) return;
+    
+    if (!tickets || tickets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="empty">لا توجد تكتات</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = tickets.map(ticket => {
+        const statusText = {
+            'pending': 'معلقة',
+            'in_progress': 'قيد التنفيذ',
+            'completed': 'مكتملة',
+            'postponed': 'مؤجلة',
+            'closed': 'مغلقة'
+        }[ticket.status] || ticket.status;
+        
+        const actualTime = ticket.actual_time_minutes 
+            ? `${(ticket.actual_time_minutes / 60).toFixed(2)} ساعة`
+            : '-';
+        
+        const finalPoints = parseFloat(ticket.points || 0) || 0;
+        
+        return `
+            <tr>
+                <td>${ticket.ticket_number}</td>
+                <td>${ticket.ticket_type_name || '-'}</td>
+                <td>${ticket.team_name || '-'}</td>
+                <td>${statusText}</td>
+                <td>${actualTime}</td>
+                <td><strong style="color: var(--primary-color);">${finalPoints.toFixed(2)}</strong></td>
+                <td>${ticket.manager_name || '-'}</td>
+                <td>${ticket.time_received ? formatDateTime(ticket.time_received) : '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="openPointsManagementModal(${ticket.id})">
+                        📊 إدارة النقاط
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// تحميل الفرق للفلترة
+async function loadTeamsForPointsFilter() {
+    try {
+        const response = await window.api.getTeams();
+        const teams = response && response.teams ? response.teams : (response || []);
+        const select = document.getElementById('pointsTeamFilter');
+        if (select && Array.isArray(teams)) {
+            select.innerHTML = '<option value="">جميع الفرق</option>' +
+                teams.map(team => `<option value="${team.id}">${team.name}</option>`).join('');
+        }
+    } catch (error) {
+        console.error('Error loading teams:', error);
+    }
+}
+
+// فلترة التكتات
+function filterPointsTickets() {
+    const search = document.getElementById('pointsSearch')?.value.toLowerCase() || '';
+    const dateFilter = document.getElementById('pointsDateFilter')?.value || '';
+    const teamFilter = document.getElementById('pointsTeamFilter')?.value || '';
+    
+    let filtered = pointsTicketsData.filter(ticket => {
+        const matchesSearch = !search || 
+            ticket.ticket_number?.toLowerCase().includes(search) ||
+            ticket.ticket_type_name?.toLowerCase().includes(search);
+        
+        const matchesDate = !dateFilter || 
+            (ticket.time_received && ticket.time_received.startsWith(dateFilter));
+        
+        const matchesTeam = !teamFilter || 
+            ticket.team_id == teamFilter;
+        
+        return matchesSearch && matchesDate && matchesTeam;
+    });
+    
+    displayPointsTickets(filtered);
+}
+
+// إعادة تعيين الفلترة
+function resetPointsFilters() {
+    document.getElementById('pointsSearch').value = '';
+    document.getElementById('pointsDateFilter').value = '';
+    document.getElementById('pointsTeamFilter').value = '';
+    filterPointsTickets();
+}
+
+// فتح modal إدارة النقاط
+async function openPointsManagementModal(ticketId) {
+    currentPointsTicketId = ticketId;
+    const modal = document.getElementById('points-management-modal');
+    if (!modal) return;
+    
+    try {
+        // جلب معلومات التكت
+        const ticketResponse = await window.api.getTicket(ticketId);
+        if (!ticketResponse || (!ticketResponse.success && !ticketResponse.ticket)) {
+            alert('خطأ في جلب معلومات التكت');
+            return;
+        }
+        
+        const ticket = (ticketResponse && ticketResponse.ticket) ? ticketResponse.ticket : ticketResponse;
+        
+        if (!ticket || !ticket.ticket_number) {
+            alert('خطأ في جلب معلومات التكت');
+            return;
+        }
+        
+        // عرض معلومات التكت
+        document.getElementById('points-ticket-number').textContent = ticket.ticket_number;
+        document.getElementById('points-ticket-type').textContent = ticket.ticket_type_name || '-';
+        document.getElementById('points-time-received').textContent = ticket.time_received ? formatDateTime(ticket.time_received) : '-';
+        document.getElementById('points-time-first-contact').textContent = ticket.time_first_contact ? formatDateTime(ticket.time_first_contact) : '-';
+        document.getElementById('points-time-completed').textContent = ticket.time_completed ? formatDateTime(ticket.time_completed) : '-';
+        
+        // حساب الوقت الفعلي
+        if (ticket.time_received && ticket.time_completed) {
+            const start = new Date(ticket.time_received);
+            const end = new Date(ticket.time_completed);
+            const hours = (end - start) / (1000 * 60 * 60);
+            document.getElementById('points-actual-time').textContent = hours.toFixed(2);
+        } else {
+            document.getElementById('points-actual-time').textContent = '-';
+        }
+        
+        // حساب Daily Load Factor و Adjusted Time و Speed Points المقترحة
+        let calculatedTimeData = null;
+        try {
+            const timeCalcResponse = await window.api.calculateTimePoints(ticketId);
+            if (timeCalcResponse && timeCalcResponse.success) {
+                calculatedTimeData = timeCalcResponse;
+                // عرض معلومات الحساب
+                const timeInfoDiv = document.getElementById('points-time-info');
+                if (timeInfoDiv) {
+                    timeInfoDiv.innerHTML = `
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 8px; margin-top: 10px;">
+                            <div><strong>عدد التكتات في اليوم:</strong> ${calculatedTimeData.dailyLoad}</div>
+                            <div><strong>الوقت الفعلي:</strong> ${calculatedTimeData.actualMinutes} دقيقة</div>
+                            <div><strong>الوقت المعدل (Adjusted):</strong> ${calculatedTimeData.adjustedMinutes.toFixed(2)} دقيقة</div>
+                            <div><strong>نقاط الوقت المقترحة:</strong> ${calculatedTimeData.suggestedSpeedPoints} / 10</div>
+                        </div>
+                    `;
+                }
+            }
+        } catch (error) {
+            console.error('Error calculating time points:', error);
+        }
+        
+        // جلب قائمة Checklist items بناءً على نوع التكت
+        const ticketTypeKey = ticketTypeMapping[ticket.ticket_type_name] || null;
+        const checklistItems = ticketTypeKey ? ticketChecklists[ticketTypeKey] : [];
+        
+        // عرض Checklist items مع inputs
+        renderChecklistItemsForPoints(checklistItems);
+        
+        // جلب النقاط الموجودة (إن وجدت)
+        const pointsResponse = await window.api.getTicketPoints(ticketId);
+        let checklistPointsData = {};
+        if (pointsResponse && pointsResponse.success && pointsResponse.points) {
+            const points = pointsResponse.points;
+            
+            // تعبئة الحقول
+            document.getElementById('base_points').value = points.base_points || 0;
+            document.getElementById('time_points').value = points.time_points || 0;
+            document.getElementById('upsell_points').value = points.upsell_points || 0;
+            document.getElementById('bonus_points').value = points.bonus_points || 0;
+            document.getElementById('time_penalty').value = points.time_penalty || 0;
+            document.getElementById('tasks_penalty').value = points.tasks_penalty || 0;
+            document.getElementById('quality_penalty').value = points.quality_penalty || 0;
+            document.getElementById('behavior_penalty').value = points.behavior_penalty || 0;
+            document.getElementById('other_penalty').value = points.other_penalty || 0;
+            document.getElementById('team_performance_rating').value = points.team_performance_rating || '';
+            document.getElementById('manager_notes').value = points.manager_notes || '';
+            
+            // تحميل نقاط Checklist items
+            if (points.checklist_points_json) {
+                try {
+                    checklistPointsData = JSON.parse(points.checklist_points_json);
+                    // تعبئة inputs
+                    checklistItems.forEach(item => {
+                        const input = document.getElementById(`checklist-point-${item.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`);
+                        if (input && checklistPointsData[item]) {
+                            input.value = checklistPointsData[item];
+                        }
+                    });
+                } catch (e) {
+                    console.error('Error parsing checklist_points_json:', e);
+                }
+            }
+        } else {
+            // إعادة تعيين الحقول
+            ['base_points', 'upsell_points', 'bonus_points',
+             'time_penalty', 'tasks_penalty', 'quality_penalty', 'behavior_penalty', 'other_penalty', 
+             'team_performance_rating', 'manager_notes'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            
+            // ملء نقاط الوقت المقترحة تلقائياً
+            if (calculatedTimeData) {
+                document.getElementById('time_points').value = calculatedTimeData.suggestedSpeedPoints;
+            } else {
+                document.getElementById('time_points').value = '';
+            }
+        }
+        
+        // تحميل قواعد النقاط للتخزين المؤقت
+        await loadScoringRulesCache();
+        
+        // إضافة event listeners لحساب الإجماليات
+        setupPointsCalculationListeners();
+        
+        // حساب الإجماليات الأولية
+        calculatePointsTotals();
+        
+        // عرض الـ modal
+        modal.classList.add('active');
+    } catch (error) {
+        console.error('Error opening points modal:', error);
+        alert('خطأ في فتح صفحة النقاط');
+    }
+}
+
+// عرض Checklist items مع inputs
+function renderChecklistItemsForPoints(items) {
+    const container = document.getElementById('checklist-items-container');
+    if (!container) return;
+    
+    if (!items || items.length === 0) {
+        container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 20px;">لا توجد تاسكات لهذا النوع من التكتات</p>';
+        return;
+    }
+    
+    container.innerHTML = items.map(item => {
+        const inputId = `checklist-point-${item.replace(/\s+/g, '-').replace(/[^\w-]/g, '')}`;
+        return `
+            <div class="form-group" style="background: var(--bg-secondary); padding: 15px; border-radius: 8px;">
+                <label for="${inputId}" style="display: block; margin-bottom: 8px; font-weight: 500;">${item}</label>
+                <input type="number" id="${inputId}" min="0" step="0.01" class="form-control checklist-point-input" 
+                       placeholder="0.00" data-item="${item}">
+            </div>
+        `;
+    }).join('');
+    
+    // إضافة event listeners لحقول checklist
+    container.querySelectorAll('.checklist-point-input').forEach(input => {
+        input.addEventListener('input', calculatePointsTotals);
+    });
+}
+
+// إعداد مستمعي الحساب
+function setupPointsCalculationListeners() {
+    const inputIds = ['base_points', 'time_points', 'upsell_points', 'bonus_points',
+                     'time_penalty', 'tasks_penalty', 'quality_penalty', 'behavior_penalty', 'other_penalty',
+                     'team_performance_rating'];
+    
+    inputIds.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            // إزالة المستمعين القديمين
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            
+            // إضافة مستمع جديد
+            document.getElementById(id).addEventListener('change', calculatePointsTotals);
+            document.getElementById(id).addEventListener('input', calculatePointsTotals);
+        }
+    });
+    
+    // Checklist inputs
+    document.querySelectorAll('.checklist-point-input').forEach(input => {
+        input.addEventListener('input', calculatePointsTotals);
+    });
+}
+
+// متغير لتخزين قواعد النقاط (يتم تحميله مرة واحدة)
+let cachedScoringRules = null;
+
+// تحميل قواعد النقاط مرة واحدة
+async function loadScoringRulesCache() {
+    try {
+        const rulesResponse = await window.api.getScoringRules();
+        if (rulesResponse && rulesResponse.success && rulesResponse.rules) {
+            cachedScoringRules = rulesResponse.rules;
+        }
+    } catch (error) {
+        console.error('Error loading scoring rules cache:', error);
+    }
+}
+
+// حساب الإجماليات
+function calculatePointsTotals() {
+    const basePoints = parseFloat(document.getElementById('base_points').value) || 0;
+    const timePoints = parseFloat(document.getElementById('time_points').value) || 0;
+    const upsellPoints = parseFloat(document.getElementById('upsell_points').value) || 0;
+    const bonusPoints = parseFloat(document.getElementById('bonus_points').value) || 0;
+    
+    // حساب نقاط Checklist من inputs
+    let qualityPoints = 0;
+    document.querySelectorAll('.checklist-point-input').forEach(input => {
+        const value = parseFloat(input.value) || 0;
+        qualityPoints += value;
+    });
+    
+    // تحديث حقل quality_points (readonly)
+    const qualityPointsInput = document.getElementById('quality_points');
+    if (qualityPointsInput) {
+        qualityPointsInput.value = qualityPoints.toFixed(2);
+    }
+    
+    const timePenalty = parseFloat(document.getElementById('time_penalty').value) || 0;
+    const tasksPenalty = parseFloat(document.getElementById('tasks_penalty').value) || 0;
+    const qualityPenalty = parseFloat(document.getElementById('quality_penalty').value) || 0;
+    const behaviorPenalty = parseFloat(document.getElementById('behavior_penalty').value) || 0;
+    const otherPenalty = parseFloat(document.getElementById('other_penalty').value) || 0;
+    
+    // حساب خصم تقييم أداء الفريق
+    let performanceRatingPenalty = 0;
+    const teamPerformanceRating = document.getElementById('team_performance_rating');
+    if (teamPerformanceRating && teamPerformanceRating.value && cachedScoringRules) {
+        const rating = teamPerformanceRating.value;
+        let ruleType = '';
+        
+        // تحديد نوع القاعدة حسب التقييم
+        switch(rating) {
+            case '5':
+                ruleType = 'performance_rating_excellent';
+                break;
+            case '4':
+                ruleType = 'performance_rating_good';
+                break;
+            case '3':
+                ruleType = 'performance_rating_average';
+                break;
+            case '2':
+                ruleType = 'performance_rating_poor';
+                break;
+            case '1':
+                ruleType = 'performance_rating_very_poor';
+                break;
+        }
+        
+        if (ruleType) {
+            const rule = cachedScoringRules.find(r => r.rule_type === ruleType && r.rule_key === rating);
+            if (rule) {
+                performanceRatingPenalty = Math.abs(parseFloat(rule.rule_value) || 0); // تحويل إلى قيمة موجبة للخصم
+                
+                // عرض الخصم في الحقل
+                const penaltyInput = document.getElementById('performance_rating_penalty');
+                if (penaltyInput) {
+                    penaltyInput.value = performanceRatingPenalty.toFixed(2);
+                }
+            }
+        }
+    } else {
+        // إعادة تعيين حقل خصم التقييم إذا لم يتم اختيار تقييم
+        const penaltyInput = document.getElementById('performance_rating_penalty');
+        if (penaltyInput) {
+            penaltyInput.value = '0';
+        }
+    }
+    
+    const totalEarned = basePoints + timePoints + qualityPoints + upsellPoints + bonusPoints;
+    const totalPenalty = timePenalty + tasksPenalty + qualityPenalty + behaviorPenalty + otherPenalty + performanceRatingPenalty;
+    const finalPoints = totalEarned - totalPenalty;
+    
+    document.getElementById('total-earned-display').textContent = totalEarned.toFixed(2);
+    document.getElementById('total-penalty-display').textContent = totalPenalty.toFixed(2);
+    document.getElementById('final-points-display').textContent = finalPoints.toFixed(2);
+}
+
+// حفظ النقاط
+async function saveTicketPoints() {
+    if (!currentPointsTicketId) {
+        alert('لم يتم تحديد التكت');
+        return;
+    }
+    
+    // جمع نقاط Checklist items
+    const checklistPointsData = {};
+    document.querySelectorAll('.checklist-point-input').forEach(input => {
+        const item = input.getAttribute('data-item');
+        const points = parseFloat(input.value) || 0;
+        if (item && points > 0) {
+            checklistPointsData[item] = points;
+        }
+    });
+    
+    const qualityPoints = parseFloat(document.getElementById('quality_points').value) || 0;
+    
+    const pointsData = {
+        base_points: parseFloat(document.getElementById('base_points').value) || 0,
+        time_points: parseFloat(document.getElementById('time_points').value) || 0,
+        quality_points: qualityPoints,
+        checklist_points_json: JSON.stringify(checklistPointsData),
+        upsell_points: parseFloat(document.getElementById('upsell_points').value) || 0,
+        bonus_points: parseFloat(document.getElementById('bonus_points').value) || 0,
+        time_penalty: parseFloat(document.getElementById('time_penalty').value) || 0,
+        tasks_penalty: parseFloat(document.getElementById('tasks_penalty').value) || 0,
+        quality_penalty: parseFloat(document.getElementById('quality_penalty').value) || 0,
+        behavior_penalty: parseFloat(document.getElementById('behavior_penalty').value) || 0,
+        other_penalty: parseFloat(document.getElementById('other_penalty').value) || 0,
+        team_performance_rating: parseInt(document.getElementById('team_performance_rating').value) || null,
+        manager_notes: document.getElementById('manager_notes').value
+    };
+    
+    try {
+        const response = await window.api.saveTicketPoints(currentPointsTicketId, pointsData);
+        if (response && response.success) {
+            alert('تم حفظ النقاط بنجاح');
+            closePointsManagementModal();
+            // إعادة تحميل قائمة التكتات
+            await loadPointsTickets();
+        } else {
+            alert('خطأ في حفظ النقاط: ' + (response?.message || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        console.error('Error saving points:', error);
+        alert('خطأ في حفظ النقاط');
+    }
+}
+
+// حذف النقاط
+async function deleteTicketPoints() {
+    if (!currentPointsTicketId) {
+        return;
+    }
+    
+    if (!confirm('هل أنت متأكد من حذف النقاط؟')) {
+        return;
+    }
+    
+    try {
+        const response = await window.api.deleteTicketPoints(currentPointsTicketId);
+        if (response && response.success) {
+            alert('تم حذف النقاط بنجاح');
+            closePointsManagementModal();
+            await loadPointsTickets();
+        } else {
+            alert('خطأ في حذف النقاط');
+        }
+    } catch (error) {
+        console.error('Error deleting points:', error);
+        alert('خطأ في حذف النقاط');
+    }
+}
+
+// إغلاق الـ modal
+function closePointsManagementModal() {
+    const modal = document.getElementById('points-management-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    currentPointsTicketId = null;
+}
+
+// إغلاق modal عند النقر خارجها
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('points-management-modal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closePointsManagementModal();
+            }
+        });
+    }
+});
 

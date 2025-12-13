@@ -62,7 +62,7 @@ function showPage(pageName) {
         targetPage.style.display = 'block';
     }
     
-    document.getElementById('pageTitle').textContent = pageName === 'new-ticket' ? 'تذكرة جديدة' : 'التكتات';
+    document.getElementById('pageTitle').textContent = 'التكتات';
     
     document.querySelectorAll('.sidebar-menu a').forEach(link => {
         link.classList.remove('active');
@@ -79,70 +79,96 @@ function showPage(pageName) {
 async function loadTicketTypes() {
     try {
         const data = await window.api.getTicketTypes();
-        const select = document.getElementById('ticket_type_id');
-        if (select && data.success) {
-            select.innerHTML = '<option value="">اختر النوع</option>';
-            data.ticket_types.forEach(type => {
-                const option = document.createElement('option');
-                option.value = type.id;
-                option.textContent = type.name_ar;
-                select.appendChild(option);
-            });
+        // Load for modal
+        const modalSelect = document.getElementById('modal_ticket_type_id');
+        if (modalSelect && data && data.success) {
+            modalSelect.innerHTML = '<option value="">اختر النوع</option>';
+            // Check both possible response formats
+            const types = data.types || data.ticket_types || [];
+            if (Array.isArray(types) && types.length > 0) {
+                types.forEach(type => {
+                    const option = document.createElement('option');
+                    option.value = type.id;
+                    option.textContent = type.name_ar || type.name || '';
+                    modalSelect.appendChild(option);
+                });
+            }
         }
     } catch (error) {
         console.error('Error loading ticket types:', error);
     }
 }
 
-async function loadTeams() {
-    try {
-        const data = await window.api.getTeams();
-        const select = document.getElementById('team_id');
-        if (select && data.success) {
-            select.innerHTML = '<option value="">اختر الفريق</option>';
-            data.teams.forEach(team => {
-                const option = document.createElement('option');
-                option.value = team.id;
-                option.textContent = team.name;
-                select.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading teams:', error);
+// Create Ticket Modal Functions
+function openCreateTicketModal() {
+    const modal = document.getElementById('create-ticket-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        // Generate ticket number preview (will be generated on server)
+        document.getElementById('modal_ticket_number').value = 'جاري التوليد...';
+        // Reset form
+        document.getElementById('createTicketForm').reset();
+        document.getElementById('modal_ticket_number').value = '';
     }
 }
 
-async function loadAgents() {
-    try {
-        const data = await window.api.getUsers();
-        const select = document.getElementById('assigned_to_agent');
-        if (select && data.success) {
-            select.innerHTML = '<option value="">اختر المندوب</option>';
-            data.users.filter(u => u.role === 'agent' && u.is_active).forEach(agent => {
-                const option = document.createElement('option');
-                option.value = agent.id;
-                option.textContent = agent.full_name;
-                select.appendChild(option);
-            });
-        }
-    } catch (error) {
-        console.error('Error loading agents:', error);
+function closeCreateTicketModal() {
+    const modal = document.getElementById('create-ticket-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.getElementById('createTicketForm').reset();
     }
 }
 
-function handleAssignmentTypeChange() {
-    const type = document.getElementById('assignment_type').value;
-    const agentGroup = document.getElementById('agent_select_group');
-    
-    if (type === 'agent') {
-        agentGroup.style.display = 'block';
-        document.getElementById('assigned_to_agent').required = true;
-    } else {
-        agentGroup.style.display = 'none';
-        document.getElementById('assigned_to_agent').required = false;
-        document.getElementById('assigned_to_agent').value = '';
+// Handle form submission
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('createTicketForm');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            try {
+                const formData = {
+                    subscriber_name: document.getElementById('modal_subscriber_name').value.trim(),
+                    subscriber_phone: document.getElementById('modal_subscriber_phone').value.trim(),
+                    ticket_type_id: parseInt(document.getElementById('modal_ticket_type_id').value),
+                    region: document.getElementById('modal_region').value.trim() || null,
+                    notes: document.getElementById('modal_notes').value.trim() || null
+                };
+                
+                // Validation
+                if (!formData.subscriber_name) {
+                    alert('اسم المشترك مطلوب');
+                    return;
+                }
+                
+                if (!formData.subscriber_phone) {
+                    alert('رقم الهاتف مطلوب');
+                    return;
+                }
+                
+                if (!formData.ticket_type_id || isNaN(formData.ticket_type_id)) {
+                    alert('نوع التكت مطلوب');
+                    return;
+                }
+                
+                // Call API to create ticket (ticket_number will be generated on server)
+                const response = await window.api.createTicket(formData);
+                
+                if (response && response.success) {
+                    alert('✅ تم إنشاء التكت بنجاح!');
+                    closeCreateTicketModal();
+                    loadTickets(); // Refresh tickets list
+                } else {
+                    alert('❌ خطأ: ' + (response.error || 'فشل إنشاء التكت'));
+                }
+            } catch (error) {
+                console.error('Error creating ticket:', error);
+                alert('❌ خطأ في إنشاء التكت: ' + (error.message || 'خطأ غير معروف'));
+            }
+        });
     }
-}
+});
 
 async function loadTickets() {
     try {
@@ -228,38 +254,9 @@ async function viewTicket(ticketId) {
     alert('عرض تفاصيل التكت - قيد التطوير');
 }
 
-document.getElementById('newTicketForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    try {
-        const formData = {
-            ticket_number: document.getElementById('ticket_number').value,
-            ticket_type_id: parseInt(document.getElementById('ticket_type_id').value),
-            team_id: parseInt(document.getElementById('team_id').value),
-            subscriber_name: document.getElementById('subscriber_name').value,
-            subscriber_phone: document.getElementById('subscriber_phone').value,
-            subscriber_address: document.getElementById('subscriber_address').value,
-            notes: document.getElementById('notes').value,
-            assignment_type: document.getElementById('assignment_type').value,
-            assigned_to: document.getElementById('assignment_type').value === 'agent' ? 
-                parseInt(document.getElementById('assigned_to_agent').value) : null
-        };
-        
-        const response = await window.api.createTicket(formData);
-        
-        if (response && response.success) {
-            alert('تم إنشاء التذكرة بنجاح');
-            document.getElementById('newTicketForm').reset();
-            showPage('tickets');
-            loadTickets();
-        } else {
-            alert('خطأ: ' + (response.error || 'خطأ غير معروف'));
-        }
-    } catch (error) {
-        console.error('Error creating ticket:', error);
-        alert('خطأ في إنشاء التذكرة: ' + (error.message || 'خطأ غير معروف'));
-    }
-});
+// Expose functions to window
+window.openCreateTicketModal = openCreateTicketModal;
+window.closeCreateTicketModal = closeCreateTicketModal;
 
 function formatDateTime(dateString) {
     if (!dateString) return '-';

@@ -27,9 +27,38 @@ function createDateTimePicker(containerId, defaultValue = null, required = false
     yearSelect.addEventListener('change', () => updateDays(yearSelect, monthSelect, daySelect));
     monthSelect.addEventListener('change', () => updateDays(yearSelect, monthSelect, daySelect));
     
-    wrapper.appendChild(yearSelect);
-    wrapper.appendChild(monthSelect);
-    wrapper.appendChild(daySelect);
+    // Create labels
+    const yearLabel = document.createElement('label');
+    yearLabel.textContent = 'سنة';
+    yearLabel.style.cssText = 'display: block; margin-bottom: 5px; color: var(--text-secondary); font-size: 12px; font-weight: 500;';
+    yearLabel.setAttribute('for', 'year');
+    
+    const monthLabel = document.createElement('label');
+    monthLabel.textContent = 'شهر';
+    monthLabel.style.cssText = 'display: block; margin-bottom: 5px; color: var(--text-secondary); font-size: 12px; font-weight: 500;';
+    monthLabel.setAttribute('for', 'month');
+    
+    const dayLabel = document.createElement('label');
+    dayLabel.textContent = 'يوم';
+    dayLabel.style.cssText = 'display: block; margin-bottom: 5px; color: var(--text-secondary); font-size: 12px; font-weight: 500;';
+    dayLabel.setAttribute('for', 'day');
+    
+    // Create column wrappers with labels
+    const yearWrapper = document.createElement('div');
+    yearWrapper.appendChild(yearLabel);
+    yearWrapper.appendChild(yearSelect);
+    
+    const monthWrapper = document.createElement('div');
+    monthWrapper.appendChild(monthLabel);
+    monthWrapper.appendChild(monthSelect);
+    
+    const dayWrapper = document.createElement('div');
+    dayWrapper.appendChild(dayLabel);
+    dayWrapper.appendChild(daySelect);
+    
+    wrapper.appendChild(yearWrapper);
+    wrapper.appendChild(monthWrapper);
+    wrapper.appendChild(dayWrapper);
     
     container.appendChild(wrapper);
     

@@ -25,7 +25,8 @@ async function apiRequest(endpoint, options = {}) {
     };
     
     try {
-        const response = await fetch(`${window.API_BASE}${endpoint}`, finalOptions);
+        const fullUrl = `${window.API_BASE}${endpoint}`;
+        const response = await fetch(fullUrl, finalOptions);
         const data = await response.json();
         
         if (response.status === 401) {
@@ -61,6 +62,7 @@ const api = {
         if (date) params.append('date', date);
         return apiRequest(`/teams/${teamId}/scores?${params}`);
     },
+    getTechniciansByTeam: (teamId) => apiRequest(`/teams/${teamId}/technicians`),
     
     // Tickets
     getTickets: (params = {}) => {
@@ -132,6 +134,28 @@ const api = {
     },
     getMyTeam: () => apiRequest('/my-team'),
     
+    // Technician endpoints
+    getTechnicianTickets: (status = null) => {
+        const params = status ? `?status=${status}` : '';
+        return apiRequest(`/technician/tickets${params}`);
+    },
+    startTechnicianWork: (ticketId) => apiRequest(`/technician/tickets/${ticketId}/start-work`, {
+        method: 'POST'
+    }),
+    completeTechnicianTicket: (ticketId) => apiRequest(`/technician/tickets/${ticketId}/complete`, {
+        method: 'POST'
+    }),
+    
+    // Quality Staff endpoints
+    assignTicketToTechnician: (ticketId, data) => apiRequest(`/tickets/${ticketId}/assign-to-technician`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    reviewTicket: (ticketId, data) => apiRequest(`/tickets/${ticketId}/review`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    
     // Agent & Call Center
     getMyAssignedTickets: (params = {}) => {
         const queryString = new URLSearchParams(params).toString();
@@ -197,6 +221,52 @@ const api = {
             return res.json();
         });
     }
+};
+
+// Points Management API
+api.saveTicketPoints = async (ticketId, pointsData) => {
+    return await apiRequest(`/admin/tickets/${ticketId}/points`, {
+        method: 'POST',
+        body: JSON.stringify(pointsData)
+    });
+};
+
+api.getTicketPoints = async (ticketId) => {
+    return await apiRequest(`/tickets/${ticketId}/points`);
+};
+
+api.deleteTicketPoints = async (ticketId) => {
+    return await apiRequest(`/admin/tickets/${ticketId}/points`, {
+        method: 'DELETE'
+    });
+};
+
+api.calculateTimePoints = async (ticketId) => {
+    return await apiRequest(`/admin/tickets/${ticketId}/calculate-time-points`);
+};
+
+// Scoring Rules API
+api.getScoringRules = async () => {
+    return await apiRequest('/admin/scoring-rules');
+};
+
+api.updateScoringRule = async (ruleId, data) => {
+    return await apiRequest(`/admin/scoring-rules/${ruleId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    });
+};
+
+api.createScoringRule = async (data) => {
+    return await apiRequest('/admin/scoring-rules', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    });
+};
+
+// Get scoring rules (for all users - used in quality staff)
+api.getScoringRules = async () => {
+    return await apiRequest('/scoring-rules');
 };
 
 // Make API available globally

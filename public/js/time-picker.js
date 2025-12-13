@@ -44,16 +44,16 @@ function createTimePicker(containerId, defaultValue = null, required = false) {
         }
     }
     
-    // Hour picker (1-12)
-    const hourSelect = createTimeSelect('hour', generateHours12(), hour, required);
-    const minuteSelect = createTimeSelect('minute', generateMinutes(), minute, false);
+    // Create manual input fields for hour and minute
+    const hourInput = createTimeInput('hour', hour, 1, 12, required);
+    const minuteInput = createTimeInput('minute', minute, 0, 59, false);
     const ampmSelect = createTimeSelect('ampm', [
-        { value: 'AM', label: 'AM' },
-        { value: 'PM', label: 'PM' }
+        { value: 'AM', label: 'صباحاً' },
+        { value: 'PM', label: 'مساءً' }
     ], ampm, false);
     
-    wrapper.appendChild(hourSelect);
-    wrapper.appendChild(minuteSelect);
+    wrapper.appendChild(hourInput);
+    wrapper.appendChild(minuteInput);
     wrapper.appendChild(ampmSelect);
     
     container.appendChild(wrapper);
@@ -67,9 +67,21 @@ function createTimePicker(containerId, defaultValue = null, required = false) {
     
     // Function to update hidden input value
     function updateValue() {
-        let h = parseInt(hourSelect.value);
-        const m = parseInt(minuteSelect.value);
+        let h = parseInt(hourInput.value) || 12;
+        const m = parseInt(minuteInput.value) || 0;
         const ap = ampmSelect.value;
+        
+        // Validate hour (1-12)
+        if (h < 1) h = 1;
+        if (h > 12) h = 12;
+        
+        // Validate minute (0-59)
+        if (m < 0) m = 0;
+        if (m > 59) m = 59;
+        
+        // Update input values if they were corrected
+        hourInput.value = h;
+        minuteInput.value = m.toString().padStart(2, '0');
         
         // Convert to 24-hour format
         if (ap === 'PM' && h !== 12) {
@@ -84,8 +96,12 @@ function createTimePicker(containerId, defaultValue = null, required = false) {
     }
     
     // Add change listeners
-    [hourSelect, minuteSelect, ampmSelect].forEach(select => {
-        select.addEventListener('change', updateValue);
+    [hourInput, minuteInput, ampmSelect].forEach(element => {
+        element.addEventListener('change', updateValue);
+        element.addEventListener('input', updateValue);
+        if (element.tagName === 'INPUT') {
+            element.addEventListener('blur', updateValue);
+        }
     });
     
     // Set initial value
@@ -107,8 +123,8 @@ function createTimePicker(containerId, defaultValue = null, required = false) {
                     if (h === 0) hour12 = 12;
                 }
                 
-                hourSelect.value = hour12;
-                minuteSelect.value = m;
+                hourInput.value = hour12;
+                minuteInput.value = m.toString().padStart(2, '0');
                 ampmSelect.value = ampmVal;
                 updateValue();
             }
@@ -127,12 +143,65 @@ function createTimePicker(containerId, defaultValue = null, required = false) {
                 if (h === 0) h = 12;
             }
             
-            hourSelect.value = h;
-            minuteSelect.value = m;
+            hourInput.value = h;
+            minuteInput.value = m.toString().padStart(2, '0');
             ampmSelect.value = ampmVal;
             updateValue();
         }
     };
+}
+
+function createTimeInput(name, defaultValue, min, max, required) {
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = name;
+    input.className = 'datetime-select';
+    input.required = required;
+    input.min = min;
+    input.max = max;
+    input.value = defaultValue.toString().padStart(2, '0');
+    input.style.padding = '12px';
+    input.style.background = 'var(--bg-tertiary)';
+    input.style.border = '1px solid var(--border-color)';
+    input.style.borderRadius = '8px';
+    input.style.fontSize = '14px';
+    input.style.fontFamily = 'Cairo, sans-serif';
+    input.style.color = 'var(--text-primary)';
+    input.style.textAlign = 'center';
+    input.style.transition = 'all 0.3s ease';
+    
+    // Validation on input
+    input.addEventListener('input', (e) => {
+        let value = parseInt(e.target.value) || 0;
+        if (value < min) value = min;
+        if (value > max) value = max;
+        if (name === 'minute') {
+            e.target.value = value.toString().padStart(2, '0');
+        } else {
+            e.target.value = value;
+        }
+    });
+    
+    input.addEventListener('focus', () => {
+        input.style.borderColor = 'var(--primary-color)';
+        input.style.boxShadow = '0 0 0 3px rgba(79, 70, 229, 0.1)';
+    });
+    
+    input.addEventListener('blur', () => {
+        input.style.borderColor = 'var(--border-color)';
+        input.style.boxShadow = 'none';
+        // Ensure value is properly formatted
+        let value = parseInt(input.value) || min;
+        if (value < min) value = min;
+        if (value > max) value = max;
+        if (name === 'minute') {
+            input.value = value.toString().padStart(2, '0');
+        } else {
+            input.value = value;
+        }
+    });
+    
+    return input;
 }
 
 function createTimeSelect(name, options, defaultValue, required) {

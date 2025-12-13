@@ -17,7 +17,6 @@
             </div>
             <ul class="sidebar-menu">
                 <li><a href="#" class="active" data-page="tickets"><i>🎫</i> التكتات</a></li>
-                <li><a href="#" data-page="new-ticket"><i>➕</i> تذكرة جديدة</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
             </ul>
         </aside>
@@ -61,9 +60,12 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>التكتات</h2>
-                        <label>
-                            <input type="checkbox" id="autoRefreshTickets" checked> تحديث تلقائي (30 ثانية)
-                        </label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-primary" onclick="openCreateTicketModal()">➕ إنشاء تكت</button>
+                            <label>
+                                <input type="checkbox" id="autoRefreshTickets" checked> تحديث تلقائي (30 ثانية)
+                            </label>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="filters-bar" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
@@ -84,73 +86,50 @@
                 </div>
             </div>
 
-            <!-- New Ticket Page -->
-            <div id="new-ticket-page" class="page-content" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>تذكرة جديدة</h2>
+            <!-- Create Ticket Modal -->
+            <div id="create-ticket-modal" class="modal-overlay" style="display: none;" onclick="if(event.target === this) closeCreateTicketModal()">
+                <div class="modal" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h2>إنشاء تكت جديد</h2>
+                        <button class="modal-close-btn" onclick="closeCreateTicketModal()">✕</button>
                     </div>
-                    <div class="card-body">
-                        <form id="newTicketForm">
+                    <div class="modal-body">
+                        <form id="createTicketForm">
                             <div class="form-group">
-                                <label>رقم التكت *</label>
-                                <input type="text" id="ticket_number" required>
+                                <label>رقم التكت</label>
+                                <input type="text" id="modal_ticket_number" readonly style="background: var(--bg-tertiary); cursor: not-allowed;" placeholder="سيتم توليده تلقائياً">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>اسم المشترك *</label>
+                                <input type="text" id="modal_subscriber_name" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>رقم الهاتف *</label>
+                                <input type="text" id="modal_subscriber_phone" required>
                             </div>
                             
                             <div class="form-group">
                                 <label>نوع التكت *</label>
-                                <select id="ticket_type_id" required>
+                                <select id="modal_ticket_type_id" required>
                                     <option value="">اختر النوع</option>
                                 </select>
                             </div>
                             
                             <div class="form-group">
-                                <label>اسم المشترك *</label>
-                                <input type="text" id="subscriber_name" required>
+                                <label>المنطقة</label>
+                                <input type="text" id="modal_region">
                             </div>
                             
                             <div class="form-group">
-                                <label>رقم هاتف المشترك *</label>
-                                <input type="text" id="subscriber_phone" required>
+                                <label>ملاحظات</label>
+                                <textarea id="modal_notes" rows="4"></textarea>
                             </div>
                             
-                            <div class="form-group">
-                                <label>عنوان المشترك</label>
-                                <textarea id="subscriber_address" rows="3"></textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>وصف المشكلة *</label>
-                                <textarea id="notes" rows="4" required></textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>الفريق *</label>
-                                <select id="team_id" required>
-                                    <option value="">اختر الفريق</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>نوع التوزيع *</label>
-                                <select id="assignment_type" required onchange="handleAssignmentTypeChange()">
-                                    <option value="">اختر نوع التوزيع</option>
-                                    <option value="general">عام (لجميع المندوبين)</option>
-                                    <option value="team">لفريق معين</option>
-                                    <option value="agent">لمندوب معين</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group" id="agent_select_group" style="display: none;">
-                                <label>اختر المندوب</label>
-                                <select id="assigned_to_agent">
-                                    <option value="">اختر المندوب</option>
-                                </select>
-                            </div>
-                            
-                            <div class="btn-group">
-                                <button type="submit" class="btn btn-primary">إنشاء التذكرة</button>
-                                <button type="reset" class="btn btn-secondary">إعادة تعيين</button>
+                            <div class="btn-group" style="margin-top: 20px;">
+                                <button type="submit" class="btn btn-primary">إنشاء التكت</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeCreateTicketModal()">إلغاء</button>
                             </div>
                         </form>
                     </div>

@@ -203,6 +203,25 @@ app.get('/api/teams', authenticate, async (req, res) => {
     }
 });
 
+// ==================== Get Technicians by Team ====================
+app.get('/api/teams/:teamId/technicians', authenticate, async (req, res) => {
+    try {
+        const teamId = parseInt(req.params.teamId);
+        
+        const technicians = await db.query(`
+            SELECT u.id, u.full_name, u.username, u.role
+            FROM users u
+            WHERE u.team_id = ? AND u.role = 'technician' AND u.is_active = 1
+            ORDER BY u.full_name
+        `, [teamId]);
+        
+        res.json({ success: true, technicians });
+    } catch (error) {
+        console.error('Get technicians error:', error);
+        res.status(500).json({ error: 'خطأ في جلب الفنيين' });
+    }
+});
+
 // ==================== Ticket Types ====================
 app.get('/api/ticket-types', authenticate, async (req, res) => {
     try {
@@ -217,44 +236,80 @@ app.get('/api/ticket-types', authenticate, async (req, res) => {
 // ==================== Create Ticket (Manual Entry) ====================
 app.post('/api/tickets', authenticate, async (req, res) => {
     try {
+        // التحقق من الصلاحيات - فقط admin و call_center يمكنهم إنشاء التكتات
+        if (req.user.role !== 'admin' && req.user.role !== 'call_center') {
+            return res.status(403).json({ error: 'غير مصرح لك بإنشاء التكتات' });
+        }
+        
         console.log('Create ticket request body:', JSON.stringify(req.body, null, 2));
         
         const {
             ticket_number,
             ticket_type_id,
             team_id,
+            assigned_technician_id,
             time_received,
             time_first_contact,
             time_completed,
             subscriber_name,
             subscriber_phone,
             subscriber_address,
+            region,
             notes
         } = req.body;
+        
+        // توليد رقم التكت تلقائياً إذا لم يتم إرساله
+        let finalTicketNumber = ticket_number;
+        if (!finalTicketNumber || !finalTicketNumber.trim()) {
+            // توليد رقم تكت فريد: TKT-YYYYMMDD-HHMMSS-XXX
+            const now = moment();
+            const dateStr = now.format('YYYYMMDD');
+            const timeStr = now.format('HHmmss');
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            finalTicketNumber = `TKT-${dateStr}-${timeStr}-${random}`;
+            
+            // التحقق من عدم التكرار
+            let exists = true;
+            let attempts = 0;
+            while (exists && attempts < 10) {
+                const check = await db.queryOne(
+                    'SELECT id FROM tickets WHERE ticket_number = ?',
+                    [finalTicketNumber]
+                );
+                if (!check) {
+                    exists = false;
+                } else {
+                    const newRandom = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                    finalTicketNumber = `TKT-${dateStr}-${timeStr}-${newRandom}`;
+                    attempts++;
+                }
+            }
+        }
         
         console.log('Step 1: Checking for existing ticket...');
         // التحقق من وجود التكت بنفس الرقم
         const existing = await db.queryOne(
             'SELECT id FROM tickets WHERE ticket_number = ?',
-            [ticket_number]
+            [finalTicketNumber]
         );
         
         if (existing) {
-            console.log('Validation error: Ticket number already exists:', ticket_number);
+            console.log('Validation error: Ticket number already exists:', finalTicketNumber);
             return res.status(400).json({ error: 'رقم التكت موجود مسبقاً' });
         }
         
-        console.log('Step 2: Validating time_received...');
-        // التحقق من time_received (مطلوب)
-        if (!time_received || !time_received.trim()) {
-            console.log('Validation error: time_received is missing');
-            return res.status(400).json({ error: 'تاريخ ووقت استلام التكت (T0) مطلوب' });
+        // إذا كان المستخدم call_center أو admin وليس لديه time_received، نستخدم الوقت الحالي
+        // وإلا نتحقق من وجود time_received
+        let cleanedTimeReceived = time_received;
+        if (!cleanedTimeReceived || !cleanedTimeReceived.trim()) {
+            // إذا كان call_center أو admin، نستخدم الوقت الحالي
+            cleanedTimeReceived = moment().format('YYYY-MM-DDTHH:mm');
+            console.log('Using current time for time_received:', cleanedTimeReceived);
         }
         
         console.log('Step 3: Cleaning dates...');
         
         // تنظيف وتنسيق التواريخ
-        let cleanedTimeReceived = time_received;
         let cleanedTimeFirstContact = time_first_contact;
         let cleanedTimeCompleted = time_completed;
         
@@ -345,35 +400,21 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         }
         
         // التحقق من الحقول المطلوبة
-        if (!ticket_number || !ticket_number.trim()) {
-            console.log('Validation error: ticket_number is missing');
-            return res.status(400).json({ error: 'رقم التكت مطلوب' });
-        }
+        // ticket_number يتم توليده تلقائياً، لا حاجة للتحقق منه
         
         if (!ticket_type_id || isNaN(parseInt(ticket_type_id))) {
             console.log('Validation error: ticket_type_id is invalid:', ticket_type_id, typeof ticket_type_id);
             return res.status(400).json({ error: 'نوع التكت مطلوب' });
         }
         
-        if (!team_id || isNaN(parseInt(team_id))) {
-            console.log('Validation error: team_id is invalid:', team_id, typeof team_id);
-            return res.status(400).json({ error: 'الفريق مطلوب' });
-        }
-        
         // تحويل إلى أرقام
         const ticketTypeId = parseInt(ticket_type_id);
-        const teamId = parseInt(team_id);
         
-        console.log('Parsed values - ticketTypeId:', ticketTypeId, 'teamId:', teamId);
+        console.log('Parsed values - ticketTypeId:', ticketTypeId);
         
         if (isNaN(ticketTypeId) || ticketTypeId <= 0) {
             console.log('Validation error: ticketTypeId is invalid:', ticketTypeId);
             return res.status(400).json({ error: 'نوع التكت غير صحيح' });
-        }
-        
-        if (isNaN(teamId) || teamId <= 0) {
-            console.log('Validation error: teamId is invalid:', teamId);
-            return res.status(400).json({ error: 'الفريق غير صحيح' });
         }
         
         // التحقق من وجود ticket_type_id في قاعدة البيانات
@@ -387,57 +428,77 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             return res.status(400).json({ error: 'نوع التكت غير موجود أو غير نشط' });
         }
         
-        // التحقق من وجود team_id في قاعدة البيانات
-        const teamExists = await db.queryOne(
-            'SELECT id FROM teams WHERE id = ? AND is_active = 1',
-            [teamId]
-        );
-        
-        if (!teamExists) {
-            console.log('Validation error: team_id does not exist:', teamId);
-            return res.status(400).json({ error: 'الفريق غير موجود أو غير نشط' });
+        // team_id اختياري الآن - إذا لم يتم إرساله، سيتم تعيينه لاحقاً
+        let teamId = null;
+        if (team_id && !isNaN(parseInt(team_id))) {
+            teamId = parseInt(team_id);
+            // التحقق من وجود team_id في قاعدة البيانات
+            const teamExists = await db.queryOne(
+                'SELECT id FROM teams WHERE id = ? AND is_active = 1',
+                [teamId]
+            );
+            
+            if (!teamExists) {
+                console.log('Validation error: team_id does not exist:', teamId);
+                return res.status(400).json({ error: 'الفريق غير موجود أو غير نشط' });
+            }
         }
         
         console.log('All validations passed. Proceeding with ticket creation...');
         
-        // حساب Load Factor (بعد تعريف teamId)
-        const ticketDate = cleanedTimeReceived ? moment(cleanedTimeReceived).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
-        const loadFactor = await scoring.calculateLoadFactor(teamId, ticketDate);
-        const adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
-        
         // تحديد quality_staff_id حسب دور المستخدم
-        let quality_staff_id = req.user.id;
-        if (req.user.role === 'call_center') {
-            // إذا كان كول سنتر، نحتاج quality_staff_id من الفريق أو نستخدم المستخدم الحالي
+        let quality_staff_id = null; // للدعم الفني، سيتم تعيينه لاحقاً من موظف الجودة
+        if (req.user.role === 'admin') {
             quality_staff_id = req.user.id;
         }
         
-        // إدراج التكت
-        // إذا كان ticketStatus null، لن نضيفه في INSERT وسيستخدم القيمة الافتراضية من قاعدة البيانات
+        // تحديد status - دائماً NEW للدعم الفني (يتم التوزيع لاحقاً)
+        let finalTicketStatus = 'NEW';
+        if (assigned_technician_id) {
+            finalTicketStatus = 'ASSIGNED';
+        }
+        
+        // حساب Load Factor (فقط إذا كان هناك teamId)
+        let loadFactor = 1;
+        let adjusted_time_minutes = null;
+        if (teamId) {
+            const ticketDate = cleanedTimeReceived ? moment(cleanedTimeReceived).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+            loadFactor = await scoring.calculateLoadFactor(teamId, ticketDate);
+            adjusted_time_minutes = actual_time_minutes ? Math.round(actual_time_minutes / loadFactor) : null;
+        }
+        
+        // إدراج التكت - فقط الحقول الأساسية للدعم الفني
         let insertFields = `
             ticket_number, ticket_type_id, team_id, quality_staff_id,
+            assigned_technician_id,
             time_received, time_first_contact, time_completed,
             actual_time_minutes, adjusted_time_minutes, load_factor,
             subscriber_name, subscriber_phone, subscriber_address, notes,
-            call_center_id`;
-        let insertValues = `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`;
+            call_center_id, status`;
+        let insertValues = `?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`;
         let insertParams = [
-            ticket_number.trim(), ticketTypeId, teamId, quality_staff_id,
-            cleanedTimeReceived || null, cleanedTimeFirstContact || null, cleanedTimeCompleted || null,
-            actual_time_minutes, adjusted_time_minutes, loadFactor,
+            finalTicketNumber.trim(), 
+            ticketTypeId, 
+            teamId, 
+            quality_staff_id,
+            assigned_technician_id || null,
+            cleanedTimeReceived || null, 
+            cleanedTimeFirstContact || null, 
+            cleanedTimeCompleted || null,
+            actual_time_minutes, 
+            adjusted_time_minutes, 
+            loadFactor,
             subscriber_name ? subscriber_name.trim() : null, 
             subscriber_phone ? subscriber_phone.trim() : null, 
             subscriber_address ? subscriber_address.trim() : null, 
             notes ? notes.trim() : null,
-            req.user.role === 'call_center' ? req.user.id : null
+            req.user.role === 'call_center' ? req.user.id : null,
+            finalTicketStatus
         ];
         
-        // فقط إذا كان مؤجل، نضيف status
-        if (ticketStatus === 'postponed') {
-            insertFields += ', status';
-            insertValues += ', ?';
-            insertParams.push(ticketStatus);
-        }
+        // إضافة region إذا كان موجوداً (إذا كان الحقل موجود في قاعدة البيانات)
+        // ملاحظة: قد لا يكون حقل region موجوداً في قاعدة البيانات حالياً
+        // سنضيفه فقط إذا كان موجوداً في req.body
         
         const result = await db.query(`
             INSERT INTO tickets (${insertFields})
@@ -446,63 +507,15 @@ app.post('/api/tickets', authenticate, async (req, res) => {
         
         const ticketId = result.insertId;
         
-        // توزيع التكت إذا كان من كول سنتر
-        if (req.user.role === 'call_center' && req.body.assignment_type) {
-            const { assignment_type, assigned_to } = req.body;
-            
-            let assignedToAgent = null;
-            let assignedToTeam = null;
-            
-            if (assignment_type === 'agent' && assigned_to) {
-                assignedToAgent = assigned_to;
-            } else if (assignment_type === 'team') {
-                assignedToTeam = teamId;
-            }
-            
-            // إنشاء assignment
-            await db.query(`
-                INSERT INTO ticket_assignments (
-                    ticket_id, assigned_by, assigned_to, assigned_to_team,
-                    assignment_type, status
-                ) VALUES (?, ?, ?, ?, ?, 'pending')
-            `, [ticketId, req.user.id, assignedToAgent, assignedToTeam, assignment_type]);
-            
-            // إرسال إشعارات للمندوبين
-            if (assignment_type === 'general') {
-                // إشعار لجميع المندوبين
-                await db.query(`
-                    INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
-                    SELECT NULL, 'ticket_assigned', 'تذكرة جديدة', 
-                           CONCAT('تم إنشاء تذكرة جديدة رقم: ', ?), ?
-                    WHERE EXISTS (SELECT 1 FROM users WHERE role = 'agent' AND is_active = 1)
-                `, [ticket_number, ticketId]);
-            } else if (assignment_type === 'agent' && assignedToAgent) {
-                // إشعار للمندوب المحدد
-                await db.query(`
-                    INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
-                    VALUES (?, 'ticket_assigned', 'تذكرة جديدة', 
-                           CONCAT('تم تخصيص تذكرة جديدة لك رقم: ', ?), ?)
-                `, [assignedToAgent, ticket_number, ticketId]);
-            } else if (assignment_type === 'team' && assignedToTeam) {
-                // إشعار لجميع مندوبي الفريق
-                await db.query(`
-                    INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
-                    SELECT u.id, 'ticket_assigned', 'تذكرة جديدة للفريق', 
-                           CONCAT('تم إنشاء تذكرة جديدة لفريقك رقم: ', ?), ?
-                    FROM users u
-                    WHERE u.role = 'agent' AND u.team_id = ? AND u.is_active = 1
-                `, [ticket_number, ticketId, assignedToTeam]);
-            }
-        }
-        
-        // لا نحسب النقاط أو نحدث الملخص عند إنشاء التكت
-        // سيتم حساب النقاط عند إضافة تقييم الجودة أو رفع الصور
-        
-        console.log('Ticket created successfully. ID:', ticketId);
+        // إرجاع رقم التكت المُولّد في الاستجابة
+        console.log('Ticket created successfully. ID:', ticketId, 'Ticket Number:', finalTicketNumber);
         res.json({
             success: true,
-            ticketId: ticketId,
-            message: 'تم إدخال التكت بنجاح'
+            message: 'تم إنشاء التكت بنجاح',
+            ticket: {
+                id: ticketId,
+                ticket_number: finalTicketNumber
+            }
         });
     } catch (error) {
         console.error('Create ticket error:', error);
@@ -511,6 +524,66 @@ app.post('/api/tickets', authenticate, async (req, res) => {
             error: 'خطأ في إدخال التكت',
             details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    }
+});
+
+// ==================== Update Ticket ====================
+app.put('/api/tickets/:id', authenticate, async (req, res) => {
+    try {
+        const ticketId = req.params.id;
+        const { subscriber_name, subscriber_phone, ticket_type_id, team_id } = req.body;
+        
+        // Check if user is team_leader or admin
+        if (req.user.role !== 'team_leader' && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'غير مصرح لك بتعديل التكت' });
+        }
+        
+        // Check if ticket exists
+        const ticket = await db.queryOne('SELECT id FROM tickets WHERE id = ?', [ticketId]);
+        if (!ticket) {
+            return res.status(404).json({ error: 'التكت غير موجود' });
+        }
+        
+        // Build update query
+        const updates = [];
+        const params = [];
+        
+        if (subscriber_name !== undefined) {
+            updates.push('subscriber_name = ?');
+            params.push(subscriber_name);
+        }
+        if (subscriber_phone !== undefined) {
+            updates.push('subscriber_phone = ?');
+            params.push(subscriber_phone);
+        }
+        if (ticket_type_id !== undefined) {
+            updates.push('ticket_type_id = ?');
+            params.push(ticket_type_id);
+        }
+        if (team_id !== undefined) {
+            updates.push('team_id = ?');
+            params.push(team_id);
+        }
+        
+        if (updates.length === 0) {
+            return res.status(400).json({ error: 'لا توجد بيانات للتحديث' });
+        }
+        
+        updates.push('updated_at = NOW()');
+        params.push(ticketId);
+        
+        await db.query(
+            `UPDATE tickets SET ${updates.join(', ')} WHERE id = ?`,
+            params
+        );
+        
+        res.json({
+            success: true,
+            message: 'تم تحديث التكت بنجاح'
+        });
+    } catch (error) {
+        console.error('Update ticket error:', error);
+        res.status(500).json({ error: 'خطأ في تحديث التكت' });
     }
 });
 
@@ -848,6 +921,13 @@ app.get('/api/tickets/:id', authenticate, async (req, res) => {
         const positiveScores = await db.query('SELECT * FROM positive_scores WHERE ticket_id = ?', [ticketId]);
         const negativeScores = await db.query('SELECT * FROM negative_scores WHERE ticket_id = ?', [ticketId]);
         
+        // جلب نقاط ticket_points (إدارة النقاط اليدوية)
+        const ticketPoints = await db.queryOne('SELECT * FROM ticket_points WHERE ticket_id = ?', [ticketId]);
+        if (ticketPoints) {
+            ticket.points = ticketPoints.final_points;
+            ticket.manager_points = ticketPoints;
+        }
+        
         const totalPositive = positiveScores.reduce((sum, s) => sum + s.points, 0);
         const totalNegative = negativeScores.reduce((sum, s) => sum + Math.abs(s.points), 0);
         
@@ -911,6 +991,16 @@ app.get('/api/tickets', authenticate, async (req, res) => {
         let whereClause = '1=1';
         const params = [];
         
+        // إذا كان المستخدم موظف جودة، اعرض التكتات المكتملة من الفني افتراضياً
+        if (req.user.role === 'quality_staff' && !status) {
+            // عرض التكتات المكتملة من الفني (جاهزة للمراجعة)
+            // أو التكتات الجديدة التي لم يتم إرسالها للفني بعد
+            whereClause += ` AND (
+                t.status IN ('COMPLETED', 'UNDER_REVIEW') 
+                OR (t.status = 'NEW' AND t.assigned_technician_id IS NULL)
+            )`;
+        }
+        
         if (created_by_me === 'true') {
             if (req.user.role === 'call_center') {
                 whereClause += ' AND t.call_center_id = ?';
@@ -944,6 +1034,9 @@ app.get('/api/tickets', authenticate, async (req, res) => {
                    tt.name_ar as ticket_type_name,
                    tm.name as team_name,
                    u.full_name as quality_staff_name,
+                   COALESCE(tp.final_points, 0) as points,
+                   tp.manager_id,
+                   u2.full_name as manager_name,
                    (SELECT SUM(points) FROM positive_scores WHERE ticket_id = t.id) as positive_points,
                    (SELECT SUM(ABS(points)) FROM negative_scores WHERE ticket_id = t.id) as negative_points,
                    ta.status as assignment_status,
@@ -953,6 +1046,8 @@ app.get('/api/tickets', authenticate, async (req, res) => {
             JOIN teams tm ON t.team_id = tm.id
             JOIN users u ON t.quality_staff_id = u.id
             LEFT JOIN ticket_assignments ta ON t.id = ta.ticket_id
+            LEFT JOIN ticket_points tp ON t.id = tp.ticket_id
+            LEFT JOIN users u2 ON tp.manager_id = u2.id
             WHERE ${whereClause}
             ORDER BY t.created_at DESC
             LIMIT ? OFFSET ?
@@ -1993,6 +2088,251 @@ app.get('/api/team-rankings', authenticate, async (req, res) => {
     }
 });
 
+// ==================== Technician Endpoints ====================
+
+// Get tickets assigned to technician
+app.get('/api/technician/tickets', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'technician') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const { status } = req.query; // 'active' or 'completed'
+        const technicianId = req.user.id;
+        
+        let whereClause = 't.assigned_technician_id = ?';
+        const params = [technicianId];
+        
+        if (status === 'active') {
+            // عرض التكتات المخصصة أو قيد العمل
+            whereClause += ' AND t.status IN (?, ?)';
+            params.push('ASSIGNED', 'IN_PROGRESS');
+        } else if (status === 'completed') {
+            // عرض التكتات المكتملة
+            whereClause += ' AND t.status = ?';
+            params.push('COMPLETED');
+        }
+        
+        const tickets = await db.query(`
+            SELECT t.*, 
+                   tt.name_ar as ticket_type_name,
+                   tm.name as team_name,
+                   u.full_name as quality_staff_name
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            JOIN teams tm ON t.team_id = tm.id
+            JOIN users u ON t.quality_staff_id = u.id
+            WHERE ${whereClause}
+            ORDER BY t.created_at DESC
+        `, params);
+        
+        res.json({ success: true, tickets });
+    } catch (error) {
+        console.error('Get technician tickets error:', error);
+        res.status(500).json({ error: 'خطأ في جلب التكتات' });
+    }
+});
+
+// Start work on ticket (technician starts working)
+app.post('/api/technician/tickets/:id/start-work', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'technician') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const ticketId = parseInt(req.params.id);
+        const technicianId = req.user.id;
+        
+        // التحقق من أن التكت مخصص لهذا الفني
+        const ticket = await db.queryOne(`
+            SELECT * FROM tickets 
+            WHERE id = ? AND assigned_technician_id = ? AND status = 'ASSIGNED'
+        `, [ticketId, technicianId]);
+        
+        if (!ticket) {
+            return res.status(404).json({ error: 'التكت غير موجود أو غير مخصص لك' });
+        }
+        
+        // تحديث الحالة إلى IN_PROGRESS
+        await db.query(`
+            UPDATE tickets 
+            SET status = 'IN_PROGRESS',
+                time_received = COALESCE(time_received, NOW()),
+                updated_at = NOW()
+            WHERE id = ?
+        `, [ticketId]);
+        
+        res.json({ success: true, message: 'تم بدء العمل على التكت' });
+    } catch (error) {
+        console.error('Start work error:', error);
+        res.status(500).json({ error: 'خطأ في بدء العمل' });
+    }
+});
+
+// Complete ticket (technician marks ticket as completed)
+app.post('/api/technician/tickets/:id/complete', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'technician') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const ticketId = parseInt(req.params.id);
+        const technicianId = req.user.id;
+        
+        // التحقق من أن التكت قيد العمل
+        const ticket = await db.queryOne(`
+            SELECT t.*, 
+                   TIMESTAMPDIFF(MINUTE, COALESCE(t.time_received, t.created_at), NOW()) as current_time_minutes
+            FROM tickets t
+            WHERE t.id = ? AND t.assigned_technician_id = ? 
+            AND t.status IN ('ASSIGNED', 'IN_PROGRESS')
+        `, [ticketId, technicianId]);
+        
+        if (!ticket) {
+            return res.status(404).json({ error: 'التكت غير موجود أو لم يبدأ العمل عليه' });
+        }
+        
+        // حساب الوقت المستغرق
+        const timeReceived = ticket.time_received || ticket.created_at;
+        const currentTimeMinutes = ticket.current_time_minutes || 0;
+        
+        // تحديث التكت: تغيير الحالة إلى COMPLETED (جاهز للمراجعة)
+        await db.query(`
+            UPDATE tickets 
+            SET status = 'COMPLETED',
+                technician_completed_at = NOW(),
+                actual_time_minutes = ?,
+                time_received = COALESCE(time_received, NOW()),
+                updated_at = NOW()
+            WHERE id = ?
+        `, [currentTimeMinutes, ticketId]);
+        
+        // إنشاء إشعار لموظف الجودة
+        const qualityStaffId = ticket.quality_staff_id;
+        await db.query(`
+            INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+            VALUES (?, 'ticket_completed', 'تكت منتهي', 
+                   CONCAT('تم إنهاء التكت رقم ', ?, ' من الفني. جاهز للمراجعة والتحقق'), ?)
+        `, [qualityStaffId, ticket.ticket_number, ticketId]);
+        
+        res.json({ 
+            success: true, 
+            message: 'تم إنهاء التكت بنجاح. سيتم إرسال إشعار لموظف الجودة للمراجعة' 
+        });
+    } catch (error) {
+        console.error('Complete ticket error:', error);
+        res.status(500).json({ error: 'خطأ في إنهاء التكت' });
+    }
+});
+
+// ==================== Assign Ticket to Technician ====================
+app.post('/api/tickets/:id/assign-to-technician', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'quality_staff') {
+            return res.status(403).json({ error: 'غير مصرح - فقط موظف الجودة يمكنه إرسال التكتات' });
+        }
+        
+        const ticketId = parseInt(req.params.id);
+        const { technician_id } = req.body;
+        
+        if (!technician_id) {
+            return res.status(400).json({ error: 'معرف الفني مطلوب' });
+        }
+        
+        // التحقق من أن التكت موجود وحالته NEW
+        const ticket = await db.queryOne(`
+            SELECT * FROM tickets WHERE id = ? AND status = 'NEW'
+        `, [ticketId]);
+        
+        if (!ticket) {
+            return res.status(404).json({ error: 'التكت غير موجود أو تم إرساله مسبقاً' });
+        }
+        
+        // التحقق من أن الفني موجود
+        const technician = await db.queryOne(`
+            SELECT id, full_name FROM users WHERE id = ? AND role = 'technician' AND is_active = 1
+        `, [technician_id]);
+        
+        if (!technician) {
+            return res.status(404).json({ error: 'الفني غير موجود' });
+        }
+        
+        // تحديث التكت
+        await db.query(`
+            UPDATE tickets 
+            SET status = 'ASSIGNED',
+                assigned_technician_id = ?,
+                updated_at = NOW()
+            WHERE id = ?
+        `, [technician_id, ticketId]);
+        
+        // إنشاء إشعار للفني
+        await db.query(`
+            INSERT INTO notifications (user_id, type, title, message, related_ticket_id)
+            VALUES (?, 'ticket_assigned', 'تكت جديد', 
+                   CONCAT('تم تخصيص تكت جديد لك رقم: ', ?), ?)
+        `, [technician_id, ticket.ticket_number, ticketId]);
+        
+        res.json({ 
+            success: true, 
+            message: 'تم إرسال التكت للفني بنجاح' 
+        });
+    } catch (error) {
+        console.error('Assign ticket error:', error);
+        res.status(500).json({ error: 'خطأ في إرسال التكت' });
+    }
+});
+
+// ==================== Review Ticket (Quality Staff) ====================
+app.post('/api/tickets/:id/review', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'quality_staff') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const ticketId = parseInt(req.params.id);
+        const { decision, followup_reason } = req.body; // decision: 'approve' or 'followup'
+        
+        if (!decision) {
+            return res.status(400).json({ error: 'قرار المراجعة مطلوب' });
+        }
+        
+        // التحقق من أن التكت موجود وحالته COMPLETED
+        const ticket = await db.queryOne(`
+            SELECT * FROM tickets WHERE id = ? AND status = 'COMPLETED'
+        `, [ticketId]);
+        
+        if (!ticket) {
+            return res.status(404).json({ error: 'التكت غير موجود أو لم يكتمل بعد' });
+        }
+        
+        let newStatus = 'CLOSED';
+        if (decision === 'followup') {
+            newStatus = 'FOLLOW_UP';
+        } else if (decision === 'approve') {
+            newStatus = 'CLOSED';
+        }
+        
+        // تحديث التكت
+        await db.query(`
+            UPDATE tickets 
+            SET status = ?,
+                notes = CONCAT(COALESCE(notes, ''), 
+                    CASE WHEN ? IS NOT NULL THEN CONCAT(' | سبب المتابعة: ', ?) ELSE '' END),
+                updated_at = NOW()
+            WHERE id = ?
+        `, [newStatus, followup_reason, followup_reason, ticketId]);
+        
+        res.json({ 
+            success: true, 
+            message: decision === 'approve' ? 'تم إغلاق التكت بنجاح' : 'تم وضع التكت في المتابعة' 
+        });
+    } catch (error) {
+        console.error('Review ticket error:', error);
+        res.status(500).json({ error: 'خطأ في مراجعة التكت' });
+    }
+});
+
 // Get technician's team details
 app.get('/api/my-team', authenticate, async (req, res) => {
     try {
@@ -2043,6 +2383,426 @@ app.get('/api/my-team', authenticate, async (req, res) => {
     } catch (error) {
         console.error('Get my team error:', error);
         res.status(500).json({ error: 'خطأ في جلب بيانات الفريق' });
+    }
+});
+
+// ==================== Scoring Rules Management (Admin Only) ====================
+
+// جلب جميع قواعد النقاط
+app.get('/api/admin/scoring-rules', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+        }
+        
+        const rules = await db.query(`
+            SELECT sr.*, 
+                   CASE 
+                       WHEN sr.rule_type = 'ticket_type_base_points' THEN tt.name_ar
+                       ELSE NULL
+                   END as ticket_type_name
+            FROM scoring_rules sr
+            LEFT JOIN ticket_types tt ON sr.rule_type = 'ticket_type_base_points' AND sr.rule_key = tt.id
+            WHERE sr.is_active = 1
+            ORDER BY sr.rule_type, sr.rule_key
+        `);
+        
+        res.json({ success: true, rules });
+    } catch (error) {
+        console.error('Error fetching scoring rules:', error);
+        res.status(500).json({ success: false, message: 'خطأ في جلب قواعد النقاط: ' + error.message });
+    }
+});
+
+// تحديث قاعدة نقاط
+app.put('/api/admin/scoring-rules/:id', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+        }
+        
+        const { id } = req.params;
+        const { rule_value, description } = req.body;
+        
+        // التحقق من وجود القاعدة
+        const existingRule = await db.queryOne('SELECT id FROM scoring_rules WHERE id = ?', [id]);
+        if (!existingRule) {
+            return res.status(404).json({ success: false, message: 'القاعدة غير موجودة' });
+        }
+        
+        // تحديث القاعدة - إذا كان description غير موجود، نتركه كما هو
+        if (description !== undefined && description !== null) {
+            await db.query(`
+                UPDATE scoring_rules 
+                SET rule_value = ?, 
+                    description = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            `, [rule_value, description, id]);
+        } else {
+            await db.query(`
+                UPDATE scoring_rules 
+                SET rule_value = ?,
+                    updated_at = NOW()
+                WHERE id = ?
+            `, [rule_value, id]);
+        }
+        
+        res.json({ success: true, message: 'تم تحديث القاعدة بنجاح' });
+    } catch (error) {
+        console.error('Error updating scoring rule:', error);
+        res.status(500).json({ success: false, message: 'خطأ في تحديث القاعدة: ' + error.message });
+    }
+});
+
+// إنشاء قاعدة نقاط جديدة (لنوع تكت جديد)
+app.post('/api/admin/scoring-rules', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+        }
+        
+        const { rule_type, rule_key, rule_value, description } = req.body;
+        
+        await db.query(`
+            INSERT INTO scoring_rules (rule_type, rule_key, rule_value, description)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                rule_value = VALUES(rule_value),
+                description = VALUES(description),
+                updated_at = NOW()
+        `, [rule_type, rule_key, rule_value, description]);
+        
+        res.json({ success: true, message: 'تم حفظ القاعدة بنجاح' });
+    } catch (error) {
+        console.error('Error creating scoring rule:', error);
+        res.status(500).json({ success: false, message: 'خطأ في حفظ القاعدة: ' + error.message });
+    }
+});
+
+// جلب قواعد النقاط للاستخدام في الحسابات (لجميع المستخدمين)
+app.get('/api/scoring-rules', authenticate, async (req, res) => {
+    try {
+        const rules = await db.query(`
+            SELECT rule_type, rule_key, rule_value
+            FROM scoring_rules
+            WHERE is_active = 1
+        `);
+        
+        // تحويل إلى object سهل الاستخدام
+        const rulesObj = {};
+        rules.forEach(rule => {
+            if (!rulesObj[rule.rule_type]) {
+                rulesObj[rule.rule_type] = {};
+            }
+            rulesObj[rule.rule_type][rule.rule_key || 'default'] = parseFloat(rule.rule_value);
+        });
+        
+        res.json({ success: true, rules: rulesObj });
+    } catch (error) {
+        console.error('Error fetching scoring rules:', error);
+        res.status(500).json({ success: false, message: 'خطأ في جلب قواعد النقاط: ' + error.message });
+    }
+});
+
+// ==================== Ticket Points Management (Admin Only) - DEPRECATED ====================
+
+// إدخال/تحديث نقاط التكت (المدير فقط) - DEPRECATED: سيتم حذفه بعد التحديث
+app.post('/api/admin/tickets/:ticketId/points', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+        }
+        
+        const { ticketId } = req.params;
+        const managerId = req.user.id;
+        
+        const {
+            base_points = 0,
+            time_points = 0,
+            quality_points = 0,
+            checklist_points_json = null,
+            upsell_points = 0,
+            bonus_points = 0,
+            time_penalty = 0,
+            tasks_penalty = 0,
+            quality_penalty = 0,
+            behavior_penalty = 0,
+            other_penalty = 0,
+            team_performance_rating = null,
+            manager_notes = ''
+        } = req.body;
+        
+        // الحصول على معلومات التكت
+        const ticket = await db.queryOne(
+            'SELECT id, ticket_type_id, time_received, time_first_contact, time_completed FROM tickets WHERE id = ?',
+            [ticketId]
+        );
+        
+        if (!ticket) {
+            return res.status(404).json({ success: false, message: 'التكت غير موجود' });
+        }
+        
+        // حساب الوقت الفعلي
+        let actual_completion_time = null;
+        if (ticket.time_received && ticket.time_completed) {
+            const start = new Date(ticket.time_received);
+            const end = new Date(ticket.time_completed);
+            actual_completion_time = (end - start) / (1000 * 60 * 60); // بالساعات
+        }
+        
+        // حساب الإجماليات
+        const total_earned = parseFloat(base_points || 0) + 
+                            parseFloat(time_points || 0) + 
+                            parseFloat(quality_points || 0) + 
+                            parseFloat(upsell_points || 0) + 
+                            parseFloat(bonus_points || 0);
+        
+        const total_penalty = parseFloat(time_penalty || 0) + 
+                             parseFloat(tasks_penalty || 0) +
+                             parseFloat(quality_penalty || 0) + 
+                             parseFloat(behavior_penalty || 0) + 
+                             parseFloat(other_penalty || 0);
+        
+        const final_points = total_earned - total_penalty;
+        
+        // التحقق من وجود نقاط سابقة
+        const existingPoints = await db.queryOne(
+            'SELECT id FROM ticket_points WHERE ticket_id = ?',
+            [ticketId]
+        );
+        
+        if (existingPoints) {
+            // تحديث النقاط الموجودة
+            await db.query(`
+                UPDATE ticket_points SET
+                    ticket_type_id = ?,
+                    base_points = ?,
+                    time_points = ?,
+                    quality_points = ?,
+                    checklist_points_json = ?,
+                    upsell_points = ?,
+                    bonus_points = ?,
+                    time_penalty = ?,
+                    tasks_penalty = ?,
+                    quality_penalty = ?,
+                    behavior_penalty = ?,
+                    other_penalty = ?,
+                    team_performance_rating = ?,
+                    total_earned = ?,
+                    total_penalty = ?,
+                    final_points = ?,
+                    time_received = ?,
+                    time_first_contact = ?,
+                    time_completed = ?,
+                    actual_completion_time = ?,
+                    manager_id = ?,
+                    manager_notes = ?,
+                    updated_at = NOW()
+                WHERE ticket_id = ?
+            `, [
+                ticket.ticket_type_id,
+                base_points,
+                time_points,
+                quality_points,
+                checklist_points_json,
+                upsell_points,
+                bonus_points,
+                time_penalty,
+                tasks_penalty,
+                quality_penalty,
+                behavior_penalty,
+                other_penalty,
+                team_performance_rating,
+                total_earned,
+                total_penalty,
+                final_points,
+                ticket.time_received,
+                ticket.time_first_contact,
+                ticket.time_completed,
+                actual_completion_time,
+                managerId,
+                manager_notes,
+                ticketId
+            ]);
+        } else {
+            // إدراج نقاط جديدة
+            await db.query(`
+                INSERT INTO ticket_points (
+                    ticket_id, ticket_type_id,
+                    base_points, time_points, quality_points, checklist_points_json,
+                    upsell_points, bonus_points,
+                    time_penalty, tasks_penalty, quality_penalty, behavior_penalty, other_penalty,
+                    team_performance_rating,
+                    total_earned, total_penalty, final_points,
+                    time_received, time_first_contact, time_completed, actual_completion_time,
+                    manager_id, manager_notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                ticketId,
+                ticket.ticket_type_id,
+                base_points,
+                time_points,
+                quality_points,
+                checklist_points_json,
+                upsell_points,
+                bonus_points,
+                time_penalty,
+                tasks_penalty,
+                quality_penalty,
+                behavior_penalty,
+                other_penalty,
+                team_performance_rating,
+                total_earned,
+                total_penalty,
+                final_points,
+                ticket.time_received,
+                ticket.time_first_contact,
+                ticket.time_completed,
+                actual_completion_time,
+                managerId,
+                manager_notes
+            ]);
+        }
+        
+        // تحديث النقاط في جدول التكتات
+        await db.query(
+            'UPDATE tickets SET points = ? WHERE id = ?',
+            [final_points, ticketId]
+        );
+        
+        res.json({ 
+            success: true, 
+            message: 'تم حفظ النقاط بنجاح',
+            points: {
+                total_earned,
+                total_penalty,
+                final_points
+            }
+        });
+    } catch (error) {
+        console.error('Error saving points:', error);
+        res.status(500).json({ success: false, message: 'خطأ في حفظ النقاط: ' + error.message });
+    }
+});
+
+// حساب Daily Load Factor و Adjusted Time و Speed Points المقترحة
+app.get('/api/admin/tickets/:ticketId/calculate-time-points', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+        }
+        
+        const { ticketId } = req.params;
+        
+        // جلب معلومات التكت
+        const ticket = await db.queryOne(`
+            SELECT t.id, t.team_id, t.ticket_type_id, t.time_received, t.time_completed,
+                   tt.sla_max
+            FROM tickets t
+            JOIN ticket_types tt ON t.ticket_type_id = tt.id
+            WHERE t.id = ?
+        `, [ticketId]);
+        
+        if (!ticket || !ticket.time_received || !ticket.time_completed) {
+            return res.json({ 
+                success: true, 
+                dailyLoad: 1,
+                actualMinutes: 0,
+                adjustedMinutes: 0,
+                suggestedSpeedPoints: 0
+            });
+        }
+        
+        // حساب تاريخ T0 (YYYY-MM-DD)
+        const t0Date = new Date(ticket.time_received);
+        const dateKey = t0Date.toISOString().split('T')[0]; // YYYY-MM-DD
+        
+        // حساب Daily Load Factor (عدد التكتات لنفس الفريق في نفس اليوم)
+        const dailyLoadResult = await db.queryOne(`
+            SELECT COUNT(*) as count
+            FROM tickets
+            WHERE team_id = ? 
+            AND DATE(time_received) = ?
+        `, [ticket.team_id, dateKey]);
+        
+        const dailyLoad = dailyLoadResult.count || 1;
+        
+        // حساب actualMinutes
+        const t0Time = new Date(ticket.time_received).getTime();
+        const t3Time = new Date(ticket.time_completed).getTime();
+        const actualMinutes = Math.max(0, Math.round((t3Time - t0Time) / 60000));
+        
+        // حساب adjustedMinutes
+        const adjustedMinutes = actualMinutes / dailyLoad;
+        
+        // حساب Speed Points المقترحة
+        const slaMax = ticket.sla_max || 120; // افتراضي 120 دقيقة
+        let suggestedSpeedPoints = 0;
+        if (adjustedMinutes <= slaMax) {
+            suggestedSpeedPoints = 10;
+        } else if (adjustedMinutes <= slaMax * 1.5) {
+            suggestedSpeedPoints = 5;
+        } else {
+            suggestedSpeedPoints = 0;
+        }
+        
+        res.json({
+            success: true,
+            dailyLoad: dailyLoad,
+            actualMinutes: actualMinutes,
+            adjustedMinutes: Math.round(adjustedMinutes * 100) / 100, // تقريب لرقمين عشريين
+            suggestedSpeedPoints: suggestedSpeedPoints,
+            slaMax: slaMax
+        });
+    } catch (error) {
+        console.error('Error calculating time points:', error);
+        res.status(500).json({ success: false, message: 'خطأ في حساب النقاط: ' + error.message });
+    }
+});
+
+// الحصول على نقاط التكت
+app.get('/api/tickets/:ticketId/points', authenticate, async (req, res) => {
+    try {
+        const { ticketId } = req.params;
+        
+        const points = await db.queryOne(`
+            SELECT 
+                tp.*,
+                u.username as manager_name,
+                u.full_name as manager_full_name
+            FROM ticket_points tp
+            LEFT JOIN users u ON tp.manager_id = u.id
+            WHERE tp.ticket_id = ?
+        `, [ticketId]);
+        
+        if (!points) {
+            return res.json({ success: true, points: null });
+        }
+        
+        res.json({ success: true, points });
+    } catch (error) {
+        console.error('Error fetching points:', error);
+        res.status(500).json({ success: false, message: 'خطأ في جلب النقاط: ' + error.message });
+    }
+});
+
+// حذف نقاط التكت (المدير فقط)
+app.delete('/api/admin/tickets/:ticketId/points', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ success: false, message: 'غير مصرح لك' });
+        }
+        
+        const { ticketId } = req.params;
+        
+        await db.query('DELETE FROM ticket_points WHERE ticket_id = ?', [ticketId]);
+        await db.query('UPDATE tickets SET points = NULL WHERE id = ?', [ticketId]);
+        
+        res.json({ success: true, message: 'تم حذف النقاط بنجاح' });
+    } catch (error) {
+        console.error('Error deleting points:', error);
+        res.status(500).json({ success: false, message: 'خطأ في حذف النقاط: ' + error.message });
     }
 });
 

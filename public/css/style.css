@@ -726,6 +726,33 @@ table tbody tr:last-child td {
     transform: translateY(-2px);
 }
 
+/* Tab Buttons */
+.btn-tab {
+    padding: 10px 20px;
+    border: none;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    font-family: 'Cairo', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: -2px;
+}
+
+.btn-tab:hover {
+    background: var(--bg-tertiary);
+}
+
+.btn-tab.active {
+    background: var(--primary-color);
+    color: white;
+    border-bottom-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
 /* Loading */
 .loading {
     text-align: center;
@@ -1524,6 +1551,12 @@ select {
     padding: 10px;
 }
 
+/* Team select options - make text between parentheses lighter */
+#team_id option.team-with-members {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
 @media (max-width: 768px) {
     .datetime-picker-wrapper {
         grid-template-columns: repeat(3, 1fr);
@@ -1862,4 +1895,269 @@ select {
 .filters-bar select:focus {
     outline: none;
     border-color: var(--primary-color);
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 9998;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+    opacity: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.modal {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: var(--shadow-xl);
+    width: 100%;
+    max-width: 900px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 9999;
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+    margin: auto;
+}
+
+.modal-overlay.active .modal {
+    transform: scale(1);
+}
+
+.modal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-secondary);
+    border-radius: 12px 12px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
+.modal-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.modal-body {
+    padding: 25px;
+}
+
+@media (max-width: 768px) {
+    .modal {
+        max-width: 100%;
+        max-height: 95vh;
+        margin: 10px;
+    }
+    
+    .modal-header {
+        padding: 15px 20px;
+    }
+    
+    .modal-header h2 {
+        font-size: 20px;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+}
+
+/* Read-only fields for ticket view */
+.read-only-field {
+    padding: 10px 15px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    min-height: 20px;
+    font-size: 14px;
+}
+
+/* Checklist Grid Styles (3 items per row) */
+.checklist-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.checklist-vertical-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+/* Checklist Horizontal Layout (for Upsell) */
+.checklist-horizontal {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .checklist-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .checklist-vertical-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .checklist-horizontal {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .checklist-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .checklist-vertical-list {
+        grid-template-columns: 1fr;
+    }
+    
+    .checklist-horizontal {
+        flex-direction: column;
+    }
+}
+
+.checklist-item {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: all 0.3s ease;
+}
+
+.checklist-item:hover {
+    background: var(--bg-secondary);
+    border-color: var(--border-hover);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.checklist-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    margin: 0;
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 400;
+    line-height: 1.6;
+}
+
+.checklist-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    cursor: pointer;
+    accent-color: var(--primary-color);
+    margin: 0;
+}
+
+.checklist-label input[type="checkbox"]:checked {
+    accent-color: var(--primary-color);
+}
+
+.checklist-item:has(input[type="checkbox"]:checked) {
+    background: rgba(79, 70, 229, 0.1);
+    border-color: var(--primary-color);
+}
+
+.checklist-item:has(input[type="checkbox"]:checked) .checklist-label {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* Tooltip Styles */
+.tooltip-trigger {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-trigger:hover .tooltip-content {
+    display: block !important;
+    animation: tooltipFadeIn 0.2s ease-in-out;
+}
+
+.tooltip-content {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    background: var(--card-bg);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    white-space: nowrap;
+    z-index: 1000;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color);
+    display: none;
+    font-size: 14px;
+    font-weight: normal;
+    min-width: 200px;
+    text-align: right;
+}
+
+.tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    right: 20px;
+    border: 6px solid transparent;
+    border-top-color: var(--card-bg);
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

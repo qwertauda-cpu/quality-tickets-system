@@ -66,6 +66,8 @@ function showPage(pageName) {
     
     // Update page title
     const titles = {
+        'active-tickets': 'لوحة التكتات',
+        'completed-tickets': 'لوحة التكتات المنجزة',
         'dashboard': 'لوحة التحكم',
         'rankings': 'تصنيف الفرق',
         'my-team': 'فريقي'
@@ -76,7 +78,11 @@ function showPage(pageName) {
     }
     
     // Load page data
-    if (pageName === 'dashboard') {
+    if (pageName === 'active-tickets') {
+        loadActiveTickets();
+    } else if (pageName === 'completed-tickets') {
+        loadCompletedTickets();
+    } else if (pageName === 'dashboard') {
         loadDashboard();
     } else if (pageName === 'rankings') {
         loadRankings();
@@ -229,6 +235,309 @@ function setupMobileMenuClose() {
         });
     });
 }
+
+// Load active tickets
+async function loadActiveTickets() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getTechnicianTickets('active');
+        const tbody = document.getElementById('activeTicketsTableBody');
+        
+        if (!data || !data.success || !data.tickets || data.tickets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات مخصصة لك</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        data.tickets.forEach(ticket => {
+            const row = document.createElement('tr');
+            const receivedDate = ticket.time_received ? new Date(ticket.time_received).toLocaleString('ar-SA') : '-';
+            
+            row.innerHTML = `
+                <td>${ticket.ticket_number}</td>
+                <td>${ticket.subscriber_name || '-'}</td>
+                <td>${ticket.subscriber_phone || '-'}</td>
+                <td>${ticket.ticket_type_name || '-'}</td>
+                <td>${ticket.team_name || '-'}</td>
+                <td>${receivedDate}</td>
+                <td>
+                    <button class="btn btn-sm btn-primary" onclick="viewTicketDetails(${ticket.id})" style="margin-left: 5px;">عرض التفاصيل</button>
+                    ${ticket.status === 'ASSIGNED' ? `
+                        <button class="btn btn-sm btn-success" onclick="startWork(${ticket.id})">▶️ بدء العمل</button>
+                    ` : ''}
+                    ${ticket.status === 'IN_PROGRESS' ? `
+                        <button class="btn btn-sm btn-primary" onclick="completeTicket(${ticket.id})">✅ إنهاء التكت</button>
+                    ` : ''}
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading active tickets:', error);
+        const tbody = document.getElementById('activeTicketsTableBody');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التكتات</td></tr>';
+    }
+}
+
+// Load completed tickets
+async function loadCompletedTickets() {
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        const data = await window.api.getTechnicianTickets('completed');
+        const tbody = document.getElementById('completedTicketsTableBody');
+        
+        if (!data || !data.success || !data.tickets || data.tickets.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تكتات منجزة</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = '';
+        data.tickets.forEach(ticket => {
+            const row = document.createElement('tr');
+            const completedDate = ticket.technician_completed_at ? new Date(ticket.technician_completed_at).toLocaleString('ar-SA') : '-';
+            const timeMinutes = ticket.actual_time_minutes || 0;
+            const hours = Math.floor(timeMinutes / 60);
+            const minutes = timeMinutes % 60;
+            const timeDisplay = hours > 0 ? `${hours}س ${minutes}د` : `${minutes}د`;
+            
+            // تحديد حالة التقييم
+            let qualityStatus = 'منتظر المراجعة';
+            let statusColor = 'var(--warning-color)';
+            if (ticket.status === 'COMPLETED') {
+                qualityStatus = 'جاهز للمراجعة';
+                statusColor = 'var(--primary-color)';
+            } else if (ticket.status === 'UNDER_REVIEW') {
+                qualityStatus = 'قيد المراجعة';
+                statusColor = 'var(--info-color)';
+            } else if (ticket.status === 'CLOSED') {
+                qualityStatus = 'مغلق';
+                statusColor = 'var(--success-color)';
+            } else if (ticket.status === 'FOLLOW_UP') {
+                qualityStatus = 'متابعة';
+                statusColor = 'var(--danger-color)';
+            }
+            
+            row.innerHTML = `
+                <td>${ticket.ticket_number}</td>
+                <td>${ticket.subscriber_name || '-'}</td>
+                <td>${ticket.ticket_type_name || '-'}</td>
+                <td>${timeDisplay}</td>
+                <td>${completedDate}</td>
+                <td><span style="color: ${statusColor};">${qualityStatus}</span></td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="viewTicketDetails(${ticket.id}, true)">عرض التفاصيل</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading completed tickets:', error);
+        const tbody = document.getElementById('completedTicketsTableBody');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التكتات</td></tr>';
+    }
+}
+
+// View ticket details
+let currentViewingTicketId = null;
+let isCompletedTicket = false;
+
+async function viewTicketDetails(ticketId, completed = false) {
+    currentViewingTicketId = ticketId;
+    isCompletedTicket = completed;
+    
+    const modal = document.getElementById('ticket-details-modal');
+    const content = document.getElementById('ticket-details-content');
+    const completeSection = document.getElementById('ticket-complete-section');
+    
+    if (!modal || !content) return;
+    
+    modal.style.display = 'flex';
+    content.innerHTML = '<p class="loading">جاري التحميل...</p>';
+    
+    // إخفاء قسم الإنهاء إذا كان التكت منتهياً
+    if (completeSection) {
+        completeSection.style.display = completed ? 'none' : 'block';
+    }
+    
+    try {
+        const data = await window.api.getTicket(ticketId);
+        if (data && data.success && data.ticket) {
+            const ticket = data.ticket;
+            const receivedDate = ticket.time_received ? new Date(ticket.time_received).toLocaleString('ar-SA') : '-';
+            const firstContactDate = ticket.time_first_contact ? new Date(ticket.time_first_contact).toLocaleString('ar-SA') : '-';
+            const completedDate = ticket.time_completed ? new Date(ticket.time_completed).toLocaleString('ar-SA') : '-';
+            const technicianCompletedDate = ticket.technician_completed_at ? new Date(ticket.technician_completed_at).toLocaleString('ar-SA') : '-';
+            
+            document.getElementById('modal-ticket-number').textContent = ticket.ticket_number;
+            
+            content.innerHTML = `
+                <div style="display: grid; gap: 15px;">
+                    <div>
+                        <strong>اسم المشترك:</strong> ${ticket.subscriber_name || '-'}
+                    </div>
+                    <div>
+                        <strong>رقم المشترك:</strong> ${ticket.subscriber_phone || '-'}
+                    </div>
+                    <div>
+                        <strong>نوع التكت:</strong> ${ticket.ticket_type_name || '-'}
+                    </div>
+                    <div>
+                        <strong>الفريق:</strong> ${ticket.team_name || '-'}
+                    </div>
+                    <div>
+                        <strong>موظف الجودة:</strong> ${ticket.quality_staff_name || '-'}
+                    </div>
+                    <div>
+                        <strong>حالة التكت:</strong> <span class="badge badge-${ticket.status === 'ASSIGNED' ? 'info' : ticket.status === 'IN_PROGRESS' ? 'primary' : 'success'}">${
+                            ticket.status === 'ASSIGNED' ? 'مخصص' : 
+                            ticket.status === 'IN_PROGRESS' ? 'قيد العمل' : 
+                            ticket.status === 'COMPLETED' ? 'مكتمل' : ticket.status
+                        }</span>
+                    </div>
+                    <hr style="border-color: var(--border-color);">
+                    <div>
+                        <strong>تاريخ استلام التكت (T0):</strong> ${receivedDate}
+                    </div>
+                    <div>
+                        <strong>تاريخ اول رد (T1):</strong> ${firstContactDate}
+                    </div>
+                    <div>
+                        <strong>تاريخ اكمال التكت (T2):</strong> ${completedDate}
+                    </div>
+                    ${technicianCompletedDate !== '-' ? `
+                    <div>
+                        <strong>تاريخ إنهاء التكت من الفني:</strong> ${technicianCompletedDate}
+                    </div>
+                    ` : ''}
+                    ${ticket.actual_time_minutes ? `
+                    <div>
+                        <strong>الوقت المستغرق:</strong> ${Math.floor(ticket.actual_time_minutes / 60)}س ${ticket.actual_time_minutes % 60}د
+                    </div>
+                    ` : ''}
+                    ${ticket.notes ? `
+                    <div>
+                        <strong>ملاحظات:</strong> ${ticket.notes}
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            // تحديث أزرار الإجراءات حسب الحالة
+            const completeSection = document.getElementById('ticket-complete-section');
+            if (completeSection) {
+                if (ticket.status === 'ASSIGNED') {
+                    completeSection.innerHTML = `
+                        <button class="btn btn-success" onclick="startWork(${ticket.id})" style="width: 100%;">▶️ بدء العمل</button>
+                    `;
+                    completeSection.style.display = 'block';
+                } else if (ticket.status === 'IN_PROGRESS') {
+                    completeSection.innerHTML = `
+                        <button class="btn btn-primary" onclick="completeTicket(${ticket.id})" style="width: 100%;">✅ إنهاء التكت</button>
+                    `;
+                    completeSection.style.display = 'block';
+                } else {
+                    completeSection.style.display = 'none';
+                }
+            }
+        } else {
+            content.innerHTML = '<p style="color: var(--danger-color);">خطأ في تحميل تفاصيل التكت</p>';
+        }
+    } catch (error) {
+        console.error('Error loading ticket details:', error);
+        content.innerHTML = '<p style="color: var(--danger-color);">خطأ في تحميل تفاصيل التكت</p>';
+    }
+}
+
+// Close ticket details modal
+function closeTicketDetailsModal() {
+    const modal = document.getElementById('ticket-details-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    currentViewingTicketId = null;
+    isCompletedTicket = false;
+}
+
+// Start work on ticket
+async function startWork(ticketId) {
+    if (!confirm('هل أنت متأكد من بدء العمل على هذا التكت؟')) {
+        return;
+    }
+    
+    try {
+        const data = await window.api.startTechnicianWork(ticketId);
+        if (data && data.success) {
+            alert('✅ ' + (data.message || 'تم بدء العمل بنجاح'));
+            // تحديث قائمة التكتات النشطة
+            if (document.getElementById('active-tickets-page').style.display !== 'none') {
+                loadActiveTickets();
+            }
+            // إذا كان modal مفتوحاً، إغلاقه وإعادة فتحه
+            if (currentViewingTicketId === ticketId) {
+                closeTicketDetailsModal();
+                setTimeout(() => viewTicketDetails(ticketId), 300);
+            }
+        } else {
+            alert('❌ خطأ: ' + (data.error || 'فشل بدء العمل'));
+        }
+    } catch (error) {
+        console.error('Error starting work:', error);
+        alert('❌ خطأ في بدء العمل: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// Complete ticket
+async function completeTicket(ticketId) {
+    if (!ticketId) {
+        ticketId = currentViewingTicketId;
+    }
+    
+    if (!ticketId) {
+        alert('لم يتم تحديد التكت');
+        return;
+    }
+    
+    if (!confirm('هل أنت متأكد من إنهاء هذا التكت؟ سيتم تجميد الوقت وإرسال إشعار لموظف الجودة للمراجعة.')) {
+        return;
+    }
+    
+    try {
+        const data = await window.api.completeTechnicianTicket(ticketId);
+        if (data && data.success) {
+            alert('✅ ' + (data.message || 'تم إنهاء التكت بنجاح'));
+            closeTicketDetailsModal();
+            // تحديث قائمة التكتات النشطة
+            if (document.getElementById('active-tickets-page').style.display !== 'none') {
+                loadActiveTickets();
+            }
+            // تحديث قائمة التكتات المنجزة
+            if (document.getElementById('completed-tickets-page').style.display !== 'none') {
+                loadCompletedTickets();
+            }
+        } else {
+            alert('❌ خطأ: ' + (data.error || 'فشل إنهاء التكت'));
+        }
+    } catch (error) {
+        console.error('Error completing ticket:', error);
+        alert('❌ خطأ في إنهاء التكت: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+// Make functions available globally
+window.viewTicketDetails = viewTicketDetails;
+window.closeTicketDetailsModal = closeTicketDetailsModal;
+window.completeTicket = completeTicket;
+window.startWork = startWork;
+window.loadActiveTickets = loadActiveTickets;
+window.loadCompletedTickets = loadCompletedTickets;
 
 window.toggleMobileMenu = toggleMobileMenu;
 

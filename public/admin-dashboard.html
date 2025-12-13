@@ -21,6 +21,7 @@
                 <li><a href="#" data-page="users"><i>👤</i> إدارة المستخدمين</a></li>
                 <li><a href="#" data-page="teams"><i>👥</i> الفرق</a></li>
                 <li><a href="#" data-page="tickets"><i>🎫</i> التكتات</a></li>
+                <li><a href="#" data-page="scoring-rules"><i>⚙️</i> قواعد النقاط</a></li>
                 <li><a href="#" data-page="reports"><i>📄</i> التقارير</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
             </ul>
@@ -218,6 +219,183 @@
                 </div>
             </div>
 
+            <!-- Points Management Page -->
+            <div id="points-management-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>إدارة النقاط</h2>
+                        <p style="margin: 10px 0 0 0; color: var(--text-secondary); font-size: 14px;">
+                            يمكنك إدخال وتعديل النقاط يدوياً لكل تكت
+                        </p>
+                    </div>
+                    <div class="card-body">
+                        <div class="filters-bar" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                            <div class="form-group" style="margin: 0;">
+                                <label>البحث:</label>
+                                <input type="text" id="pointsSearch" placeholder="ابحث في رقم التكت..." onkeyup="filterPointsTickets()" style="width: 250px;">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>التاريخ:</label>
+                                <input type="date" id="pointsDateFilter" onchange="filterPointsTickets()">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label>الفريق:</label>
+                                <select id="pointsTeamFilter" onchange="filterPointsTickets()">
+                                    <option value="">جميع الفرق</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-secondary" onclick="resetPointsFilters()">إعادة تعيين</button>
+                        </div>
+                        <div class="table-container">
+                            <table id="pointsTicketsTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم التكت</th>
+                                        <th>النوع</th>
+                                        <th>الفريق</th>
+                                        <th>الحالة</th>
+                                        <th>الوقت الفعلي</th>
+                                        <th>النقاط النهائية</th>
+                                        <th>المدير</th>
+                                        <th>التاريخ</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pointsTicketsTableBody">
+                                    <tr>
+                                        <td colspan="9" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="pointsPagination" style="margin-top: 20px; text-align: center;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scoring Rules Settings Page -->
+            <div id="scoring-rules-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>⚙️ قواعد النقاط (Scoring Rules)</h2>
+                        <p style="color: var(--text-muted); margin-top: 10px;">هذه القواعد تطبق تلقائياً على جميع التكتات. تعديل القواعد يؤثر على التكتات الجديدة فقط.</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- النقاط الأساسية حسب نوع التكت -->
+                        <div class="card" style="margin-bottom: 30px;">
+                            <div class="card-header">
+                                <h3>أ) النقاط الأساسية حسب نوع التكت</h3>
+                            </div>
+                            <div class="card-body">
+                                <div id="ticket-type-base-points-container">
+                                    <p class="loading">جاري التحميل...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- نقاط الوقت (Speed Points) -->
+                        <div class="card" style="margin-bottom: 30px;">
+                            <div class="card-header">
+                                <h3>ب) نقاط الوقت (Speed Points)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>ضمن الوقت المثالي (ضمن SLA):</label>
+                                    <input type="number" id="speed-points-excellent" class="form-control" min="0" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>تجاوز بسيط (حتى 1.5 × SLA):</label>
+                                    <input type="number" id="speed-points-acceptable" class="form-control" min="0" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>متأخر (أكثر من 1.5 × SLA):</label>
+                                    <input type="number" id="speed-points-late" class="form-control" min="0" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>معامل تجاوز SLA:</label>
+                                    <input type="number" id="speed-sla-multiplier" class="form-control" min="1" step="0.1" value="1.5">
+                                    <small>المعامل المستخدم لتحديد "التجاوز البسيط" (مثلاً: 1.5 يعني 150% من SLA)</small>
+                                </div>
+                                <button class="btn btn-primary" onclick="saveSpeedPointsRules()">💾 حفظ قواعد الوقت</button>
+                            </div>
+                        </div>
+
+                        <!-- نقاط Checklist (الصور) -->
+                        <div class="card" style="margin-bottom: 30px;">
+                            <div class="card-header">
+                                <h3>ج) نقاط الصور/Checklist</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>نقاط كل صورة/تاسك مكتمل:</label>
+                                    <input type="number" id="checklist-item-points" class="form-control" min="0" step="0.01">
+                                    <small>كل صورة أو تاسك مكتمل في Checklist = X نقاط</small>
+                                </div>
+                                <button class="btn btn-primary" onclick="saveChecklistPointsRule()">💾 حفظ قاعدة Checklist</button>
+                            </div>
+                        </div>
+
+                        <!-- خصم تقييم أداء الفريق -->
+                        <div class="card" style="margin-bottom: 30px;">
+                            <div class="card-header">
+                                <h3>د) خصم تقييم أداء الفريق</h3>
+                                <p style="color: var(--text-muted); font-size: 14px; margin-top: 10px;">الخصم يطبق على مجموع نقاط التكت (قيم سالبة)</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>ممتاز (5):</label>
+                                    <input type="number" id="performance-rating-5" class="form-control" value="0" min="-999" max="0" step="0.01">
+                                    <small>لا خصم</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>جيد (4):</label>
+                                    <input type="number" id="performance-rating-4" class="form-control" value="0" min="-999" max="0" step="0.01">
+                                    <small>لا خصم</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>عادي (3):</label>
+                                    <input type="number" id="performance-rating-3" class="form-control" value="-1" min="-999" max="0" step="0.01">
+                                    <small>خصم نقطة واحدة</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>ضعيف (2):</label>
+                                    <input type="number" id="performance-rating-2" class="form-control" value="-2" min="-999" max="0" step="0.01">
+                                    <small>خصم نقطتين</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>ضعيف جداً (1):</label>
+                                    <input type="number" id="performance-rating-1" class="form-control" value="-3" min="-999" max="0" step="0.01">
+                                    <small>خصم 3 نقاط</small>
+                                </div>
+                                <button class="btn btn-primary" onclick="savePerformanceRatingRules()">💾 حفظ قواعد التقييم</button>
+                            </div>
+                        </div>
+
+                        <!-- نقاط البيع (Upsell) -->
+                        <div class="card" style="margin-bottom: 30px;">
+                            <div class="card-header">
+                                <h3>هـ) نقاط البيع (Upsell)</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-group">
+                                    <label>نقاط بيع Router:</label>
+                                    <input type="number" id="upsell-router" class="form-control" min="0" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>نقاط بيع ONU:</label>
+                                    <input type="number" id="upsell-onu" class="form-control" min="0" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>نقاط بيع UPS:</label>
+                                    <input type="number" id="upsell-ups" class="form-control" min="0" step="0.01">
+                                </div>
+                                <button class="btn btn-primary" onclick="saveUpsellRules()">💾 حفظ قواعد البيع</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="reports-page" class="page-content" style="display: none;">
                 <div class="card" style="margin-bottom: 20px;">
                     <div class="card-header">
@@ -300,15 +478,16 @@
                                 <label for="user_role">نوع الحساب *</label>
                                 <select id="user_role" required onchange="handleRoleChange()">
                                     <option value="">اختر نوع الحساب</option>
+                                    <option value="technician">حساب فني</option>
                                     <option value="quality_staff">حساب موظف جودة</option>
                                 </select>
                             </div>
                             <div class="form-group" id="user_team_group" style="display: none;">
                                 <label for="user_team_id">الفريق</label>
                                 <select id="user_team_id">
-                                    <option value="">اختر الفريق (اختياري)</option>
+                                    <option value="">اختر الفريق</option>
                                 </select>
-                                <small style="color: var(--text-muted); font-size: 12px;">اختياري - فقط لموظف الجودة</small>
+                                <small id="user_team_hint" style="color: var(--text-muted); font-size: 12px;"></small>
                             </div>
                             <div class="form-group">
                                 <div class="checkbox-group">
@@ -542,6 +721,169 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Points Management Modal -->
+    <div id="points-management-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2>إدارة نقاط التكت #<span id="points-ticket-number"></span></h2>
+                <button class="modal-close-btn" onclick="closePointsManagementModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- معلومات التكت -->
+                <div class="info-section" style="background: var(--bg-secondary); padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                    <h3 style="margin-bottom: 15px; color: var(--text-primary);">معلومات التكت</h3>
+                    <div class="form-grid">
+                        <div>
+                            <strong>نوع التكت:</strong> <span id="points-ticket-type"></span>
+                        </div>
+                        <div>
+                            <strong>تاريخ الاستلام (T0):</strong> <span id="points-time-received"></span>
+                        </div>
+                        <div>
+                            <strong>تاريخ أول رد (T1):</strong> <span id="points-time-first-contact"></span>
+                        </div>
+                        <div>
+                            <strong>تاريخ الإكمال (T2):</strong> <span id="points-time-completed"></span>
+                        </div>
+                        <div>
+                            <strong>الوقت الفعلي:</strong> <span id="points-actual-time"></span> ساعة
+                        </div>
+                    </div>
+                    <div id="points-time-info"></div>
+                </div>
+                
+                <!-- النقاط المكتسبة -->
+                <div class="points-section">
+                    <h3 style="color: var(--success-color); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span>✓</span>
+                        <span>النقاط المكتسبة</span>
+                    </h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>النقاط الأساسية</label>
+                            <input type="number" id="base_points" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">النقاط الأساسية حسب نوع التكت</small>
+                        </div>
+                        <div class="form-group">
+                            <label>نقاط الوقت</label>
+                            <input type="number" id="time_points" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">نقاط الوقت بناءً على SLA</small>
+                        </div>
+                        <div class="form-group">
+                            <label>إجمالي نقاط Checklist</label>
+                            <input type="number" id="quality_points" min="0" step="0.01" class="form-control" readonly>
+                            <small style="color: var(--text-muted);">يتم حسابه تلقائياً من نقاط التاسكات أدناه</small>
+                        </div>
+                        <div class="form-group">
+                            <label>نقاط البيع (Upsell)</label>
+                            <input type="number" id="upsell_points" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">نقاط البيع الإضافية</small>
+                        </div>
+                        <div class="form-group">
+                            <label>نقاط إضافية (Bonus)</label>
+                            <input type="number" id="bonus_points" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">نقاط إضافية (اختياري)</small>
+                        </div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(16, 185, 129, 0.1); border-right: 4px solid var(--success-color); border-radius: 8px; margin-top: 20px;">
+                        <strong style="font-size: 16px;">إجمالي النقاط المكتسبة: <span id="total-earned-display">0</span></strong>
+                    </div>
+                </div>
+                
+                <!-- نقاط Checklist Items -->
+                <div class="points-section" style="margin-top: 30px;">
+                    <h3 style="color: var(--primary-color); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span>📋</span>
+                        <span>نقاط التاسكات (Checklist Items)</span>
+                    </h3>
+                    <div id="checklist-items-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+                        <p style="grid-column: 1 / -1; color: var(--text-muted); text-align: center; padding: 20px;">
+                            جاري تحميل قائمة التاسكات...
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- النقاط المخصومة -->
+                <div class="points-section" style="margin-top: 30px;">
+                    <h3 style="color: var(--danger-color); margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+                        <span>✗</span>
+                        <span>النقاط المخصومة</span>
+                    </h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>خصم الوقت</label>
+                            <input type="number" id="time_penalty" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">خصم بسبب التأخير في الوقت</small>
+                        </div>
+                        <div class="form-group">
+                            <label>خصم التاسكات غير المكتملة</label>
+                            <input type="number" id="tasks_penalty" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">خصم للتاسكات التي لم يتم إكمالها</small>
+                        </div>
+                        <div class="form-group">
+                            <label>خصم الجودة</label>
+                            <input type="number" id="quality_penalty" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">خصم بسبب نقص في الجودة</small>
+                        </div>
+                        <div class="form-group">
+                            <label>خصم السلوك</label>
+                            <input type="number" id="behavior_penalty" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">خصم بسبب السلوك</small>
+                        </div>
+                        <div class="form-group">
+                            <label>خصومات أخرى</label>
+                            <input type="number" id="other_penalty" min="0" step="0.01" class="form-control">
+                            <small style="color: var(--text-muted);">خصومات إضافية</small>
+                        </div>
+                        <div class="form-group">
+                            <label>خصم تقييم أداء الفريق</label>
+                            <input type="number" id="performance_rating_penalty" min="0" step="0.01" class="form-control" readonly style="background-color: #f0f0f0;">
+                            <small style="color: var(--text-muted);">يتم حسابها تلقائياً حسب التقييم المختار</small>
+                        </div>
+                    </div>
+                    <div style="padding: 15px; background: rgba(239, 68, 68, 0.1); border-right: 4px solid var(--danger-color); border-radius: 8px; margin-top: 20px;">
+                        <strong style="font-size: 16px;">إجمالي النقاط المخصومة: <span id="total-penalty-display">0</span></strong>
+                    </div>
+                </div>
+                
+                <!-- النقاط النهائية -->
+                <div style="padding: 25px; background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; border-radius: 8px; margin-top: 30px; text-align: center;">
+                    <h2 style="margin: 0; font-size: 28px;">النقاط النهائية: <span id="final-points-display">0</span></h2>
+                </div>
+                
+                <!-- تقييم أداء الفريق -->
+                <div class="points-section" style="margin-top: 30px;">
+                    <h3 style="margin-bottom: 15px;">⭐ تقييم أداء الفريق</h3>
+                    <div class="form-group">
+                        <label>التقييم (1-5)</label>
+                        <select id="team_performance_rating" class="form-control" style="max-width: 200px;">
+                            <option value="">-- اختر التقييم --</option>
+                            <option value="1">1 - ضعيف جداً (خصم 3 نقاط)</option>
+                            <option value="2">2 - ضعيف (خصم نقطتين)</option>
+                            <option value="3">3 - متوسط (خصم نقطة واحدة)</option>
+                            <option value="4">4 - جيد (لا خصم)</option>
+                            <option value="5">5 - ممتاز (لا خصم)</option>
+                        </select>
+                        <small style="color: var(--text-muted);">تقييم أداء الفريق في هذا التكت - سيتم خصمه تلقائياً من النقاط المخصومة</small>
+                    </div>
+                </div>
+                
+                <!-- ملاحظات المدير -->
+                <div class="form-group" style="margin-top: 30px;">
+                    <label>ملاحظات المدير</label>
+                    <textarea id="manager_notes" class="form-control" rows="3" placeholder="أضف ملاحظات عن النقاط..."></textarea>
+                </div>
+                
+                <!-- أزرار -->
+                <div style="display: flex; gap: 12px; margin-top: 30px; justify-content: flex-end;">
+                    <button class="btn btn-secondary" onclick="closePointsManagementModal()">إلغاء</button>
+                    <button class="btn btn-danger" onclick="deleteTicketPoints()">حذف النقاط</button>
+                    <button class="btn btn-primary" onclick="saveTicketPoints()" style="min-width: 150px;">حفظ النقاط</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="/js/auth.js"></script>

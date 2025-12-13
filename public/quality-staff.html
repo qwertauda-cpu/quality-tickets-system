@@ -17,8 +17,9 @@
                 <p id="userName"></p>
             </div>
             <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="new-ticket"><i>➕</i> إدخال تكت جديد</a></li>
-                <li><a href="#" data-page="tickets-list"><i>📋</i> قائمة التكتات</a></li>
+                <li><a href="#" class="active" data-page="tickets-management"><i>📝</i> إدارة التكتات</a></li>
+                <li><a href="#" data-page="tickets-management-new"><i>📋</i> إدارة تكتات</a></li>
+                <li><a href="#" data-page="tickets-list"><i>📋</i> إدارة جودة</a></li>
                 <li><a href="#" data-page="followup"><i>🔔</i> المتابعة</a></li>
                 <li><a href="#" data-page="daily-report"><i>📄</i> التقرير اليومي</a></li>
                 <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
@@ -28,86 +29,10 @@
         <!-- Main Content -->
         <main class="main-content">
             <div class="header">
-                <h1 id="pageTitle">إدخال تكت جديد</h1>
+                <h1 id="pageTitle">إدارة التكتات</h1>
                 <div class="user-info">
                     <span id="currentUser"></span>
                     <a href="#" class="btn-logout" onclick="logout(); return false;">تسجيل الخروج</a>
-                </div>
-            </div>
-
-            <!-- New Ticket Form -->
-            <div id="new-ticket-page" class="page-content">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>إدخال تكت جديد</h2>
-                    </div>
-                    <div class="card-body">
-                        <form id="ticketForm">
-                            <div class="form-grid">
-                                <div class="form-group">
-                                    <label for="ticket_number">رقم التكت *</label>
-                                    <input type="text" id="ticket_number" required>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="ticket_type_id">نوع التكت *</label>
-                                    <select id="ticket_type_id" required>
-                                        <option value="">اختر النوع</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="team_id">الفريق *</label>
-                                    <select id="team_id" required>
-                                        <option value="">اختر الفريق</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>تاريخ استلام التكت (T0) *</label>
-                                    <div id="time_received_container"></div>
-                                    <div id="time_received_time_container" style="margin-top: 10px;"></div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>تاريخ أول اتصال (T1)</label>
-                                    <div id="time_first_contact_container"></div>
-                                    <div id="time_first_contact_time_container" style="margin-top: 10px;"></div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>تاريخ رسالة التفعيل (T3)</label>
-                                    <div id="time_completed_container"></div>
-                                    <div id="time_completed_time_container" style="margin-top: 10px;"></div>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="subscriber_name">اسم المشترك</label>
-                                    <input type="text" id="subscriber_name">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="subscriber_phone">رقم المشترك</label>
-                                    <input type="text" id="subscriber_phone">
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="subscriber_address">عنوان المشترك</label>
-                                <textarea id="subscriber_address" rows="2"></textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="notes">ملاحظات</label>
-                                <textarea id="notes" rows="3"></textarea>
-                            </div>
-                            
-                            <div class="btn-group">
-                                <button type="submit" class="btn btn-primary">حفظ التكت</button>
-                                <button type="button" class="btn btn-secondary" onclick="resetForm()">إعادة تعيين</button>
-                            </div>
-                        </form>
-                    </div>
                 </div>
             </div>
 
@@ -279,11 +204,64 @@
                 </div>
             </div>
 
-            <!-- Tickets List Page -->
+            <!-- Tickets Management Page -->
+            <div id="tickets-management-page" class="page-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>إدارة التكتات</h2>
+                        <button class="btn btn-primary" onclick="openNewTicketModal()" style="margin-right: 10px;">➕ إدخال تكت</button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Tabs/Filters -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-tab active" onclick="filterTicketsByStatus('NEW')" data-status="NEW">التكتات المعلقة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('COMPLETED')" data-status="COMPLETED">التكتات المنجزة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('FOLLOW_UP')" data-status="FOLLOW_UP">التكتات المؤجلة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('CLOSED')" data-status="CLOSED">التكتات المنتهية</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatus('all')" data-status="all">جميع التكتات</button>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table id="ticketsManagementTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم التكت</th>
+                                        <th>اسم المشترك</th>
+                                        <th>الفريق</th>
+                                        <th>الحالة</th>
+                                        <th>النوع</th>
+                                        <th>الوقت الفعلي</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketsManagementTableBody">
+                                    <tr>
+                                        <td colspan="7" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Tickets Management Page -->
+            <div id="tickets-management-new-page" class="page-content" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>إدارة تكتات</h2>
+                    </div>
+                    <div class="card-body">
+                        <!-- محتوى فارغ - جاهز للتطوير -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tickets List Page (Quality Management) -->
             <div id="tickets-list-page" class="page-content" style="display: none;">
                 <div class="card">
                     <div class="card-header">
-                        <h2>قائمة التكتات</h2>
+                        <h2>إدارة جودة</h2>
                     </div>
                     <div class="card-body">
                         <div class="table-container">
@@ -291,9 +269,10 @@
                                 <thead>
                                     <tr>
                                         <th>رقم التكت</th>
-                                        <th>النوع</th>
+                                        <th>اسم المشترك</th>
                                         <th>الفريق</th>
                                         <th>الحالة</th>
+                                        <th>النوع</th>
                                         <th>الوقت الفعلي</th>
                                         <th>النقاط</th>
                                         <th>الإجراءات</th>
@@ -301,7 +280,7 @@
                                 </thead>
                                 <tbody id="ticketsTableBody">
                                     <tr>
-                                        <td colspan="7" class="loading">جاري التحميل...</td>
+                                        <td colspan="8" class="loading">جاري التحميل...</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -312,12 +291,800 @@
         </main>
     </div>
 
+    <!-- New Ticket Modal -->
+    <div id="new-ticket-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>إدخال تكت جديد 
+                    <span style="font-size: 0.8em; font-weight: normal; color: var(--text-secondary); margin-right: 15px;">
+                        النقاط المكتسبة: <span id="headerQualityPoints">0</span> | 
+                        النقاط المخصومة: <span id="headerPenaltyPoints">0</span> | 
+                        النقاط الكلية: <span id="headerTotalPoints">0</span>
+                    </span>
+                </h2>
+                <button class="modal-close-btn" onclick="closeNewTicketModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="ticketFormModal">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="ticket_number_modal">رقم التكت *</label>
+                            <input type="text" id="ticket_number_modal" pattern="[0-9]+" inputmode="numeric" autocomplete="off" required>
+                            <small class="form-text" style="color: #666; font-size: 0.85em;">يجب أن يحتوي على أرقام إنجليزية فقط (0-9)</small>
+                            <div id="ticket_number_error_modal" class="error-message" style="display: none; color: #dc3545; font-size: 0.875em; margin-top: 5px; padding: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subscriber_name_modal">اسم المشترك</label>
+                            <input type="text" id="subscriber_name_modal">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="subscriber_phone_modal">رقم المشترك</label>
+                            <input type="text" id="subscriber_phone_modal" pattern="[0-9]{11}" inputmode="numeric" maxlength="11" autocomplete="off">
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em; margin-top: 5px; display: block;">يجب أن يحتوي على 11 رقم إنجليزي فقط (0-9)</small>
+                            <div id="subscriber_phone_error_modal" class="error-message" style="display: none; color: #dc3545; font-size: 0.875em; margin-top: 5px; padding: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;"></div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="ticket_type_id_modal">نوع التكت *</label>
+                            <select id="ticket_type_id_modal" required>
+                                <option value="">اختر النوع</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="team_id_modal">الفريق *</label>
+                            <select id="team_id_modal" required>
+                                <option value="">اختر الفريق</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="assigned_technician_id_modal">الفني المكلف</label>
+                            <select id="assigned_technician_id_modal">
+                                <option value="">اختر الفني (اختياري)</option>
+                            </select>
+                            <small class="form-text" style="color: var(--text-muted); font-size: 0.85em;">إذا لم تختر فني، سيتم إرسال التكت للفريق فقط</small>
+                        </div>
+                        
+                        <!-- حقول التاريخ - مرتبة عمودياً -->
+                        <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 20px;">
+                            <div class="form-group" style="padding: 18px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); margin: 0;">
+                                <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 1.05em; color: var(--text-primary);">تاريخ استلام التكت (T0) *</label>
+                                <div id="time_received_container_modal"></div>
+                                <div id="time_received_time_container_modal" style="margin-top: 10px;"></div>
+                            </div>
+                            
+                            <div class="form-group" style="padding: 18px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); margin: 0;">
+                                <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 1.05em; color: var(--text-primary);">تاريخ اول رد (T1)</label>
+                                <div id="time_first_contact_container_modal"></div>
+                                <div id="time_first_contact_time_container_modal" style="margin-top: 10px;"></div>
+                            </div>
+                            
+                            <div class="form-group" style="padding: 18px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color); margin: 0;">
+                                <label style="display: block; margin-bottom: 12px; font-weight: 600; font-size: 1.05em; color: var(--text-primary);">تاريخ اكمال التكت (T2)</label>
+                                <div id="time_completed_container_modal"></div>
+                                <div id="time_completed_time_container_modal" style="margin-top: 10px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Divider between ticket info and quality sections -->
+                <div style="border-top: 2px solid var(--border-color); margin: 30px 0;"></div>
+                
+                <!-- Title: تقييم الجودة -->
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h3 style="margin: 0; font-size: 1.3em; color: var(--text-primary);">تقييم الجودة</h3>
+                </div>
+                
+                <!-- Checklist Container (replaces Photos Section) -->
+                <div id="checklistContainerWrapper" style="display: none; margin-top: 30px;">
+                    <h3 style="margin-bottom: 20px;">قائمة المتطلبات (Checklist)</h3>
+                    <div id="checklistContainer" class="checklist-vertical-list"></div>
+                    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                        <strong style="font-size: 1.1em;">نقاط Checklist: <span id="qualityPoints">0</span></strong>
+                    </div>
+                </div>
+                
+                <!-- Photos Section (hidden by default) -->
+                <div id="photosSectionModal" style="display: none; margin-top: 30px;">
+                    <h3>رفع الصور</h3>
+                    <div class="form-group">
+                        <label>نوع الصورة</label>
+                        <select id="photo_type_new_modal">
+                            <option value="pole_before">فات العامود قبل</option>
+                            <option value="pole_after">فات العامود بعد</option>
+                            <option value="pppoe">PPPoE</option>
+                            <option value="equipment_location">مكان الأجهزة</option>
+                            <option value="subscriber_power">بور المشترك</option>
+                            <option value="dhcp_status">وضع DHCP</option>
+                            <option value="speed_test">سبيد تيست</option>
+                            <option value="google_bank">بنك جوجل</option>
+                            <option value="activation_message">رسالة التفعيل</option>
+                            <option value="rx_power">RX Power</option>
+                        </select>
+                    </div>
+                    <div class="photo-upload-area" id="photoUploadAreaNewModal">
+                        <p>اسحب الصور هنا أو اضغط للاختيار</p>
+                        <input type="file" id="photoInputNewModal" multiple accept="image/*" style="display: none;">
+                    </div>
+                    <div class="photo-grid" id="photoGridNewModal"></div>
+                </div>
+
+                <!-- Quality Review Section (shown directly) -->
+                <div id="qualityReviewSectionModal" style="margin-top: 30px;">
+                    <h3>الاتصال بالمشترك</h3>
+                    
+                    <!-- رقم الهاتف -->
+                    <div style="margin-bottom: 20px; padding: 15px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                        <label for="phone_number_modal" style="display: block; margin-bottom: 8px; font-weight: 500;">رقم الهاتف</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" id="phone_number_modal" readonly style="flex: 1; padding: 10px; border-radius: 8px; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                            <button type="button" id="copyPhoneNumberBtn" class="btn btn-secondary" style="white-space: nowrap;" onclick="copyPhoneNumber()">نسخ</button>
+                        </div>
+                        <small class="form-text" style="color: var(--text-muted); font-size: 0.85em; margin-top: 5px; display: block;">يتم ملؤه تلقائياً من رقم المشترك مع إضافة 5 في البداية</small>
+                    </div>
+                    
+                    <form id="qualityReviewFormNewModal">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="contact_status_new_modal">حالة الاتصال *</label>
+                                <select id="contact_status_new_modal" required>
+                                    <option value="answered">تم الرد</option>
+                                    <option value="no_answer">لم يرد</option>
+                                    <option value="closed">مغلق</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="service_status_new_modal">حالة الخدمة *</label>
+                                <select id="service_status_new_modal" required>
+                                    <option value="excellent">ممتاز</option>
+                                    <option value="good">جيد</option>
+                                    <option value="poor">رديء</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="team_rating_new_modal" style="display: flex; align-items: center; gap: 8px;">
+                                    <span>تقييم أداء الفريق (1-5) *</span>
+                                    <span class="tooltip-trigger" style="cursor: help; color: var(--primary-color); font-size: 18px; position: relative;">
+                                        ؟
+                                        <span class="tooltip-content" style="position: absolute; bottom: 100%; right: 0; background: var(--card-bg); color: var(--text-color); padding: 12px 16px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); white-space: nowrap; z-index: 1000; margin-bottom: 8px; border: 1px solid var(--border-color); display: none; font-size: 14px; font-weight: normal;">
+                                            استاذ شلون جان اداء فريق العمل شكد تقيم الفريق من1 الى 5
+                                        </span>
+                                    </span>
+                                </label>
+                                <input type="number" id="team_rating_new_modal" min="1" max="5" maxlength="1" step="1" required style="width: 100px;" onkeydown="return false;">
+                                <small style="color: var(--text-muted);">استخدم الأسهم لتغيير التقييم (1-5)</small>
+                                <div id="team_rating_penalty_display" style="margin-top: 8px; padding: 8px; background: rgba(239, 68, 68, 0.1); border-right: 3px solid var(--danger-color); border-radius: 4px; display: none;">
+                                    <strong style="color: var(--danger-color);">الخصم: <span id="team_rating_penalty_value">0</span> نقطة</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="subscription_amount_new_modal">المبلغ المقبوض</label>
+                                <input type="text" id="subscription_amount_new_modal" inputmode="numeric" pattern="[0-9]*" placeholder="أدخل المبلغ بالألف (مثلاً: 35)">
+                                <small class="form-text" style="color: var(--text-muted); font-size: 0.85em; margin-top: 5px; display: block;">سيتم ضرب القيمة في 1000 تلقائياً (35 = 35000)</small>
+                            </div>
+                        </div>
+                        
+                        <!-- نقاط البيع (Upsell) Checklist -->
+                        <div style="margin-top: 30px; padding: 20px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h3 style="margin-bottom: 15px;">نقاط البيع (Upsell)</h3>
+                            <div id="upsellContainer" class="checklist-horizontal">
+                                <div class="checklist-item">
+                                    <label class="checklist-label">
+                                        <input type="checkbox" id="upsell_router_new_modal" class="check-item">
+                                        بيع راوتر (+10)
+                                    </label>
+                                </div>
+                                <div class="checklist-item">
+                                    <label class="checklist-label">
+                                        <input type="checkbox" id="upsell_onu_new_modal" class="check-item">
+                                        بيع ONU (+10)
+                                    </label>
+                                </div>
+                                <div class="checklist-item">
+                                    <label class="checklist-label">
+                                        <input type="checkbox" id="upsell_ups_new_modal" class="check-item">
+                                        بيع UPS (+10)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- الخدمات المشروحة للمشترك (Checklist) -->
+                        <div id="explainedServicesWrapper" style="display: none; margin-top: 30px; padding: 20px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <h3 style="margin-bottom: 15px;">الخدمات المشروحة للمشترك</h3>
+                            <div id="explainedServicesContainer" class="checklist-grid"></div>
+                        </div>
+                        
+                        <!-- يرغب بالانضمام لكروب الواتساب -->
+                        <div style="margin-top: 20px; padding: 20px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div class="checklist-item" style="margin: 0;">
+                                <label class="checklist-label">
+                                    <input type="checkbox" id="whatsapp_group_interest_new_modal" class="check-item">
+                                    يرغب بالانضمام لكروب الواتساب
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- يحتاج متابعة -->
+                        <div style="margin-top: 20px; padding: 20px; background-color: var(--bg-secondary); border-radius: 8px; border: 1px solid var(--border-color);">
+                            <div class="checklist-item" style="margin: 0;">
+                                <label class="checklist-label">
+                                    <input type="checkbox" id="needs_followup_new_modal" class="check-item">
+                                    يحتاج متابعة
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group" id="followupReasonGroupNewModal" style="display: none; margin-top: 20px;">
+                            <label for="followup_reason_new_modal" style="margin-bottom: 10px; display: block; font-weight: 500;">سبب المتابعة</label>
+                            <select id="followup_reason_new_modal" style="width: 100%; padding: 10px; border-radius: 8px; background-color: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                                <option value="amount_mismatch">مبلغ غير متطابق</option>
+                                <option value="technical_issue">مشكلة فنية</option>
+                                <option value="violation">تجاوز</option>
+                                <option value="complaint">شكوى</option>
+                                <option value="poor_service">خدمة رديئة</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="review_notes_new_modal">ملاحظات الجودة</label>
+                            <textarea id="review_notes_new_modal" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">حفظ التقييم</button>
+                            <button type="button" class="btn btn-success" onclick="generateMessageNewModal()">توليد رسالة</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Generated Message -->
+                <div id="messageSectionNewModal" style="display: none; margin-top: 20px;">
+                    <h3>الرسالة الجاهزة</h3>
+                    <div class="message-box">
+                        <textarea id="generatedMessageNewModal" readonly></textarea>
+                        <button class="btn btn-copy" onclick="copyMessageNewModal()">نسخ الرسالة</button>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons at the bottom -->
+                <div style="border-top: 2px solid var(--border-color); margin-top: 30px; padding-top: 20px;">
+                    <div class="btn-group" style="justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="closeNewTicketModal()">إغلاق</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetFormModal()">إعادة تعيين</button>
+                        <button type="submit" form="ticketFormModal" class="btn btn-primary">حفظ التكت</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assign Ticket to Technician Modal -->
+    <div id="assignTicketModal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>إرسال تكت للفني</h2>
+                <button class="modal-close-btn" onclick="closeAssignTicketModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="assignTicketForm">
+                    <input type="hidden" id="assign_ticket_id">
+                    <div class="form-group">
+                        <label for="assign_technician_id">اختر الفني *</label>
+                        <select id="assign_technician_id" required>
+                            <option value="">اختر الفني</option>
+                        </select>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-primary">إرسال</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeAssignTicketModal()">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket Details Modal -->
+    <!-- Error Modal for Date Validation -->
+    <div id="date-error-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--danger-color) 0%, #dc2626 100%);">
+                <h2 style="color: white; display: flex; align-items: center; gap: 10px;">
+                    <span>⚠️</span>
+                    <span>خطأ في التواريخ</span>
+                </h2>
+                <button class="modal-close-btn" onclick="closeDateErrorModal()" style="color: white;">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 20px; padding: 15px; background: rgba(239, 68, 68, 0.1); border-right: 4px solid var(--danger-color); border-radius: 6px;">
+                    <p style="margin: 0; color: var(--text-primary); font-weight: 500;">يرجى تصحيح الأخطاء التالية:</p>
+                </div>
+                <ul id="date-error-list" style="list-style: none; padding: 0; margin: 0;">
+                    <!-- Errors will be inserted here -->
+                </ul>
+                <div style="margin-top: 25px; display: flex; justify-content: flex-end;">
+                    <button class="btn btn-primary" onclick="closeDateErrorModal()" style="min-width: 120px;">موافق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal for Ticket Creation -->
+    <div id="ticket-success-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header" style="background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);">
+                <h2 style="color: white; display: flex; align-items: center; gap: 10px;">
+                    <span>✅</span>
+                    <span>تم بنجاح</span>
+                </h2>
+                <button class="modal-close-btn" onclick="closeTicketSuccessModal()" style="color: white;">×</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 40px 25px;">
+                <div style="width: 80px; height: 80px; margin: 0 auto 25px; background: rgba(16, 185, 129, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 48px;">
+                    ✓
+                </div>
+                <h3 style="color: var(--text-primary); font-size: 24px; margin-bottom: 15px; font-weight: 600;">
+                    تم إدخال التكت بنجاح!
+                </h3>
+                <p style="color: var(--text-secondary); font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                    يمكنك الآن إضافة الصور وتقييم الجودة.
+                </p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <button class="btn btn-primary" onclick="closeTicketSuccessModal(true)" style="min-width: 150px; padding: 12px 24px; font-size: 16px;">
+                        متابعة
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ticket-details-modal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>تفاصيل التكت #<span id="detail-ticket-number-modal"></span></h2>
+                <button class="modal-close-btn" onclick="closeTicketDetailsModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <!-- Ticket Basic Info (Read-only) -->
+                <div id="ticketViewInfo" style="margin-bottom: 30px;">
+                    <h3>معلومات التكت</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>اسم المشترك:</label>
+                            <div class="read-only-field" id="view_subscriber_name">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>رقم المشترك:</label>
+                            <div class="read-only-field" id="view_subscriber_phone">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>نوع التكت:</label>
+                            <div class="read-only-field" id="view_ticket_type">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>الفريق:</label>
+                            <div class="read-only-field" id="view_team_name">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>تاريخ الاستلام (T0):</label>
+                            <div class="read-only-field" id="view_time_received">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>تاريخ اول رد (T1):</label>
+                            <div class="read-only-field" id="view_time_first_contact">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>تاريخ اكمال التكت (T2):</label>
+                            <div class="read-only-field" id="view_time_completed">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>الحالة:</label>
+                            <div class="read-only-field" id="view_status">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photos Display (Read-only) -->
+                <div id="photosViewSection" style="margin-bottom: 30px;">
+                    <h3>الصور</h3>
+                    <div class="photo-grid" id="photoGridViewModal"></div>
+                </div>
+
+                <!-- Quality Review Display (Read-only) -->
+                <div id="qualityReviewViewSection" style="margin-bottom: 30px;">
+                    <h3>تقييم الجودة</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>حالة الاتصال:</label>
+                            <div class="read-only-field" id="view_contact_status">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>حالة الخدمة:</label>
+                            <div class="read-only-field" id="view_service_status">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>تقييم أداء الفريق:</label>
+                            <div class="read-only-field" id="view_team_rating">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>تقييم السلوك:</label>
+                            <div class="read-only-field" id="view_behavior_rating">-</div>
+                        </div>
+                        <div class="form-group">
+                            <label>مبلغ الاشتراك:</label>
+                            <div class="read-only-field" id="view_subscription_amount">-</div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>نقاط البيع (Upsell):</label>
+                        <div class="read-only-field" id="view_upsell">-</div>
+                    </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>الخدمات المشروحة:</label>
+                        <div class="read-only-field" id="view_explained_services">-</div>
+                    </div>
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label>ملاحظات الجودة:</label>
+                        <div class="read-only-field" id="view_review_notes">-</div>
+                    </div>
+                </div>
+
+                <!-- Scores Display -->
+                <div id="scoresViewSection" style="margin-top: 30px;">
+                    <h3>النقاط</h3>
+                    <div class="score-display" id="scoreDisplayViewModal"></div>
+                </div>
+
+                <!-- Edit Section (Only for Team Leader) -->
+                <div id="editSectionForTeamLeader" style="display: none; margin-top: 30px; border-top: 2px solid var(--border-color); padding-top: 20px;">
+                    <h3>تعديل التكت (Team Leader فقط)</h3>
+                    
+                    <!-- Edit Ticket Form -->
+                    <form id="editTicketFormModal">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="edit_subscriber_name">اسم المشترك</label>
+                                <input type="text" id="edit_subscriber_name">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit_subscriber_phone">رقم المشترك</label>
+                                <input type="text" id="edit_subscriber_phone">
+                            </div>
+                            <div class="form-group">
+                                <label for="edit_ticket_type_id">نوع التكت</label>
+                                <select id="edit_ticket_type_id">
+                                    <option value="">اختر النوع</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit_team_id">الفريق</label>
+                                <select id="edit_team_id">
+                                    <option value="">اختر الفريق</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                            <button type="button" class="btn btn-secondary" onclick="cancelEditTicket()">إلغاء</button>
+                        </div>
+                    </form>
+                    
+                    <!-- Edit Quality Review Form -->
+                    <form id="editQualityReviewFormModal" style="margin-top: 30px;">
+                        <h4>تعديل تقييم الجودة</h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="edit_contact_status">حالة الاتصال *</label>
+                                <select id="edit_contact_status" required>
+                                    <option value="answered">تم الرد</option>
+                                    <option value="no_answer">لم يرد</option>
+                                    <option value="closed">مغلق</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit_service_status">حالة الخدمة *</label>
+                                <select id="edit_service_status" required>
+                                    <option value="excellent">ممتاز</option>
+                                    <option value="good">جيد</option>
+                                    <option value="poor">رديء</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit_team_rating">تقييم أداء الفريق (1-5) *</label>
+                                <input type="number" id="edit_team_rating" min="1" max="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit_behavior_rating">تقييم السلوك *</label>
+                                <select id="edit_behavior_rating" required>
+                                    <option value="excellent">ممتاز (+10)</option>
+                                    <option value="good">جيد (+5)</option>
+                                    <option value="normal">طبيعي (0)</option>
+                                    <option value="bad">سيء (-10)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="edit_subscription_amount">مبلغ الاشتراك</label>
+                                <input type="number" id="edit_subscription_amount" step="0.01">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>نقاط البيع (Upsell):</label>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_upsell_router">
+                                <label for="edit_upsell_router">بيع راوتر (+10)</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_upsell_onu">
+                                <label for="edit_upsell_onu">بيع ONU (+10)</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_upsell_ups">
+                                <label for="edit_upsell_ups">بيع UPS (+10)</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>الخدمات المشروحة للمشترك:</label>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_explained_sinmana">
+                                <label for="edit_explained_sinmana">سينمانا</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_explained_platform">
+                                <label for="edit_explained_platform">منصة</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_explained_mytv_plus">
+                                <label for="edit_explained_mytv_plus">MyTV+</label>
+                            </div>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_explained_shahid_plus">
+                                <label for="edit_explained_shahid_plus">شاهد بلس</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_whatsapp_group_interest">
+                                <label for="edit_whatsapp_group_interest">يرغب بالانضمام لكروب الواتساب</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="edit_needs_followup">
+                                <label for="edit_needs_followup">يحتاج متابعة</label>
+                            </div>
+                        </div>
+                        <div class="form-group" id="editFollowupReasonGroup" style="display: none;">
+                            <label for="edit_followup_reason">سبب المتابعة</label>
+                            <select id="edit_followup_reason">
+                                <option value="amount_mismatch">مبلغ غير متطابق</option>
+                                <option value="technical_issue">مشكلة فنية</option>
+                                <option value="violation">تجاوز</option>
+                                <option value="complaint">شكوى</option>
+                                <option value="poor_service">خدمة رديئة</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit_review_notes">ملاحظات الجودة</label>
+                            <textarea id="edit_review_notes" rows="3"></textarea>
+                        </div>
+                        <div class="btn-group">
+                            <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+                            <button type="button" class="btn btn-secondary" onclick="cancelEditQualityReview()">إلغاء</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Review Section (for COMPLETED tickets) -->
+            <div id="reviewSection" style="display: none; margin-top: 30px; padding-top: 30px; border-top: 2px solid var(--border-color);">
+                <h3 style="margin-bottom: 20px; color: var(--primary-color);">مراجعة التكت</h3>
+                <form id="reviewForm">
+                    <div class="form-group">
+                        <label for="review_decision">قرار المراجعة *</label>
+                        <select id="review_decision" required>
+                            <option value="">اختر القرار</option>
+                            <option value="approve">موافق - إغلاق التكت</option>
+                            <option value="followup">يحتاج متابعة</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="followupReasonGroupReview" style="display: none;">
+                        <label for="followup_reason_review">سبب المتابعة</label>
+                        <select id="followup_reason_review">
+                            <option value="photos_missing">صور ناقصة</option>
+                            <option value="quality_issue">مشكلة في الجودة</option>
+                            <option value="incorrect_info">معلومات غير صحيحة</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="btn-group">
+                        <button type="submit" class="btn btn-success">حفظ المراجعة</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeReviewSection()">إلغاء</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+        </main>
+    </div>
+
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/datetime-picker.js"></script>
     <script src="/js/time-picker.js"></script>
     <script src="/js/quality-staff.js"></script>
+    <script>
+        // Ensure openNewTicketModal is available immediately
+        (function() {
+            // Wait for quality-staff.js to load
+            function ensureFunctionAvailable() {
+                if (typeof window.openNewTicketModal === 'function') {
+                    // Function is already available
+                    return;
+                }
+                
+                // Try to get it from the global scope
+                if (typeof openNewTicketModal === 'function') {
+                    window.openNewTicketModal = openNewTicketModal;
+                    return;
+                }
+                
+                // If still not available, wait a bit and try again
+                setTimeout(ensureFunctionAvailable, 100);
+            }
+            
+            // Start checking after DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', ensureFunctionAvailable);
+            } else {
+                ensureFunctionAvailable();
+            }
+        })();
+        
+        // Fallback: Define a temporary function that will be replaced
+        if (typeof window.openNewTicketModal === 'undefined') {
+            window.openNewTicketModal = function() {
+                console.warn('openNewTicketModal is being called but not yet loaded. Retrying...');
+                setTimeout(function() {
+                    if (typeof window.openNewTicketModal === 'function' && window.openNewTicketModal.toString().indexOf('console.warn') === -1) {
+                        window.openNewTicketModal();
+                    }
+                }, 100);
+            };
+        }
+        
+        // Force ticket number validation - ensure it runs after page load
+        (function() {
+            function initTicketNumberValidation() {
+                const ticketNumberInput = document.getElementById('ticket_number');
+                if (!ticketNumberInput) {
+                    setTimeout(initTicketNumberValidation, 100);
+                    return;
+                }
+                
+                // Function to show error message
+                function showError(message) {
+                    let errorDiv = document.getElementById('ticket_number_error');
+                    if (!errorDiv) {
+                        errorDiv = document.createElement('div');
+                        errorDiv.id = 'ticket_number_error';
+                        errorDiv.className = 'error-message';
+                        errorDiv.style.cssText = 'display: none; color: #dc3545; font-size: 0.875em; margin-top: 5px; padding: 8px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;';
+                        ticketNumberInput.parentNode.appendChild(errorDiv);
+                    }
+                    errorDiv.textContent = message;
+                    errorDiv.style.display = 'block';
+                    ticketNumberInput.style.borderColor = '#dc3545';
+                    ticketNumberInput.style.backgroundColor = '#fff5f5';
+                }
+                
+                function hideError() {
+                    const errorDiv = document.getElementById('ticket_number_error');
+                    if (errorDiv) {
+                        errorDiv.style.display = 'none';
+                        ticketNumberInput.style.borderColor = '';
+                        ticketNumberInput.style.backgroundColor = '';
+                    }
+                }
+                
+                // STRICT: Block ALL non-numeric input at keydown level
+                ticketNumberInput.addEventListener('keydown', function(e) {
+                    const allowedKeys = ['Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 
+                                        'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+                                        'Home', 'End', 'PageUp', 'PageDown'];
+                    
+                    if (e.ctrlKey || e.metaKey) {
+                        if (['a', 'c', 'x', 'z'].includes(e.key.toLowerCase())) {
+                            return;
+                        }
+                        if (e.key.toLowerCase() === 'v') {
+                            e.preventDefault();
+                            return;
+                        }
+                    }
+                    
+                    if (allowedKeys.includes(e.key)) {
+                        return;
+                    }
+                    
+                    const charCode = e.key.charCodeAt ? e.key.charCodeAt(0) : e.keyCode;
+                    const isDigit = (charCode >= 48 && charCode <= 57);
+                    
+                    if (!isDigit) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        showError('❌ تم رفض الحرف/الرمز: "' + e.key + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                        setTimeout(hideError, 3000);
+                        return false;
+                    } else {
+                        hideError();
+                    }
+                }, true);
+                
+                // STRICT: Clean input on every input event
+                ticketNumberInput.addEventListener('input', function(e) {
+                    const value = e.target.value;
+                    const cleaned = value.replace(/[^0-9]/g, '');
+                    if (value !== cleaned) {
+                        e.target.value = cleaned;
+                        const invalidChars = value.replace(/[0-9]/g, '');
+                        showError('❌ تم رفض القيم التالية: "' + invalidChars + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                        setTimeout(hideError, 5000);
+                    } else {
+                        hideError();
+                    }
+                }, true);
+                
+                // STRICT: Handle paste
+                ticketNumberInput.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+                    const numbersOnly = pastedText.replace(/[^0-9]/g, '');
+                    const invalidChars = pastedText.replace(/[0-9]/g, '');
+                    
+                    if (invalidChars.length > 0) {
+                        showError('❌ تم رفض القيم المنسوخة: "' + invalidChars + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                        setTimeout(hideError, 5000);
+                    }
+                    
+                    const start = e.target.selectionStart || 0;
+                    const end = e.target.selectionEnd || 0;
+                    const currentValue = e.target.value || '';
+                    e.target.value = currentValue.substring(0, start) + numbersOnly + currentValue.substring(end);
+                    e.target.setSelectionRange(start + numbersOnly.length, start + numbersOnly.length);
+                    e.target.dispatchEvent(new Event('input', { bubbles: true }));
+                }, true);
+                
+                // STRICT: Clean on blur
+                ticketNumberInput.addEventListener('blur', function(e) {
+                    const value = e.target.value;
+                    const cleaned = value.replace(/[^0-9]/g, '');
+                    if (value !== cleaned) {
+                        e.target.value = cleaned;
+                        const invalidChars = value.replace(/[0-9]/g, '');
+                        showError('❌ تم رفض القيم: "' + invalidChars + '" - رقم التكت يقبل أرقام إنجليزية فقط (0-9)');
+                    } else {
+                        hideError();
+                    }
+                }, true);
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initTicketNumberValidation);
+            } else {
+                initTicketNumberValidation();
+            }
+        })();
+    </script>
 </body>
 </html>
 
