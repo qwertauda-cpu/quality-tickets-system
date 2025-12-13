@@ -3120,44 +3120,6 @@ app.delete('/api/admin/tickets/:ticketId/points', authenticate, async (req, res)
 // Serve static files AFTER API routes to avoid conflicts
 app.use(express.static(path.join(__dirname, '../public')));
 
-// ==================== Start Server ====================
-const PORT = config.server.port;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log('');
-    console.log('==========================================');
-    console.log('🚀 Quality & Tickets Management System');
-    console.log('==========================================');
-    console.log(`✅ Server running on port ${PORT}`);
-    
-    // ==================== Initialize WhatsApp Client ====================
-    // تهيئة WhatsApp Web Client عند بدء الخادم
-    setTimeout(async () => {
-        try {
-            const settings = await getWhatsAppSettings();
-            if (settings.whatsapp_enabled && settings.whatsapp_phone) {
-                console.log('🔄 تهيئة WhatsApp Web Client...');
-                await initWhatsAppClient();
-            } else {
-                console.log('ℹ️ WhatsApp Web غير مفعّل أو رقم الواتساب غير محدد');
-            }
-        } catch (error) {
-            console.error('⚠️ خطأ في تهيئة WhatsApp Client:', error.message);
-        }
-    }, 2000); // انتظار ثانيتين بعد بدء الخادم
-    
-    // ==================== Start Background Jobs ====================
-    // فحص التذاكر المتأخرة كل 5 دقائق
-    setInterval(checkDelayedTickets, 5 * 60 * 1000); // 5 minutes
-    checkDelayedTickets(); // Run immediately on startup
-    
-    // فحص الاشتراكات القريبة على الانتهاء كل 24 ساعة
-    setInterval(checkExpiringSubscriptions, 24 * 60 * 60 * 1000); // 24 hours
-    checkExpiringSubscriptions(); // Run immediately on startup
-    
-    console.log(`🌐 Access: http://localhost:${PORT}`);
-    console.log('');
-});
-
 // ==================== Background Job: Check Delayed Tickets ====================
 async function checkDelayedTickets() {
     try {
@@ -4593,5 +4555,43 @@ app.post('/api/purchase-request', async (req, res) => {
         console.error('Submit purchase request error:', error);
         res.status(500).json({ error: 'خطأ في إرسال الطلب' });
     }
+});
+
+// ==================== Start Server ====================
+const PORT = config.server.port;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('');
+    console.log('==========================================');
+    console.log('🚀 Quality & Tickets Management System');
+    console.log('==========================================');
+    console.log(`✅ Server running on port ${PORT}`);
+    
+    // ==================== Initialize WhatsApp Client ====================
+    // تهيئة WhatsApp Web Client عند بدء الخادم
+    setTimeout(async () => {
+        try {
+            const settings = await getWhatsAppSettings();
+            if (settings.whatsapp_enabled && settings.whatsapp_phone) {
+                console.log('🔄 تهيئة WhatsApp Web Client...');
+                await initWhatsAppClient();
+            } else {
+                console.log('ℹ️ WhatsApp Web غير مفعّل أو رقم الواتساب غير محدد');
+            }
+        } catch (error) {
+            console.error('⚠️ خطأ في تهيئة WhatsApp Client:', error.message);
+        }
+    }, 2000); // انتظار ثانيتين بعد بدء الخادم
+    
+    // ==================== Start Background Jobs ====================
+    // فحص التذاكر المتأخرة كل 5 دقائق
+    setInterval(checkDelayedTickets, 5 * 60 * 1000); // 5 minutes
+    checkDelayedTickets(); // Run immediately on startup
+    
+    // فحص الاشتراكات القريبة على الانتهاء كل 24 ساعة
+    setInterval(checkExpiringSubscriptions, 24 * 60 * 60 * 1000); // 24 hours
+    checkExpiringSubscriptions(); // Run immediately on startup
+    
+    console.log(`🌐 Access: http://localhost:${PORT}`);
+    console.log('');
 });
 
