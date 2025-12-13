@@ -4712,8 +4712,8 @@ app.post('/api/owner/send-whatsapp-messages', authenticate, async (req, res) => 
                     .replace(/{contact_phone}/g, company.contact_phone || '')
                     .replace(/{domain}/g, company.domain || '');
                 
-                // استخدام رقم الاتصال للشركة أو رقم المدير
-                const phoneNumber = company.contact_phone || company.admin_phone;
+                // استخدام رقم الاتصال للشركة
+                const phoneNumber = company.contact_phone;
                 
                 if (!phoneNumber) {
                     results.push({
