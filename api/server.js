@@ -4691,8 +4691,7 @@ app.post('/api/owner/send-whatsapp-messages', authenticate, async (req, res) => 
         const companies = await db.query(`
             SELECT c.*, 
                    u.username as admin_username,
-                   u.full_name as admin_name,
-                   u.phone as admin_phone
+                   u.full_name as admin_name
             FROM companies c
             LEFT JOIN users u ON c.owner_user_id = u.id
             WHERE c.id IN (${placeholders})
