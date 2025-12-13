@@ -3346,27 +3346,46 @@ async function checkExpiringSubscriptions() {
 }
 
 // ==================== WhatsApp Web Client ====================
-let whatsappClient = null;
-let whatsappReady = false;
-let currentQRCode = null; // Store current QR Code for frontend
+// WhatsApp clients لكل شركة (Map<companyId, {client, ready, qrCode}>)
+// companyId = null أو 0 يعني owner/global client
+const whatsappClients = new Map();
 
-// Initialize WhatsApp Web Client
+// Initialize WhatsApp Web Client (Owner/Global)
 async function initWhatsAppClient() {
+    return await initCompanyWhatsAppClient(null);
+}
+
+// Initialize WhatsApp Web Client for a specific company
+async function initCompanyWhatsAppClient(companyId) {
     try {
         const { Client, LocalAuth } = require('whatsapp-web.js');
         const qrcode = require('qrcode-terminal');
         
-        const settings = await getWhatsAppSettings();
+        // جلب إعدادات الواتساب (company-specific أو global)
+        const settings = companyId 
+            ? await getCompanyWhatsAppSettings(companyId)
+            : await getWhatsAppSettings();
         
         if (!settings.whatsapp_phone || !settings.whatsapp_enabled) {
-            console.log('⚠️ رقم الواتساب غير محدد أو الإرسال معطل - سيتم استخدام الروابط فقط');
+            console.log(`⚠️ رقم الواتساب غير محدد أو الإرسال معطل ${companyId ? `للشركة ${companyId}` : 'للمالك'} - سيتم استخدام الروابط فقط`);
             return null;
         }
         
+        // التحقق من وجود client موجود وإزالته إذا كان موجوداً
+        const existingClient = whatsappClients.get(companyId || 0);
+        if (existingClient && existingClient.client) {
+            try {
+                await existingClient.client.destroy();
+            } catch (destroyError) {
+                console.log('⚠️ خطأ في إزالة client القديم:', destroyError.message);
+            }
+        }
+        
         // إنشاء عميل WhatsApp Web
-        whatsappClient = new Client({
+        const clientId = companyId ? `company-${companyId}-whatsapp-client` : 'owner-whatsapp-client';
+        const client = new Client({
             authStrategy: new LocalAuth({
-                clientId: 'owner-whatsapp-client'
+                clientId: clientId
             }),
             puppeteer: {
                 headless: true,
@@ -3374,14 +3393,25 @@ async function initWhatsAppClient() {
             }
         });
         
+        // إنشاء كائن لحفظ حالة client
+        const clientState = {
+            client: client,
+            ready: false,
+            qrCode: null,
+            companyId: companyId || 0
+        };
+        
+        // حفظ client في Map
+        whatsappClients.set(companyId || 0, clientState);
+        
         // عرض QR Code في Terminal وحفظه للواجهة
-        whatsappClient.on('qr', (qr) => {
+        client.on('qr', (qr) => {
             // حفظ QR Code للواجهة
-            currentQRCode = qr;
+            clientState.qrCode = qr;
             
             console.log('');
             console.log('==========================================');
-            console.log('📱 QR Code للواتساب - يرجى مسح الباركود:');
+            console.log(`📱 QR Code للواتساب ${companyId ? `(الشركة ${companyId})` : '(المالك)'} - يرجى مسح الباركود:`);
             console.log('==========================================');
             qrcode.generate(qr, { small: true });
             console.log('يرجى مسح الباركود باستخدام WhatsApp على هاتفك');
@@ -3390,64 +3420,66 @@ async function initWhatsAppClient() {
         });
         
         // عند الاتصال بنجاح
-        whatsappClient.on('ready', () => {
-            console.log('✅ تم الاتصال بـ WhatsApp Web بنجاح!');
+        client.on('ready', () => {
+            console.log(`✅ تم الاتصال بـ WhatsApp Web بنجاح ${companyId ? `للشركة ${companyId}` : 'للمالك'}!`);
             console.log(`📱 رقم الواتساب: ${settings.whatsapp_phone}`);
-            whatsappReady = true;
+            clientState.ready = true;
+            clientState.qrCode = null; // مسح QR Code بعد الاتصال
         });
         
         // عند المصادقة
-        whatsappClient.on('authenticated', () => {
-            console.log('✅ تمت المصادقة بنجاح مع WhatsApp Web');
+        client.on('authenticated', () => {
+            console.log(`✅ تمت المصادقة بنجاح مع WhatsApp Web ${companyId ? `للشركة ${companyId}` : 'للمالك'}`);
         });
         
         // عند فشل المصادقة
-        whatsappClient.on('auth_failure', (msg) => {
-            console.error('❌ فشل المصادقة مع WhatsApp Web:', msg);
-            whatsappReady = false;
+        client.on('auth_failure', (msg) => {
+            console.error(`❌ فشل المصادقة مع WhatsApp Web ${companyId ? `للشركة ${companyId}` : 'للمالك'}:`, msg);
+            clientState.ready = false;
         });
         
         // عند انقطاع الاتصال - محاولة إعادة الاتصال تلقائياً
-        whatsappClient.on('disconnected', async (reason) => {
-            console.log('⚠️ تم قطع الاتصال مع WhatsApp Web:', reason);
-            whatsappReady = false;
+        client.on('disconnected', async (reason) => {
+            console.log(`⚠️ تم قطع الاتصال مع WhatsApp Web ${companyId ? `للشركة ${companyId}` : 'للمالك'}:`, reason);
+            clientState.ready = false;
             
             // محاولة إعادة الاتصال تلقائياً بعد 5 ثوانٍ
             if (reason !== 'LOGOUT') {
-                console.log('🔄 محاولة إعادة الاتصال تلقائياً خلال 5 ثوانٍ...');
+                console.log(`🔄 محاولة إعادة الاتصال تلقائياً خلال 5 ثوانٍ ${companyId ? `للشركة ${companyId}` : 'للمالك'}...`);
                 setTimeout(async () => {
                     try {
-                        const settings = await getWhatsAppSettings();
-                        if (settings.whatsapp_enabled && settings.whatsapp_phone) {
-                            console.log('🔄 إعادة تهيئة WhatsApp Client...');
-                            whatsappClient = null;
-                            await initWhatsAppClient();
+                        const currentSettings = companyId 
+                            ? await getCompanyWhatsAppSettings(companyId)
+                            : await getWhatsAppSettings();
+                        if (currentSettings.whatsapp_enabled && currentSettings.whatsapp_phone) {
+                            console.log(`🔄 إعادة تهيئة WhatsApp Client ${companyId ? `للشركة ${companyId}` : 'للمالك'}...`);
+                            whatsappClients.delete(companyId || 0);
+                            await initCompanyWhatsAppClient(companyId);
                         }
                     } catch (error) {
-                        console.error('❌ خطأ في إعادة الاتصال:', error.message);
+                        console.error(`❌ خطأ في إعادة الاتصال ${companyId ? `للشركة ${companyId}` : 'للمالك'}:`, error.message);
                     }
                 }, 5000);
             } else {
-                // إذا كان الانقطاع بسبب تسجيل الخروج، لا نحاول إعادة الاتصال
-                whatsappClient = null;
+                // إذا كان الانقطاع بسبب تسجيل الخروج، نحذف client
+                whatsappClients.delete(companyId || 0);
             }
         });
         
-        // عند حدوث خطأ - لا نعيد تعيين whatsappClient حتى لا نفقد الجلسة
-        whatsappClient.on('error', (error) => {
-            console.error('❌ خطأ في WhatsApp Client:', error);
-            // لا نعيد تعيين whatsappReady إلا إذا كان الخطأ خطيراً
+        // عند حدوث خطأ
+        client.on('error', (error) => {
+            console.error(`❌ خطأ في WhatsApp Client ${companyId ? `للشركة ${companyId}` : 'للمالك'}:`, error);
             if (error.message && error.message.includes('Session closed')) {
-                whatsappReady = false;
+                clientState.ready = false;
             }
         });
         
         // بدء المصادقة
-        await whatsappClient.initialize();
+        await client.initialize();
         
-        return whatsappClient;
+        return client;
     } catch (error) {
-        console.error('❌ خطأ في تهيئة WhatsApp Client:', error.message);
+        console.error(`❌ خطأ في تهيئة WhatsApp Client ${companyId ? `للشركة ${companyId}` : 'للمالك'}:`, error.message);
         console.log('⚠️ سيتم استخدام الروابط فقط لإرسال الرسائل');
         return null;
     }
@@ -3485,28 +3517,29 @@ async function sendWhatsAppMessage(phoneNumber, message, companyId = null) {
             : formattedPhone;
         
         // المحاولة الأولى: استخدام WhatsApp Web Client
-        if (!whatsappClient || !whatsappReady) {
-            // محاولة تهيئة WhatsApp Client فقط إذا كان الرقم محدد
-            if (settings.whatsapp_phone) {
-                console.log('🔄 محاولة تهيئة WhatsApp Client...');
-                await initWhatsAppClient();
+        const clientKey = companyId || 0;
+        let clientState = whatsappClients.get(clientKey);
+        
+        // إذا لم يكن client موجود أو غير جاهز، نحاول تهيئته
+        if (!clientState || !clientState.ready) {
+            if (settings.whatsapp_phone && settings.whatsapp_enabled) {
+                console.log(`🔄 محاولة تهيئة WhatsApp Client ${companyId ? `للشركة ${companyId}` : 'للمالك'}...`);
+                await initCompanyWhatsAppClient(companyId);
+                clientState = whatsappClients.get(clientKey);
             }
         }
         
-        if (whatsappClient && whatsappReady) {
+        if (clientState && clientState.client && clientState.ready) {
             try {
                 // إرسال الرسالة عبر WhatsApp Web
-                // ملاحظة: whatsapp-web.js لا يدعم حذف الرسائل تلقائياً
-                // لكن الرسائل المرسلة من البوت لا تظهر في قائمة المحادثات الرئيسية عادة
                 const chatId = `${phoneWithoutCountryCode}@c.us`;
-                await whatsappClient.sendMessage(chatId, message);
+                await clientState.client.sendMessage(chatId, message);
                 
                 // محاولة إخفاء المحادثة من قائمة المحادثات (إذا أمكن)
                 try {
-                    const chat = await whatsappClient.getChatById(chatId);
+                    const chat = await clientState.client.getChatById(chatId);
                     if (chat) {
                         // محاولة أرشفة المحادثة لإخفائها من القائمة الرئيسية
-                        // ملاحظة: هذا قد لا يعمل في جميع الحالات
                         try {
                             await chat.archive();
                         } catch (archiveError) {
@@ -3518,7 +3551,7 @@ async function sendWhatsAppMessage(phoneNumber, message, companyId = null) {
                     console.log('ℹ️ لا يمكن إخفاء المحادثة (هذا طبيعي)');
                 }
                 
-                console.log(`✅ تم إرسال رسالة واتساب عبر WhatsApp Web من ${settings.whatsapp_phone} إلى ${formattedPhone}`);
+                console.log(`✅ تم إرسال رسالة واتساب عبر WhatsApp Web ${companyId ? `من الشركة ${companyId}` : 'من المالك'} (${settings.whatsapp_phone}) إلى ${formattedPhone}`);
                 return { 
                     success: true, 
                     method: 'whatsapp-web', 
@@ -3526,8 +3559,8 @@ async function sendWhatsAppMessage(phoneNumber, message, companyId = null) {
                     from: settings.whatsapp_phone
                 };
             } catch (whatsappError) {
-                console.error('❌ خطأ في إرسال الرسالة عبر WhatsApp Web:', whatsappError.message);
-                // Fallback to API or Web link
+                console.error(`❌ خطأ في إرسال الرسالة عبر WhatsApp Web ${companyId ? `للشركة ${companyId}` : 'للمالك'}:`, whatsappError.message);
+                // Fallback to Web link
             }
         }
         
@@ -4683,65 +4716,67 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
             `, [setting.key, setting.value, setting.type]);
         }
         
-        // إعادة تهيئة WhatsApp Client إذا كان مفعّل
+        // إعادة تهيئة WhatsApp Client إذا كان مفعّل (للمالك - companyId = null)
         if (whatsapp_enabled === '1' || whatsapp_enabled === true || whatsapp_enabled === 'true') {
             try {
-                // إعادة تعيين QR Code
-                currentQRCode = null;
-                
-                // إعادة تهيئة WhatsApp Client
-                if (whatsappClient) {
+                // إزالة client القديم إذا كان موجوداً
+                const existingClient = whatsappClients.get(0);
+                if (existingClient && existingClient.client) {
                     try {
-                        if (typeof whatsappClient.destroy === 'function') {
-                            await whatsappClient.destroy();
-                        } else if (typeof whatsappClient.logout === 'function') {
-                            await whatsappClient.logout();
-                        }
+                        await existingClient.client.destroy();
                     } catch (e) {
                         console.log('Error destroying old client:', e.message);
                     }
-                    whatsappClient = null;
-                    whatsappReady = false;
                 }
+                whatsappClients.delete(0);
                 
-                // تهيئة جديدة
-                const initPromise = initWhatsAppClient().catch(err => {
-                    console.error('Error in initWhatsAppClient:', err);
+                // تهيئة جديدة للمالك
+                const initPromise = initCompanyWhatsAppClient(null).catch(err => {
+                    console.error('Error in initCompanyWhatsAppClient:', err);
                 });
                 
                 // انتظار QR Code لمدة 10 ثوانٍ (20 محاولة × 500ms)
                 let qrReceived = false;
+                let connected = false;
                 for (let i = 0; i < 20; i++) {
                     await new Promise(resolve => setTimeout(resolve, 500)); // انتظار 500ms
-                    if (currentQRCode) {
-                        qrReceived = true;
-                        console.log('✅ QR Code received after', (i + 1) * 500, 'ms');
-                        break;
+                    const clientState = whatsappClients.get(0);
+                    if (clientState) {
+                        if (clientState.qrCode) {
+                            qrReceived = true;
+                            console.log('✅ QR Code received after', (i + 1) * 500, 'ms');
+                            break;
+                        } else if (clientState.ready) {
+                            connected = true;
+                            break;
+                        }
                     }
                 }
                 
-                if (qrReceived && currentQRCode) {
+                const clientState = whatsappClients.get(0);
+                if (qrReceived && clientState && clientState.qrCode) {
                     return res.json({ 
                         success: true, 
                         message: 'تم حفظ الإعدادات بنجاح',
-                        qr_code: currentQRCode,
-                        needs_qr: true
+                        qr_code: clientState.qrCode,
+                        needs_qr: true,
+                        connected: false
                     });
-                } else if (whatsappReady) {
-                    // إذا كان متصل بالفعل
+                } else if (connected) {
                     return res.json({ 
                         success: true, 
                         message: 'تم حفظ الإعدادات بنجاح',
                         needs_qr: false,
-                        connected: true
+                        connected: true,
+                        qr_code: null
                     });
                 } else {
-                    // لم يظهر QR Code بعد، لكن سيظهر قريباً
                     return res.json({ 
                         success: true, 
                         message: 'تم حفظ الإعدادات بنجاح. يرجى الانتظار قليلاً لظهور QR Code',
                         needs_qr: true,
-                        waiting: true
+                        waiting: true,
+                        connected: false
                     });
                 }
             } catch (error) {
@@ -4753,6 +4788,17 @@ app.post('/api/owner/settings', authenticate, async (req, res) => {
                     needs_qr: true
                 });
             }
+        } else {
+            // إذا تم تعطيل الواتساب، نحذف client
+            const existingClient = whatsappClients.get(0);
+            if (existingClient && existingClient.client) {
+                try {
+                    await existingClient.client.destroy();
+                } catch (e) {
+                    console.log('Error destroying client:', e.message);
+                }
+            }
+            whatsappClients.delete(0);
         }
         
         res.json({ success: true, message: 'تم حفظ الإعدادات بنجاح' });
@@ -4770,16 +4816,14 @@ app.post('/api/owner/whatsapp-logout', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
         }
         
-        if (whatsappClient) {
+        const clientState = whatsappClients.get(0); // 0 = owner/global client
+        
+        if (clientState && clientState.client) {
             try {
                 // تسجيل الخروج من WhatsApp وحذف الجلسة
-                if (typeof whatsappClient.logout === 'function') {
-                    await whatsappClient.logout();
-                    console.log('✅ تم تسجيل الخروج من WhatsApp بنجاح');
-                } else if (typeof whatsappClient.destroy === 'function') {
-                    await whatsappClient.destroy();
-                    console.log('✅ تم إغلاق اتصال WhatsApp بنجاح');
-                }
+                await clientState.client.logout();
+                await clientState.client.destroy();
+                console.log('✅ تم تسجيل الخروج من WhatsApp بنجاح (المالك)');
                 
                 // حذف بيانات الجلسة المحفوظة
                 try {
@@ -4794,9 +4838,8 @@ app.post('/api/owner/whatsapp-logout', authenticate, async (req, res) => {
                     console.log('⚠️ لم يتم حذف بيانات الجلسة:', sessionError.message);
                 }
                 
-                whatsappClient = null;
-                whatsappReady = false;
-                currentQRCode = null;
+                // حذف client من Map
+                whatsappClients.delete(0);
                 
                 res.json({ 
                     success: true, 
@@ -4804,10 +4847,13 @@ app.post('/api/owner/whatsapp-logout', authenticate, async (req, res) => {
                 });
             } catch (logoutError) {
                 console.error('❌ خطأ في تسجيل الخروج من WhatsApp:', logoutError);
-                // حتى لو فشل، نقوم بإعادة تعيين المتغيرات
-                whatsappClient = null;
-                whatsappReady = false;
-                currentQRCode = null;
+                // محاولة إزالة client حتى لو فشل logout
+                try {
+                    await clientState.client.destroy();
+                } catch (destroyError) {
+                    console.error('❌ خطأ في إزالة client:', destroyError.message);
+                }
+                whatsappClients.delete(0);
                 
                 res.json({ 
                     success: true, 
@@ -4928,13 +4974,32 @@ app.get('/api/owner/whatsapp-qr', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
         }
         
-        if (currentQRCode) {
-            return res.json({ success: true, qr_code: currentQRCode, needs_qr: true });
-        } else if (whatsappReady) {
-            return res.json({ success: true, connected: true, needs_qr: false });
-        } else {
-            return res.json({ success: true, needs_qr: false, connected: false });
+        const clientState = whatsappClients.get(0); // 0 = owner/global client
+        
+        if (clientState) {
+            if (clientState.qrCode) {
+                return res.json({
+                    success: true,
+                    qr_code: clientState.qrCode,
+                    needs_qr: true,
+                    connected: false
+                });
+            } else if (clientState.ready) {
+                return res.json({
+                    success: true,
+                    connected: true,
+                    needs_qr: false,
+                    qr_code: null
+                });
+            }
         }
+        
+        res.json({
+            success: true,
+            needs_qr: false,
+            connected: false,
+            qr_code: null
+        });
     } catch (error) {
         console.error('Get QR Code error:', error);
         res.status(500).json({ error: 'خطأ في جلب QR Code' });
@@ -4989,24 +5054,72 @@ app.post('/api/admin/settings', authenticate, async (req, res) => {
         
         // حفظ/تحديث الإعدادات
         await db.query(`
-            INSERT INTO settings (company_id, setting_key, setting_value, setting_type, is_active)
-            VALUES (?, 'whatsapp_phone', ?, 'string', 1),
-                   (?, 'whatsapp_enabled', ?, 'boolean', 1)
+            INSERT INTO settings (company_id, setting_key, setting_value, setting_type, category, is_active)
+            VALUES (?, 'whatsapp_phone', ?, 'string', 'whatsapp', 1),
+                   (?, 'whatsapp_enabled', ?, 'boolean', 'whatsapp', 1)
             ON DUPLICATE KEY UPDATE
                 setting_value = VALUES(setting_value),
                 is_active = 1
         `, [req.user.company_id, whatsapp_phone || '', req.user.company_id, whatsapp_enabled || '0']);
         
         // تهيئة WhatsApp Client للشركة
+        let qrCode = null;
+        let needsQR = false;
+        let connected = false;
+        
         if (whatsapp_phone && whatsapp_enabled === '1') {
-            // TODO: Initialize company-specific WhatsApp client
-            // For now, we'll use a single client with company_id in clientId
+            // إزالة client القديم إذا كان موجوداً
+            const existingClient = whatsappClients.get(req.user.company_id);
+            if (existingClient && existingClient.client) {
+                try {
+                    await existingClient.client.destroy();
+                } catch (destroyError) {
+                    console.log('⚠️ خطأ في إزالة client القديم:', destroyError.message);
+                }
+            }
+            
+            // تهيئة client جديد للشركة
+            try {
+                await initCompanyWhatsAppClient(req.user.company_id);
+                
+                // انتظار QR Code (polling)
+                for (let i = 0; i < 20; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    const clientState = whatsappClients.get(req.user.company_id);
+                    if (clientState) {
+                        if (clientState.qrCode) {
+                            qrCode = clientState.qrCode;
+                            needsQR = true;
+                            break;
+                        } else if (clientState.ready) {
+                            connected = true;
+                            needsQR = false;
+                            break;
+                        }
+                    }
+                }
+            } catch (initError) {
+                console.error('❌ خطأ في تهيئة WhatsApp Client للشركة:', initError.message);
+            }
+        } else {
+            // إذا تم تعطيل الواتساب، نحذف client
+            const existingClient = whatsappClients.get(req.user.company_id);
+            if (existingClient && existingClient.client) {
+                try {
+                    await existingClient.client.destroy();
+                } catch (destroyError) {
+                    console.log('⚠️ خطأ في إزالة client:', destroyError.message);
+                }
+            }
+            whatsappClients.delete(req.user.company_id);
         }
         
         res.json({
             success: true,
             message: 'تم حفظ الإعدادات بنجاح',
-            needs_qr: whatsapp_phone && whatsapp_enabled === '1'
+            needs_qr: needsQR,
+            connected: connected,
+            qr_code: qrCode
         });
     } catch (error) {
         console.error('Save admin settings error:', error);
@@ -5025,11 +5138,58 @@ app.get('/api/admin/whatsapp-qr', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
         }
         
-        // TODO: Get company-specific QR code
-        // For now, return connected status
+        const clientState = whatsappClients.get(req.user.company_id);
+        
+        if (clientState) {
+            if (clientState.qrCode) {
+                return res.json({
+                    success: true,
+                    qr_code: clientState.qrCode,
+                    needs_qr: true,
+                    connected: false
+                });
+            } else if (clientState.ready) {
+                return res.json({
+                    success: true,
+                    connected: true,
+                    needs_qr: false,
+                    qr_code: null
+                });
+            }
+        }
+        
+        // إذا لم يكن client موجود، نحاول تهيئته
+        const settings = await getCompanyWhatsAppSettings(req.user.company_id);
+        if (settings.whatsapp_enabled && settings.whatsapp_phone) {
+            await initCompanyWhatsAppClient(req.user.company_id);
+            // انتظار QR Code
+            for (let i = 0; i < 20; i++) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                const newClientState = whatsappClients.get(req.user.company_id);
+                if (newClientState) {
+                    if (newClientState.qrCode) {
+                        return res.json({
+                            success: true,
+                            qr_code: newClientState.qrCode,
+                            needs_qr: true,
+                            connected: false
+                        });
+                    } else if (newClientState.ready) {
+                        return res.json({
+                            success: true,
+                            connected: true,
+                            needs_qr: false,
+                            qr_code: null
+                        });
+                    }
+                }
+            }
+        }
+        
         res.json({
             success: true,
             connected: false,
+            needs_qr: false,
             qr_code: null
         });
     } catch (error) {
@@ -5045,7 +5205,30 @@ app.post('/api/admin/whatsapp-logout', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح' });
         }
         
-        // TODO: Logout company-specific WhatsApp client
+        if (!req.user.company_id) {
+            return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
+        }
+        
+        const clientState = whatsappClients.get(req.user.company_id);
+        
+        if (clientState && clientState.client) {
+            try {
+                await clientState.client.logout();
+                await clientState.client.destroy();
+            } catch (logoutError) {
+                console.error('❌ خطأ في تسجيل الخروج:', logoutError.message);
+                // محاولة إزالة client حتى لو فشل logout
+                try {
+                    await clientState.client.destroy();
+                } catch (destroyError) {
+                    console.error('❌ خطأ في إزالة client:', destroyError.message);
+                }
+            }
+        }
+        
+        // حذف client من Map
+        whatsappClients.delete(req.user.company_id);
+        
         res.json({
             success: true,
             message: 'تم تسجيل الخروج بنجاح'
@@ -5170,18 +5353,18 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${PORT}`);
     
     // ==================== Initialize WhatsApp Client ====================
-    // تهيئة WhatsApp Web Client عند بدء الخادم
+    // تهيئة WhatsApp Web Client للمالك عند بدء الخادم
     setTimeout(async () => {
         try {
             const settings = await getWhatsAppSettings();
             if (settings.whatsapp_enabled && settings.whatsapp_phone) {
-                console.log('🔄 تهيئة WhatsApp Web Client...');
-                await initWhatsAppClient();
+                console.log('🔄 تهيئة WhatsApp Web Client للمالك...');
+                await initCompanyWhatsAppClient(null);
             } else {
-                console.log('ℹ️ WhatsApp Web غير مفعّل أو رقم الواتساب غير محدد');
+                console.log('ℹ️ WhatsApp Web غير مفعّل أو رقم الواتساب غير محدد للمالك');
             }
         } catch (error) {
-            console.error('⚠️ خطأ في تهيئة WhatsApp Client:', error.message);
+            console.error('⚠️ خطأ في تهيئة WhatsApp Client للمالك:', error.message);
         }
     }, 2000); // انتظار ثانيتين بعد بدء الخادم
     
