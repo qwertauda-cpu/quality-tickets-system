@@ -3567,9 +3567,9 @@ app.post('/api/owner/send-expiring-notifications', authenticate, async (req, res
             //         result.errors.push(`خطأ في إرسال الواتساب: ${whatsappError.message}`);
             //         console.error(`❌ خطأ في إرسال رسالة واتساب إلى ${company.contact_phone}:`, whatsappError);
             //     }
-            // } else {
-                result.errors.push('لا يوجد رقم هاتف للشركة');
-            }
+            // }
+            
+            // ملاحظة: الإرسال التلقائي معطل - يتم الإرسال يدوياً فقط
             
             if (result.notification_sent || result.whatsapp_sent) {
                 result.success = true;
