@@ -156,59 +156,44 @@ function setupThousandsInput(inputId) {
     const input = document.getElementById(inputId);
     if (!input) return;
     
-    let timeoutId = null;
+    // Set step to 1000 for spinner arrows
+    input.step = 1000;
+    input.min = 0;
     
-    // Convert value back to thousands for editing on focus
-    input.addEventListener('focus', function(e) {
-        const currentValue = e.target.value;
-        if (currentValue && !isNaN(currentValue)) {
-            const numValue = parseFloat(currentValue);
-            // If value is >= 1000, it's already converted, so convert back for editing
-            if (numValue >= 1000) {
-                e.target.value = (numValue / 1000).toString();
-            }
+    // Handle spinner arrow clicks (up/down)
+    input.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const currentValue = parseFloat(this.value) || 0;
+        if (e.deltaY < 0) {
+            // Scroll up = increase by 1000
+            this.value = (currentValue + 1000).toString();
+        } else {
+            // Scroll down = decrease by 1000
+            this.value = Math.max(0, currentValue - 1000).toString();
         }
     });
     
-    // Only allow numbers and decimal point
-    input.addEventListener('input', function(e) {
-        const value = e.target.value;
-        // Remove any non-numeric characters except decimal point
-        const cleaned = value.replace(/[^0-9.]/g, '');
-        // Only allow one decimal point
-        const parts = cleaned.split('.');
-        const finalValue = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
-        
-        if (value !== finalValue) {
-            e.target.value = finalValue;
+    // Handle input change to ensure value is in thousands
+    input.addEventListener('change', function(e) {
+        const currentValue = parseFloat(this.value);
+        if (!isNaN(currentValue) && currentValue > 0) {
+            // Round to nearest thousand
+            const roundedValue = Math.round(currentValue / 1000) * 1000;
+            this.value = roundedValue.toString();
         }
-        
-        // Clear previous timeout
-        if (timeoutId) {
-            clearTimeout(timeoutId);
-        }
-        
-        // Convert to thousands after user stops typing (500ms delay)
-        timeoutId = setTimeout(function() {
-            const currentValue = e.target.value;
-            if (currentValue && currentValue.trim() !== '' && !isNaN(parseFloat(currentValue))) {
-                const numValue = parseFloat(currentValue);
-                if (numValue > 0) {
-                    const convertedValue = (numValue * 1000).toString();
-                    e.target.value = convertedValue;
-                }
-            }
-        }, 500);
     });
     
-    // Also convert on blur (when user leaves the field)
+    // Handle manual input - convert to thousands on blur
     input.addEventListener('blur', function(e) {
-        const currentValue = e.target.value;
-        if (currentValue && currentValue.trim() !== '' && !isNaN(parseFloat(currentValue))) {
-            const numValue = parseFloat(currentValue);
-            if (numValue > 0 && numValue < 1000) {
-                const convertedValue = (numValue * 1000).toString();
-                e.target.value = convertedValue;
+        const currentValue = parseFloat(this.value);
+        if (!isNaN(currentValue) && currentValue > 0) {
+            // If value is less than 1000, assume user entered in thousands and multiply
+            if (currentValue < 1000) {
+                this.value = (currentValue * 1000).toString();
+            } else {
+                // Round to nearest thousand
+                const roundedValue = Math.round(currentValue / 1000) * 1000;
+                this.value = roundedValue.toString();
             }
         }
     });
@@ -241,7 +226,7 @@ document.getElementById('addCompanyForm').addEventListener('submit', async (e) =
         contact_phone: document.getElementById('company_contact_phone').value,
         address: document.getElementById('company_address').value,
         max_employees: parseInt(document.getElementById('company_max_employees').value) || 0,
-        price_per_employee: parseFloat(document.getElementById('company_price_per_employee').value),
+        price_per_employee: parseFloat(document.getElementById('company_price_per_employee').value) || 0,
         admin_password: document.getElementById('company_admin_password').value
     };
     
@@ -402,14 +387,8 @@ async function loadCompaniesForInvoice() {
                 const selectedOption = this.options[this.selectedIndex];
                 if (selectedOption.dataset.pricePerEmployee) {
                     const priceValue = parseFloat(selectedOption.dataset.pricePerEmployee);
-                    // Convert from full amount to thousands for display
-                    const priceInThousands = (priceValue / 1000).toString();
-                    document.getElementById('invoice_price_per_employee').value = priceInThousands;
-                    // Trigger conversion to thousands
-                    const input = document.getElementById('invoice_price_per_employee');
-                    if (input) {
-                        input.dispatchEvent(new Event('blur'));
-                    }
+                    // Price is already in full amount, set it directly
+                    document.getElementById('invoice_price_per_employee').value = priceValue.toString();
                 }
             });
         }
