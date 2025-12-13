@@ -1494,28 +1494,9 @@ function displayQRCode(qrCodeString) {
     // Clear previous QR Code
     qrCodeDiv.innerHTML = '';
     
-    // Wait for QRCode library to load if not already loaded
-    if (typeof QRCode === 'undefined' && !window.QRCodeLoaded && !window.QRCodeLoadFailed) {
-        // Wait and retry multiple times (silently)
-        let attempts = 0;
-        const maxAttempts = 10; // Reduced attempts
-        const checkInterval = setInterval(() => {
-            attempts++;
-            if (typeof QRCode !== 'undefined') {
-                clearInterval(checkInterval);
-                generateQRCodeCanvas(qrCodeString, qrCodeDiv);
-            } else if (window.QRCodeLoadFailed || attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                // Silently use fallback
-                generateQRCodeImage(qrCodeString, qrCodeDiv);
-            }
-        }, 300); // Reduced interval
-    } else if (typeof QRCode !== 'undefined') {
-        generateQRCodeCanvas(qrCodeString, qrCodeDiv);
-    } else {
-        // Silently use fallback
-        generateQRCodeImage(qrCodeString, qrCodeDiv);
-    }
+    // Always use image fallback (more reliable)
+    // QRCode library from CDN has compatibility issues, so we use api.qrserver.com
+    generateQRCodeImage(qrCodeString, qrCodeDiv);
     
     // Show container
     qrContainer.style.display = 'block';
