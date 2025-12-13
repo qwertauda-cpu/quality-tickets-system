@@ -9,7 +9,7 @@ let ticketTypes = [];
 let teams = [];
 
 // Ticket Checklists Configuration
-var ticketChecklists = {
+const ticketChecklists = {
     FTTH_NEW: [
         "صورة الفات قبل العمل",
         "صورة الفات بعد الربط",
@@ -112,12 +112,10 @@ var ticketChecklists = {
         "Speed Test",
         "الأجهزة"
     ]
-    };
-}
+};
 
 // Mapping between Arabic ticket type names and English keys
-if (typeof ticketTypeMapping === 'undefined') {
-    var ticketTypeMapping = {
+const ticketTypeMapping = {
     'ربط مشترك جديد FTTH': 'FTTH_NEW',
     'ربط جديد FTTH': 'FTTH_NEW',
     'تبديل او صيانه راوتر/ONU': 'ONU_CHANGE',
