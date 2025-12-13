@@ -1,12 +1,15 @@
 // Quality Staff Interface JavaScript
 
+// Prevent duplicate declarations
+(function() {
+    'use strict';
+    
 let currentTicketId = null;
 let ticketTypes = [];
 let teams = [];
 
 // Ticket Checklists Configuration
-if (typeof ticketChecklists === 'undefined') {
-    var ticketChecklists = {
+var ticketChecklists = {
     FTTH_NEW: [
         "صورة الفات قبل العمل",
         "صورة الفات بعد الربط",
