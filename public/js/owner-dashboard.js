@@ -2535,17 +2535,41 @@ async function loadOwnerTemplates() {
 
 // Open create template modal
 function openCreateOwnerTemplateModal() {
+    console.log('openCreateOwnerTemplateModal called');
     const modal = document.getElementById('owner-template-modal');
     const title = document.getElementById('owner-template-modal-title');
     const form = document.getElementById('ownerTemplateForm');
     
-    if (modal && title && form) {
-        title.textContent = 'إضافة قالب جديد';
-        form.reset();
-        document.getElementById('owner_template_id').value = '';
-        modal.style.display = 'flex';
-        setTimeout(() => modal.classList.add('active'), 10);
+    console.log('Modal element:', modal);
+    console.log('Title element:', title);
+    console.log('Form element:', form);
+    
+    if (!modal) {
+        console.error('Modal not found!');
+        alert('خطأ: لم يتم العثور على نافذة القالب');
+        return;
     }
+    
+    if (title) {
+        title.textContent = 'إضافة قالب جديد';
+    }
+    
+    if (form) {
+        form.reset();
+    }
+    
+    const templateIdInput = document.getElementById('owner_template_id');
+    if (templateIdInput) {
+        templateIdInput.value = '';
+    }
+    
+    modal.style.display = 'flex';
+    modal.style.zIndex = '10000';
+    setTimeout(() => {
+        modal.classList.add('active');
+    }, 10);
+    
+    console.log('Modal should be visible now');
 }
 window.openCreateOwnerTemplateModal = openCreateOwnerTemplateModal;
 
