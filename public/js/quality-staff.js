@@ -610,36 +610,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('userName').textContent = user.full_name;
     document.getElementById('currentUser').textContent = user.full_name;
     
-    // Hide "إدارة تكتات" section for technicians and quality_staff (only admin and call_center can access)
-    if (user.role === 'technician' || user.role === 'quality_staff') {
-        // Hide menu item
-        const ticketsManagementMenuItem = document.querySelector('a[data-page="tickets-management-new"]');
-        if (ticketsManagementMenuItem) {
-            const listItem = ticketsManagementMenuItem.closest('li');
-            if (listItem) {
-                listItem.style.display = 'none';
+    // Function to hide elements based on role
+    function hideElementsForRole() {
+        // Hide "إدارة تكتات" section for technicians and quality_staff (only admin and call_center can access)
+        if (user.role === 'technician' || user.role === 'quality_staff') {
+            // Hide menu item
+            const ticketsManagementMenuItem = document.querySelector('a[data-page="tickets-management-new"]');
+            if (ticketsManagementMenuItem) {
+                const listItem = ticketsManagementMenuItem.closest('li');
+                if (listItem) {
+                    listItem.style.display = 'none';
+                }
+            }
+            // Hide page content
+            const ticketsManagementPage = document.getElementById('tickets-management-new-page');
+            if (ticketsManagementPage) {
+                ticketsManagementPage.style.display = 'none';
             }
         }
-        // Hide page content
-        const ticketsManagementPage = document.getElementById('tickets-management-new-page');
-        if (ticketsManagementPage) {
-            ticketsManagementPage.style.display = 'none';
+        
+        // Show/hide "إنشاء تكت" button based on user role (only admin and call_center can see it)
+        const createTicketButtons = document.querySelectorAll('button[onclick="openCreateTicketModal()"]');
+        if (user.role === 'admin' || user.role === 'call_center') {
+            // Show buttons for admin and call_center
+            createTicketButtons.forEach(btn => {
+                btn.style.display = '';
+            });
+        } else {
+            // Hide buttons for other roles
+            createTicketButtons.forEach(btn => {
+                btn.style.display = 'none';
+            });
         }
     }
     
-    // Show/hide "إنشاء تكت" button based on user role (only admin and call_center can see it)
-    const createTicketButtons = document.querySelectorAll('button[onclick="openCreateTicketModal()"]');
-    if (user.role === 'admin' || user.role === 'call_center') {
-        // Show buttons for admin and call_center
-        createTicketButtons.forEach(btn => {
-            btn.style.display = '';
-        });
-    } else {
-        // Hide buttons for other roles
-        createTicketButtons.forEach(btn => {
-            btn.style.display = 'none';
-        });
-    }
+    // Run immediately
+    hideElementsForRole();
+    
+    // Also run after a short delay to ensure DOM is fully loaded
+    setTimeout(hideElementsForRole, 100);
     
     // Load initial data
     await loadTicketTypes();
