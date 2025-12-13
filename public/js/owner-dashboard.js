@@ -1481,12 +1481,21 @@ function displayQRCode(qrCodeString) {
     const qrContainer = document.getElementById('whatsappQRContainer');
     const qrCodeDiv = document.getElementById('whatsappQRCode');
     
-    if (qrContainer && qrCodeDiv && typeof QRCode !== 'undefined') {
-        // Clear previous QR Code
-        qrCodeDiv.innerHTML = '';
+    if (!qrContainer || !qrCodeDiv) {
+        console.error('QR Code container or div not found');
+        return;
+    }
+    
+    // Clear previous QR Code
+    qrCodeDiv.innerHTML = '';
+    
+    if (typeof QRCode !== 'undefined') {
+        // Create canvas element
+        const canvas = document.createElement('canvas');
+        qrCodeDiv.appendChild(canvas);
         
         // Generate QR Code
-        QRCode.toCanvas(qrCodeDiv, qrCodeString, {
+        QRCode.toCanvas(canvas, qrCodeString, {
             width: 256,
             margin: 2,
             color: {
@@ -1498,17 +1507,23 @@ function displayQRCode(qrCodeString) {
                 console.error('Error generating QR Code:', error);
                 // Fallback: use img tag
                 qrCodeDiv.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeString)}" alt="QR Code" style="max-width: 256px;">`;
+            } else {
+                console.log('✅ QR Code generated successfully');
             }
         });
-        
-        // Show container
-        qrContainer.style.display = 'block';
-        
-        // Open accordion if closed
-        const accordionSection = document.querySelector('.accordion-section');
-        if (accordionSection && !accordionSection.classList.contains('active')) {
-            accordionSection.classList.add('active');
-        }
+    } else {
+        console.error('QRCode library not loaded');
+        // Fallback: use img tag
+        qrCodeDiv.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeString)}" alt="QR Code" style="max-width: 256px;">`;
+    }
+    
+    // Show container
+    qrContainer.style.display = 'block';
+    
+    // Open accordion if closed
+    const accordionSection = document.querySelector('.accordion-section');
+    if (accordionSection && !accordionSection.classList.contains('active')) {
+        accordionSection.classList.add('active');
     }
 }
 
