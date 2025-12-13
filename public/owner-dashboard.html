@@ -12,13 +12,16 @@
             const cdnSources = [
                 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js',
                 'https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js',
-                'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js'
+                'https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js',
+                'https://cdn.jsdelivr.net/npm/qrcode@latest/build/qrcode.min.js',
+                'https://unpkg.com/qrcode@latest/build/qrcode.min.js'
             ];
+            
+            let loadingAttempted = false;
             
             function tryLoadScript(index) {
                 if (index >= cdnSources.length) {
-                    console.warn('⚠️ All CDN sources failed, will use image fallback');
-                    console.log('ℹ️ QR Code will still work using image fallback from api.qrserver.com');
+                    // All sources failed - silently use fallback
                     window.QRCodeLoadFailed = true;
                     return;
                 }
@@ -27,25 +30,27 @@
                 script.src = cdnSources[index];
                 script.async = true;
                 script.defer = true;
+                script.crossOrigin = 'anonymous';
                 
-                // Set timeout for script loading (10 seconds)
+                // Set timeout for script loading (5 seconds - reduced)
                 const timeout = setTimeout(() => {
-                    if (!window.QRCodeLoaded) {
-                        console.warn('⚠️ Timeout loading from ' + cdnSources[index] + ', trying next source...');
+                    if (!window.QRCodeLoaded && script.parentNode) {
                         script.onerror();
                     }
-                }, 10000);
+                }, 5000);
                 
                 script.onload = function() {
                     clearTimeout(timeout);
                     window.QRCodeLoaded = true;
-                    console.log('✅ QRCode library loaded successfully from ' + cdnSources[index]);
+                    // Only log success if first attempt
+                    if (index === 0) {
+                        console.log('✅ QRCode library loaded successfully');
+                    }
                 };
                 
                 script.onerror = function() {
                     clearTimeout(timeout);
-                    console.warn('⚠️ Failed to load from ' + cdnSources[index] + ', trying next source...');
-                    // Remove failed script
+                    // Silently try next source (only log if all fail)
                     if (script.parentNode) {
                         script.parentNode.removeChild(script);
                     }
@@ -56,13 +61,21 @@
             }
             
             // Start loading after a short delay to ensure DOM is ready
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', () => {
+            function startLoading() {
+                if (loadingAttempted) return;
+                loadingAttempted = true;
+                
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        setTimeout(() => tryLoadScript(0), 100);
+                    });
+                } else {
                     setTimeout(() => tryLoadScript(0), 100);
-                });
-            } else {
-                setTimeout(() => tryLoadScript(0), 100);
+                }
             }
+            
+            // Start loading
+            startLoading();
         })();
     </script>
 </head>

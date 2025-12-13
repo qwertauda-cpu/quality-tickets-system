@@ -1496,30 +1496,24 @@ function displayQRCode(qrCodeString) {
     
     // Wait for QRCode library to load if not already loaded
     if (typeof QRCode === 'undefined' && !window.QRCodeLoaded && !window.QRCodeLoadFailed) {
-        console.warn('QRCode library not loaded yet, waiting...');
-        // Wait and retry multiple times
+        // Wait and retry multiple times (silently)
         let attempts = 0;
-        const maxAttempts = 15; // Increased attempts
+        const maxAttempts = 10; // Reduced attempts
         const checkInterval = setInterval(() => {
             attempts++;
             if (typeof QRCode !== 'undefined') {
                 clearInterval(checkInterval);
-                console.log('✅ QRCode library loaded, generating canvas QR Code');
                 generateQRCodeCanvas(qrCodeString, qrCodeDiv);
             } else if (window.QRCodeLoadFailed || attempts >= maxAttempts) {
                 clearInterval(checkInterval);
-                if (window.QRCodeLoadFailed) {
-                    console.warn('QRCode library failed to load from CDN, using fallback');
-                } else {
-                    console.warn('QRCode library timeout after ' + maxAttempts + ' attempts, using fallback');
-                }
+                // Silently use fallback
                 generateQRCodeImage(qrCodeString, qrCodeDiv);
             }
-        }, 400); // Increased interval
+        }, 300); // Reduced interval
     } else if (typeof QRCode !== 'undefined') {
         generateQRCodeCanvas(qrCodeString, qrCodeDiv);
     } else {
-        console.warn('QRCode library not available, using fallback');
+        // Silently use fallback
         generateQRCodeImage(qrCodeString, qrCodeDiv);
     }
     
