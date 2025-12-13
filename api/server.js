@@ -2105,10 +2105,10 @@ app.put('/api/users/:id', authenticate, async (req, res) => {
     }
 });
 
-// Delete user
+// Delete user (soft delete - freeze account)
 app.delete('/api/users/:id', authenticate, async (req, res) => {
     try {
-        if (req.user.role !== 'admin') {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
             return res.status(403).json({ error: 'غير مصرح' });
         }
         
@@ -2120,21 +2120,124 @@ app.delete('/api/users/:id', authenticate, async (req, res) => {
             return res.status(404).json({ error: 'المستخدم غير موجود' });
         }
         
-        if (user.role === 'admin') {
+        if (user.role === 'admin' && req.user.role !== 'owner') {
             return res.status(403).json({ error: 'لا يمكن حذف حساب المدير' });
+        }
+        
+        if (user.role === 'owner') {
+            return res.status(403).json({ error: 'لا يمكن حذف حساب المالك' });
         }
         
         if (userId == req.user.id) {
             return res.status(403).json({ error: 'لا يمكن حذف حسابك الخاص' });
         }
         
-        // Soft delete (set is_active = 0)
+        // Soft delete (set is_active = 0) - تجميد الحساب
         await db.query('UPDATE users SET is_active = 0 WHERE id = ?', [userId]);
         
-        res.json({ success: true, message: 'تم حذف الحساب بنجاح' });
+        res.json({ success: true, message: 'تم تجميد الحساب بنجاح' });
     } catch (error) {
-        console.error('Delete user error:', error);
+        console.error('Freeze user error:', error);
+        res.status(500).json({ error: 'خطأ في تجميد الحساب' });
+    }
+});
+
+// Permanently delete user (hard delete)
+app.delete('/api/users/:id/permanent', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const userId = req.params.id;
+        
+        // Don't allow deleting admin users or self
+        const user = await db.queryOne('SELECT role FROM users WHERE id = ?', [userId]);
+        if (!user) {
+            return res.status(404).json({ error: 'المستخدم غير موجود' });
+        }
+        
+        if (user.role === 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'لا يمكن حذف حساب المدير نهائياً' });
+        }
+        
+        if (user.role === 'owner') {
+            return res.status(403).json({ error: 'لا يمكن حذف حساب المالك' });
+        }
+        
+        if (userId == req.user.id) {
+            return res.status(403).json({ error: 'لا يمكن حذف حسابك الخاص' });
+        }
+        
+        // Get company_id before deletion
+        const userToDelete = await db.queryOne('SELECT company_id FROM users WHERE id = ?', [userId]);
+        const companyId = userToDelete ? userToDelete.company_id : null;
+        
+        // Hard delete - حذف نهائي من قاعدة البيانات
+        // First, remove from team_members
+        await db.query('DELETE FROM team_members WHERE user_id = ?', [userId]);
+        
+        // Delete user
+        await db.query('DELETE FROM users WHERE id = ?', [userId]);
+        
+        // Update company employee count if user had company_id
+        if (companyId) {
+            await db.query(`
+                UPDATE companies 
+                SET current_employees = (
+                    SELECT COUNT(*) 
+                    FROM users 
+                    WHERE company_id = ? AND role != 'admin' AND role != 'owner'
+                )
+                WHERE id = ?
+            `, [companyId, companyId]);
+        }
+        
+        res.json({ success: true, message: 'تم حذف الحساب نهائياً بنجاح' });
+    } catch (error) {
+        console.error('Permanent delete user error:', error);
         res.status(500).json({ error: 'خطأ في حذف الحساب' });
+    }
+});
+
+// Freeze/Unfreeze user account
+app.put('/api/users/:id/freeze', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح' });
+        }
+        
+        const userId = req.params.id;
+        const { is_frozen } = req.body; // true to freeze, false to unfreeze
+        
+        // Don't allow freezing admin users or self
+        const user = await db.queryOne('SELECT role FROM users WHERE id = ?', [userId]);
+        if (!user) {
+            return res.status(404).json({ error: 'المستخدم غير موجود' });
+        }
+        
+        if (user.role === 'admin' && req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'لا يمكن تجميد حساب المدير' });
+        }
+        
+        if (user.role === 'owner') {
+            return res.status(403).json({ error: 'لا يمكن تجميد حساب المالك' });
+        }
+        
+        if (userId == req.user.id) {
+            return res.status(403).json({ error: 'لا يمكن تجميد حسابك الخاص' });
+        }
+        
+        // Freeze/Unfreeze (set is_active = 0 for freeze, 1 for unfreeze)
+        await db.query('UPDATE users SET is_active = ? WHERE id = ?', [is_frozen ? 0 : 1, userId]);
+        
+        res.json({ 
+            success: true, 
+            message: is_frozen ? 'تم تجميد الحساب بنجاح' : 'تم إلغاء تجميد الحساب بنجاح' 
+        });
+    } catch (error) {
+        console.error('Freeze/Unfreeze user error:', error);
+        res.status(500).json({ error: 'خطأ في تجميد/إلغاء تجميد الحساب' });
     }
 });
 

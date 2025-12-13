@@ -304,7 +304,7 @@ async function loadEmployees() {
             tbody.innerHTML = '';
             
             if (!data.employees || data.employees.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center">لا يوجد موظفين</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا يوجد موظفين</td></tr>';
                 // Load companies for filter even if no employees
                 await loadCompaniesForFilter('filterCompanyEmployees');
                 return;
@@ -312,20 +312,33 @@ async function loadEmployees() {
             
             data.employees.forEach(emp => {
                 const row = document.createElement('tr');
+                const statusBadge = emp.is_active 
+                    ? '<span class="badge badge-success">نشط</span>'
+                    : '<span class="badge badge-warning">مجمد</span>';
+                
                 row.innerHTML = `
                     <td>${emp.username || '-'}</td>
                     <td>${emp.full_name || '-'}</td>
                     <td>${getRoleName(emp.role)}</td>
                     <td>${emp.company_name ? `${emp.company_name} (@${emp.domain || '-'})` : '-'}</td>
                     <td>${emp.team_name || '-'}</td>
-                    <td><span class="badge ${emp.is_active ? 'badge-success' : 'badge-danger'}">${emp.is_active ? 'نشط' : 'غير نشط'}</span></td>
+                    <td>${statusBadge}</td>
+                    <td style="white-space: nowrap;">
+                        ${emp.role !== 'admin' && emp.role !== 'owner' ? `
+                            ${emp.is_active 
+                                ? `<button class="btn btn-sm btn-warning" onclick="freezeEmployee(${emp.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">تجميد</button>`
+                                : `<button class="btn btn-sm btn-success" onclick="unfreezeEmployee(${emp.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">إلغاء التجميد</button>`
+                            }
+                            <button class="btn btn-sm btn-danger" onclick="permanentlyDeleteEmployee(${emp.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">حذف نهائي</button>
+                        ` : ''}
+                    </td>
                 `;
                 tbody.appendChild(row);
             });
         } else {
             const tbody = document.getElementById('employeesTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
             }
         }
         
@@ -335,10 +348,107 @@ async function loadEmployees() {
         console.error('Error loading employees:', error);
         const tbody = document.getElementById('employeesTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
+
+// Freeze/Unfreeze employee functions
+window.freezeEmployee = async function(employeeId) {
+    if (!confirm('هل أنت متأكد من تجميد هذا الحساب؟\n\nسيتم تعطيل الحساب ولن يتمكن المستخدم من تسجيل الدخول حتى تقوم بإلغاء التجميد.')) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.freezeUser(employeeId, true);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم تجميد الحساب بنجاح');
+            loadEmployees();
+        } else {
+            showAlertModal('خطأ', 'خطأ في تجميد الحساب: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        console.error('Error freezing employee:', error);
+        showAlertModal('خطأ', 'خطأ في تجميد الحساب: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
+
+window.unfreezeEmployee = async function(employeeId) {
+    if (!confirm('هل أنت متأكد من إلغاء تجميد هذا الحساب؟\n\nسيتم تفعيل الحساب ويمكن للمستخدم تسجيل الدخول مرة أخرى.')) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.freezeUser(employeeId, false);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم إلغاء تجميد الحساب بنجاح');
+            loadEmployees();
+        } else {
+            showAlertModal('خطأ', 'خطأ في إلغاء تجميد الحساب: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        console.error('Error unfreezing employee:', error);
+        showAlertModal('خطأ', 'خطأ في إلغاء تجميد الحساب: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
+
+window.permanentlyDeleteEmployee = async function(employeeId) {
+    // Get employee info for confirmation
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const employeesData = await window.api.getOwnerEmployees();
+        if (employeesData && employeesData.success) {
+            const emp = employeesData.employees.find(e => e.id == employeeId);
+            if (emp) {
+                const confirmMessage = `⚠️ تحذير: حذف نهائي ⚠️\n\nهل أنت متأكد تماماً من حذف الحساب نهائياً؟\n\nاسم المستخدم: ${emp.username}\nالاسم الكامل: ${emp.full_name}\n\n⚠️ هذا الإجراء لا يمكن التراجع عنه!\nسيتم حذف الحساب نهائياً من قاعدة البيانات.`;
+                
+                if (!confirm(confirmMessage)) {
+                    return;
+                }
+                
+                // Double confirmation
+                if (!confirm('⚠️ تأكيد نهائي ⚠️\n\nأنت على وشك حذف الحساب نهائياً من قاعدة البيانات.\nهذا الإجراء لا يمكن التراجع عنه.\n\nهل أنت متأكد تماماً؟')) {
+                    return;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error getting employee info:', error);
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.permanentlyDeleteUser(employeeId);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم حذف الحساب نهائياً بنجاح');
+            loadEmployees();
+            loadDashboard();
+        } else {
+            showAlertModal('خطأ', 'خطأ في حذف الحساب: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        console.error('Error permanently deleting employee:', error);
+        showAlertModal('خطأ', 'خطأ في حذف الحساب: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
 
 async function loadCompaniesForFilter(selectId) {
     try {

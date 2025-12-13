@@ -949,16 +949,26 @@ async function loadUsers() {
                         'call_center': 'موظف مركز اتصال'
                     }[user.role] || user.role;
                     
+                    const statusBadge = user.is_active 
+                        ? '<span class="badge badge-success">نشط</span>'
+                        : '<span class="badge badge-warning">مجمد</span>';
+                    
                     row.innerHTML = `
                         <td>${user.username || '-'}</td>
                         <td>${user.full_name || '-'}</td>
                         <td>${user.team_name || '-'}</td>
                         <td>${roleText}</td>
-                        <td><span class="badge ${user.is_active ? 'badge-success' : 'badge-danger'}">${user.is_active ? 'نشط' : 'غير نشط'}</span></td>
+                        <td>${statusBadge}</td>
                         <td>${formatDate(user.created_at)}</td>
-                        <td>
+                        <td style="white-space: nowrap;">
                             <button class="btn btn-secondary" onclick="editUser(${user.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">تعديل</button>
-                            ${user.role !== 'admin' ? `<button class="btn btn-danger" onclick="deleteUser(${user.id})" style="padding: 6px 12px; font-size: 12px;">حذف</button>` : ''}
+                            ${user.role !== 'admin' ? `
+                                ${user.is_active 
+                                    ? `<button class="btn btn-warning" onclick="freezeUser(${user.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">تجميد</button>`
+                                    : `<button class="btn btn-success" onclick="unfreezeUser(${user.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">إلغاء التجميد</button>`
+                                }
+                                <button class="btn btn-danger" onclick="permanentlyDeleteUser(${user.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">حذف نهائي</button>
+                            ` : ''}
                         </td>
                     `;
                     tbody.appendChild(row);
@@ -1264,21 +1274,75 @@ function closeUserModal() {
     document.getElementById('userModal').style.display = 'none';
 }
 
-async function deleteUser(userId) {
-    if (!confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
+async function freezeUser(userId) {
+    if (!confirm('هل أنت متأكد من تجميد هذا الحساب؟\n\nسيتم تعطيل الحساب ولن يتمكن المستخدم من تسجيل الدخول حتى تقوم بإلغاء التجميد.')) {
         return;
     }
     
     try {
-        const data = await window.api.deleteUser(userId);
+        const data = await window.api.freezeUser(userId, true);
         if (data && data.success) {
-            alert('تم حذف المستخدم بنجاح');
+            showAlertModal('نجح', 'تم تجميد الحساب بنجاح');
             loadUsers();
         } else {
-            alert('خطأ في حذف المستخدم: ' + (data.error || 'خطأ غير معروف'));
+            showAlertModal('خطأ', 'خطأ في تجميد الحساب: ' + (data?.error || 'خطأ غير معروف'));
         }
     } catch (error) {
-        alert('خطأ في حذف المستخدم: ' + (error.message || 'خطأ غير معروف'));
+        showAlertModal('خطأ', 'خطأ في تجميد الحساب: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+async function unfreezeUser(userId) {
+    if (!confirm('هل أنت متأكد من إلغاء تجميد هذا الحساب؟\n\nسيتم تفعيل الحساب ويمكن للمستخدم تسجيل الدخول مرة أخرى.')) {
+        return;
+    }
+    
+    try {
+        const data = await window.api.freezeUser(userId, false);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم إلغاء تجميد الحساب بنجاح');
+            loadUsers();
+        } else {
+            showAlertModal('خطأ', 'خطأ في إلغاء تجميد الحساب: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        showAlertModal('خطأ', 'خطأ في إلغاء تجميد الحساب: ' + (error.message || 'خطأ غير معروف'));
+    }
+}
+
+async function permanentlyDeleteUser(userId) {
+    // Get user info for confirmation
+    try {
+        const usersData = await window.api.getUsers();
+        if (usersData && usersData.success) {
+            const user = usersData.users.find(u => u.id == userId);
+            if (user) {
+                const confirmMessage = `⚠️ تحذير: حذف نهائي ⚠️\n\nهل أنت متأكد تماماً من حذف الحساب نهائياً؟\n\nاسم المستخدم: ${user.username}\nالاسم الكامل: ${user.full_name}\n\n⚠️ هذا الإجراء لا يمكن التراجع عنه!\nسيتم حذف الحساب نهائياً من قاعدة البيانات.`;
+                
+                if (!confirm(confirmMessage)) {
+                    return;
+                }
+                
+                // Double confirmation
+                if (!confirm('⚠️ تأكيد نهائي ⚠️\n\nأنت على وشك حذف الحساب نهائياً من قاعدة البيانات.\nهذا الإجراء لا يمكن التراجع عنه.\n\nهل أنت متأكد تماماً؟')) {
+                    return;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error getting user info:', error);
+    }
+    
+    try {
+        const data = await window.api.permanentlyDeleteUser(userId);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم حذف الحساب نهائياً بنجاح');
+            loadUsers();
+        } else {
+            showAlertModal('خطأ', 'خطأ في حذف الحساب: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        showAlertModal('خطأ', 'خطأ في حذف الحساب: ' + (error.message || 'خطأ غير معروف'));
     }
 }
 
@@ -1378,6 +1442,9 @@ window.resetAdminTicketForm = resetAdminTicketForm;
 window.showAddUserForm = showAddUserForm;
 window.editUser = editUser;
 window.deleteUser = deleteUser;
+window.freezeUser = freezeUser;
+window.unfreezeUser = unfreezeUser;
+window.permanentlyDeleteUser = permanentlyDeleteUser;
 window.closeUserModal = closeUserModal;
 window.toggleMobileMenu = toggleMobileMenu;
 window.generateDailyReport = generateDailyReport;

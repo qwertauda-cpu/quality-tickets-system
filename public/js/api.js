@@ -127,6 +127,13 @@ const api = {
     deleteUser: (id) => apiRequest(`/users/${id}`, {
         method: 'DELETE'
     }),
+    permanentlyDeleteUser: (id) => apiRequest(`/users/${id}/permanent`, {
+        method: 'DELETE'
+    }),
+    freezeUser: (id, isFrozen) => apiRequest(`/users/${id}/freeze`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_frozen: isFrozen })
+    }),
     
     // Team Rankings (for technicians)
     getTeamRankings: (period = 'daily', date = null) => {
