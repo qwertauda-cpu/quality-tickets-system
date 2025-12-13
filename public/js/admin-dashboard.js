@@ -1339,6 +1339,13 @@ window.editUser = editUser;
 window.deleteUser = deleteUser;
 window.closeUserModal = closeUserModal;
 window.toggleMobileMenu = toggleMobileMenu;
+window.generateDailyReport = generateDailyReport;
+window.exportDatabase = exportDatabase;
+window.selectAllExportTables = selectAllExportTables;
+window.deselectAllExportTables = deselectAllExportTables;
+window.filterTickets = filterTickets;
+window.resetFilters = resetFilters;
+window.sortTickets = sortTickets;
 
 document.addEventListener('DOMContentLoaded', () => {
     initAdminDashboard();
