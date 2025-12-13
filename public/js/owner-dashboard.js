@@ -1489,32 +1489,20 @@ function displayQRCode(qrCodeString) {
     // Clear previous QR Code
     qrCodeDiv.innerHTML = '';
     
-    if (typeof QRCode !== 'undefined') {
-        // Create canvas element
-        const canvas = document.createElement('canvas');
-        qrCodeDiv.appendChild(canvas);
-        
-        // Generate QR Code
-        QRCode.toCanvas(canvas, qrCodeString, {
-            width: 256,
-            margin: 2,
-            color: {
-                dark: '#000000',
-                light: '#FFFFFF'
-            }
-        }, function (error) {
-            if (error) {
-                console.error('Error generating QR Code:', error);
-                // Fallback: use img tag
-                qrCodeDiv.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeString)}" alt="QR Code" style="max-width: 256px;">`;
+    // Wait for QRCode library to load if not already loaded
+    if (typeof QRCode === 'undefined') {
+        console.warn('QRCode library not loaded yet, waiting...');
+        // Wait a bit and try again
+        setTimeout(() => {
+            if (typeof QRCode !== 'undefined') {
+                generateQRCodeCanvas(qrCodeString, qrCodeDiv);
             } else {
-                console.log('✅ QR Code generated successfully');
+                console.error('QRCode library still not loaded, using fallback');
+                generateQRCodeImage(qrCodeString, qrCodeDiv);
             }
-        });
+        }, 500);
     } else {
-        console.error('QRCode library not loaded');
-        // Fallback: use img tag
-        qrCodeDiv.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeString)}" alt="QR Code" style="max-width: 256px;">`;
+        generateQRCodeCanvas(qrCodeString, qrCodeDiv);
     }
     
     // Show container
@@ -1525,6 +1513,44 @@ function displayQRCode(qrCodeString) {
     if (accordionSection && !accordionSection.classList.contains('active')) {
         accordionSection.classList.add('active');
     }
+}
+
+// Generate QR Code using Canvas
+function generateQRCodeCanvas(qrCodeString, qrCodeDiv) {
+    // Create canvas element
+    const canvas = document.createElement('canvas');
+    qrCodeDiv.appendChild(canvas);
+    
+    // Generate QR Code
+    QRCode.toCanvas(canvas, qrCodeString, {
+        width: 256,
+        margin: 2,
+        color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+        }
+    }, function (error) {
+        if (error) {
+            console.error('Error generating QR Code with canvas:', error);
+            // Fallback: use img tag
+            qrCodeDiv.innerHTML = '';
+            generateQRCodeImage(qrCodeString, qrCodeDiv);
+        } else {
+            console.log('✅ QR Code generated successfully with canvas');
+        }
+    });
+}
+
+// Generate QR Code using Image (fallback)
+function generateQRCodeImage(qrCodeString, qrCodeDiv) {
+    const img = document.createElement('img');
+    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(qrCodeString)}`;
+    img.alt = 'QR Code';
+    img.style.maxWidth = '256px';
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    qrCodeDiv.appendChild(img);
+    console.log('✅ QR Code generated using image fallback');
 }
 
 // Hide QR Code
