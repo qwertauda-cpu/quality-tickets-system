@@ -3655,11 +3655,65 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Create Ticket Modal Functions
+// Alert Modal Functions
+function showAlertModal(title, message, type = 'warning') {
+    const modal = document.getElementById('alert-modal');
+    const titleEl = document.getElementById('alert-title');
+    const messageEl = document.getElementById('alert-message');
+    const iconEl = document.getElementById('alert-icon');
+    const okBtn = document.getElementById('alert-ok-btn');
+    
+    if (!modal || !titleEl || !messageEl || !iconEl) return;
+    
+    // Set title and message
+    titleEl.textContent = title || 'تنبيه';
+    messageEl.textContent = message || '';
+    
+    // Set icon and colors based on type
+    const types = {
+        'success': { icon: '✅', color: 'var(--success-color)', btnClass: 'btn-success' },
+        'error': { icon: '❌', color: 'var(--danger-color)', btnClass: 'btn-danger' },
+        'warning': { icon: '⚠️', color: 'var(--warning-color)', btnClass: 'btn-warning' },
+        'info': { icon: 'ℹ️', color: 'var(--primary-color)', btnClass: 'btn-primary' }
+    };
+    
+    const typeConfig = types[type] || types['warning'];
+    iconEl.textContent = typeConfig.icon;
+    iconEl.style.color = typeConfig.color;
+    
+    // Update button class
+    if (okBtn) {
+        okBtn.className = `btn ${typeConfig.btnClass}`;
+    }
+    
+    // Show modal
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+}
+
+function closeAlertModal() {
+    const modal = document.getElementById('alert-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    const alertModal = document.getElementById('alert-modal');
+    if (alertModal && e.target === alertModal) {
+        closeAlertModal();
+    }
+});
+
 async function openCreateTicketModal() {
     // Check permissions - only admin and call_center can create tickets
     const user = getCurrentUser();
     if (!user || (user.role !== 'admin' && user.role !== 'call_center')) {
-        alert('غير مصرح لك بإنشاء التكتات. فقط Admin و Call Center يمكنهم إنشاء التكتات.');
+        showAlertModal('غير مصرح', 'غير مصرح لك بإنشاء التكتات. فقط Admin و Call Center يمكنهم إنشاء التكتات.', 'warning');
         return;
     }
     
@@ -3772,7 +3826,7 @@ function setupCreateTicketFormSubmission() {
             // Validate phone number
             const phone = document.getElementById('create_subscriber_phone').value;
             if (phone.length !== 11) {
-                alert('يجب أن يحتوي رقم الهاتف على 11 رقم بالضبط');
+                showAlertModal('تحذير', 'يجب أن يحتوي رقم الهاتف على 11 رقم بالضبط', 'warning');
                 return;
             }
             
@@ -3790,14 +3844,14 @@ function setupCreateTicketFormSubmission() {
             
             // Validate required fields
             if (!ticketData.subscriber_name || !ticketData.subscriber_phone || !ticketData.ticket_type_id) {
-                alert('الرجاء ملء جميع الحقول المطلوبة (*)');
+                showAlertModal('تحذير', 'الرجاء ملء جميع الحقول المطلوبة (*)', 'warning');
                 return;
             }
             
             try {
                 const result = await window.api.createTicket(ticketData);
                 if (result && result.success) {
-                    alert('تم إنشاء التكت بنجاح!\nرقم التكت: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'));
+                    showAlertModal('نجح', 'تم إنشاء التكت بنجاح!\nرقم التكت: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'), 'success');
                     closeCreateTicketModal();
                     // Reload tickets list based on current page
                     const ticketsManagementNewPage = document.getElementById('tickets-management-new-page');
@@ -3811,11 +3865,11 @@ function setupCreateTicketFormSubmission() {
                         loadTicketsManagement(currentTicketFilter || 'NEW');
                     }
                 } else {
-                    alert('خطأ: ' + (result.error || 'فشل إنشاء التكت'));
+                    showAlertModal('خطأ', result.error || 'فشل إنشاء التكت', 'error');
                 }
             } catch (error) {
                 console.error('Error creating ticket:', error);
-                alert('حدث خطأ أثناء إنشاء التكت: ' + (error.message || 'خطأ غير معروف'));
+                showAlertModal('خطأ', 'حدث خطأ أثناء إنشاء التكت: ' + (error.message || 'خطأ غير معروف'), 'error');
             }
         };
     }
@@ -3833,4 +3887,6 @@ window.reviewTicket = reviewTicket;
 window.closeReviewSection = closeReviewSection;
 window.openCreateTicketModal = openCreateTicketModal;
 window.closeCreateTicketModal = closeCreateTicketModal;
+window.showAlertModal = showAlertModal;
+window.closeAlertModal = closeAlertModal;
 
