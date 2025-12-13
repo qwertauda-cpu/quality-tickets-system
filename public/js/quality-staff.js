@@ -1298,6 +1298,8 @@ function showPage(pageName) {
     // Load page data
     if (pageName === 'tickets-management') {
         loadTicketsManagement('NEW');
+    } else if (pageName === 'tickets-management-new') {
+        loadTicketsManagementNew('NEW');
     } else if (pageName === 'tickets-list') {
         loadTicketsList();
     }
@@ -1391,6 +1393,97 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
 // دالة فلترة التكتات
 function filterTicketsByStatus(status) {
     loadTicketsManagement(status);
+}
+
+// إدارة التكتات الجديدة - تحميل التكتات مع الفلترة
+let currentTicketFilterNew = 'NEW'; // Default: معلقة
+
+async function loadTicketsManagementNew(filterStatus = 'NEW') {
+    currentTicketFilterNew = filterStatus;
+    try {
+        if (!window.api) {
+            console.error('API not available');
+            return;
+        }
+        
+        // جلب جميع التكتات ثم فلترتها
+        const data = await window.api.getTickets({ limit: 1000 });
+        if (data && data.success) {
+            const tbody = document.getElementById('ticketsManagementNewTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            // فلترة التكتات حسب الحالة
+            let filteredTickets = data.tickets || [];
+            if (filterStatus !== 'all') {
+                filteredTickets = filteredTickets.filter(ticket => ticket.status === filterStatus);
+            }
+            
+            // تحديث الأزرار النشطة
+            const pageContent = document.getElementById('tickets-management-new-page');
+            if (pageContent) {
+                pageContent.querySelectorAll('.btn-tab').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.getAttribute('data-status') === filterStatus) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            
+            if (filteredTickets.length > 0) {
+                filteredTickets.forEach(ticket => {
+                    const statusBadge = {
+                        'NEW': 'badge-warning',
+                        'ASSIGNED': 'badge-info',
+                        'IN_PROGRESS': 'badge-primary',
+                        'COMPLETED': 'badge-success',
+                        'UNDER_REVIEW': 'badge-info',
+                        'FOLLOW_UP': 'badge-danger',
+                        'CLOSED': 'badge-secondary'
+                    }[ticket.status] || 'badge-info';
+                    
+                    const statusText = {
+                        'NEW': 'معلق',
+                        'ASSIGNED': 'مخصص للفني',
+                        'IN_PROGRESS': 'قيد العمل',
+                        'COMPLETED': 'منجز',
+                        'UNDER_REVIEW': 'قيد المراجعة',
+                        'FOLLOW_UP': 'مؤجل',
+                        'CLOSED': 'منتهي'
+                    }[ticket.status] || ticket.status;
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${ticket.ticket_number || '-'}</td>
+                        <td>${ticket.subscriber_name || '-'}</td>
+                        <td>${ticket.subscriber_phone || '-'}</td>
+                        <td>${ticket.ticket_type_name || '-'}</td>
+                        <td>${ticket.region || '-'}</td>
+                        <td><span class="badge ${statusBadge}">${statusText}</span></td>
+                        <td>${ticket.created_at ? new Date(ticket.created_at).toLocaleDateString('ar-SA') : '-'}</td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="showTicketDetails(${ticket.id})" style="padding: 6px 12px; font-size: 12px;">عرض</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = '<tr><td colspan="8" class="loading">لا توجد تكتات</td></tr>';
+            }
+        }
+    } catch (error) {
+        console.error('Error loading tickets management new:', error);
+        const tbody = document.getElementById('ticketsManagementNewTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" class="loading">خطأ في تحميل البيانات</td></tr>';
+        }
+    }
+}
+
+// دالة فلترة التكتات للصفحة الجديدة
+function filterTicketsByStatusNew(status) {
+    loadTicketsManagementNew(status);
 }
 
 async function loadTicketsList() {
@@ -3682,8 +3775,15 @@ function setupCreateTicketFormSubmission() {
                 if (result && result.success) {
                     alert('تم إنشاء التكت بنجاح!\nرقم التكت: ' + (result.ticket?.ticket_number || 'تم التوليد تلقائياً'));
                     closeCreateTicketModal();
-                    // Reload tickets list
-                    if (typeof loadTicketsManagement === 'function') {
+                    // Reload tickets list based on current page
+                    const ticketsManagementNewPage = document.getElementById('tickets-management-new-page');
+                    if (ticketsManagementNewPage && ticketsManagementNewPage.style.display !== 'none') {
+                        // If we're on the new tickets management page, reload it
+                        if (typeof loadTicketsManagementNew === 'function') {
+                            loadTicketsManagementNew(currentTicketFilterNew || 'NEW');
+                        }
+                    } else if (typeof loadTicketsManagement === 'function') {
+                        // Otherwise reload the old page
                         loadTicketsManagement(currentTicketFilter || 'NEW');
                     }
                 } else {

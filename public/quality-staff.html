@@ -250,9 +250,39 @@
                 <div class="card">
                     <div class="card-header">
                         <h2>إدارة تكتات</h2>
+                        <button class="btn btn-primary" onclick="openCreateTicketModal()" style="margin-right: 10px;">➕ إنشاء تكت</button>
                     </div>
                     <div class="card-body">
-                        <!-- محتوى فارغ - جاهز للتطوير -->
+                        <!-- Tabs/Filters -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-tab active" onclick="filterTicketsByStatusNew('NEW')" data-status="NEW">التكتات المعلقة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('COMPLETED')" data-status="COMPLETED">التكتات المنجزة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('FOLLOW_UP')" data-status="FOLLOW_UP">التكتات المؤجلة</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('CLOSED')" data-status="CLOSED">التكتات المنتهية</button>
+                            <button class="btn btn-tab" onclick="filterTicketsByStatusNew('all')" data-status="all">جميع التكتات</button>
+                        </div>
+                        
+                        <div class="table-container">
+                            <table id="ticketsManagementNewTable">
+                                <thead>
+                                    <tr>
+                                        <th>رقم التكت</th>
+                                        <th>اسم المشترك</th>
+                                        <th>رقم الهاتف</th>
+                                        <th>نوع التكت</th>
+                                        <th>المنطقة</th>
+                                        <th>الحالة</th>
+                                        <th>تاريخ الإنشاء</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ticketsManagementNewTableBody">
+                                    <tr>
+                                        <td colspan="8" class="loading">جاري التحميل...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
