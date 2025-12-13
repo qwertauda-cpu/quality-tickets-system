@@ -2564,24 +2564,30 @@ function openCreateOwnerTemplateModal() {
             templateIdInput.value = '';
         }
         
-        // Show modal - CSS requires active class for display
-        // Remove any inline display style (it overrides CSS)
-        modal.style.removeProperty('display');
-        // Ensure z-index is high enough
+        // Show modal - Force display with inline style to override any CSS issues
+        modal.style.display = 'flex';
+        modal.style.opacity = '1';
         modal.style.zIndex = '10000';
-        // Then add active class - CSS will set display:flex and opacity:1
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.right = '0';
+        modal.style.bottom = '0';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.padding = '20px';
+        modal.style.overflowY = 'auto';
+        modal.style.pointerEvents = 'auto';
+        modal.style.background = 'rgba(0, 0, 0, 0.75)';
+        
+        // Add active class for CSS transitions
         modal.classList.add('active');
         
-        // Double-check: if inline style still exists, force remove it
-        if (modal.style.display === 'none') {
-            modal.style.display = '';
-        }
-        
-        // Force the modal to be visible by setting display directly if needed
+        // Force the modal content to be visible
         const modalContent = modal.querySelector('.modal');
         if (modalContent) {
-            // Ensure modal content is visible
             modalContent.style.transform = 'scale(1)';
+            modalContent.style.opacity = '1';
         }
         
         console.log('Modal should be visible now');
@@ -2591,6 +2597,8 @@ function openCreateOwnerTemplateModal() {
         console.log('Modal computed style display:', window.getComputedStyle(modal).display);
         console.log('Modal computed style opacity:', window.getComputedStyle(modal).opacity);
         console.log('Modal computed style z-index:', window.getComputedStyle(modal).zIndex);
+        console.log('Modal computed style position:', window.getComputedStyle(modal).position);
+        console.log('Modal computed style visibility:', window.getComputedStyle(modal).visibility);
         console.log('Modal content transform:', modalContent ? window.getComputedStyle(modalContent).transform : 'N/A');
     } catch (error) {
         console.error('Error in openCreateOwnerTemplateModal:', error);
