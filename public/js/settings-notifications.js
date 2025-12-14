@@ -125,7 +125,7 @@
           </div>
 
           <div class="btn-group" style="margin-top: 18px;">
-            <button type="submit" class="btn btn-primary">💾 حفظ</button>
+            <button type="submit" class="btn btn-primary">حفظ</button>
             <button type="button" class="btn btn-secondary" id="testNotificationBtn">اختبار الإشعار</button>
           </div>
         </form>
