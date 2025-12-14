@@ -1108,16 +1108,12 @@ window.selectRoleType = function(roleType) {
         // Hide custom section when quality_staff is selected
         customSection.style.display = 'none';
         technicianSection.style.display = 'none';
-        teamGroup.style.display = 'block';
+        // Hide team group for quality staff - they don't need to be in a team
+        teamGroup.style.display = 'none';
         teamSelect.required = false;
-        const smallText = document.getElementById('user_team_hint');
-        if (smallText) {
-            smallText.textContent = 'اختياري - يمكن تعيين موظف الجودة لفريق معين';
-        }
+        teamSelect.value = ''; // Clear team selection
         document.querySelector('[data-role="quality_staff"]').style.borderColor = 'var(--success-color)';
         document.querySelector('[data-role="quality_staff"]').style.background = 'rgba(5, 150, 105, 0.05)';
-        // Ensure team select is loaded
-        loadTeamsForUserForm();
     } else if (roleType === 'technician') {
         roleInput.value = 'technician';
         document.getElementById('perm_execute_tickets').checked = true;
@@ -1181,12 +1177,10 @@ function updatePermissions() {
     } else if (reviewQuality && !executeTickets) {
         // Quality staff
         role = 'quality_staff';
-        teamGroup.style.display = 'block';
+        // Hide team group for quality staff - they don't need to be in a team
+        teamGroup.style.display = 'none';
         teamSelect.required = false;
-        const smallText = document.getElementById('user_team_hint');
-        if (smallText) {
-            smallText.textContent = 'اختياري - يمكن تعيين موظف الجودة لفريق معين';
-        }
+        teamSelect.value = ''; // Clear team selection
     } else if (executeTickets && !reviewQuality) {
         // Technician
         role = 'technician';
