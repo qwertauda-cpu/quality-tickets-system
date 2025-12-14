@@ -310,6 +310,14 @@ api.updateCompany = (id, data) => apiRequest(`/owner/companies/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data)
 });
+api.freezeCompany = (id, freeze) => apiRequest(`/owner/companies/${id}/freeze`, {
+    method: 'PUT',
+    body: JSON.stringify({ is_active: !freeze })
+});
+api.renewCompanySubscription = (id, months) => apiRequest(`/owner/companies/${id}/renew`, {
+    method: 'POST',
+    body: JSON.stringify({ months: months })
+});
 api.getOwnerEmployees = (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     return apiRequest(`/owner/employees?${queryString}`);

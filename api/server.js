@@ -4333,6 +4333,78 @@ app.put('/api/owner/companies/:id', authenticate, async (req, res) => {
     }
 });
 
+// Freeze/Unfreeze company
+app.put('/api/owner/companies/:id/freeze', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const companyId = req.params.id;
+        const { is_active } = req.body;
+        
+        // Update company status
+        await db.query('UPDATE companies SET is_active = ? WHERE id = ?', [is_active ? 1 : 0, companyId]);
+        
+        // Also freeze/unfreeze all users in the company
+        await db.query('UPDATE users SET is_active = ? WHERE company_id = ?', [is_active ? 1 : 0, companyId]);
+        
+        res.json({ 
+            success: true, 
+            message: is_active ? 'تم إلغاء تجميد الشركة بنجاح' : 'تم تجميد الشركة بنجاح' 
+        });
+    } catch (error) {
+        console.error('Freeze company error:', error);
+        res.status(500).json({ error: 'خطأ في تجميد/إلغاء تجميد الشركة' });
+    }
+});
+
+// Renew company subscription
+app.post('/api/owner/companies/:id/renew', authenticate, async (req, res) => {
+    try {
+        if (req.user.role !== 'owner') {
+            return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
+        }
+        
+        const companyId = req.params.id;
+        const { months } = req.body;
+        
+        if (!months || isNaN(months) || parseInt(months) <= 0) {
+            return res.status(400).json({ error: 'عدد الأشهر يجب أن يكون رقم موجب' });
+        }
+        
+        // Get current subscription end date
+        const company = await db.queryOne('SELECT subscription_end_date FROM companies WHERE id = ?', [companyId]);
+        if (!company) {
+            return res.status(404).json({ error: 'الشركة غير موجودة' });
+        }
+        
+        let newEndDate;
+        if (company.subscription_end_date) {
+            // Add months to existing end date
+            const currentEndDate = new Date(company.subscription_end_date);
+            newEndDate = new Date(currentEndDate);
+            newEndDate.setMonth(newEndDate.getMonth() + parseInt(months));
+        } else {
+            // Start from today
+            newEndDate = new Date();
+            newEndDate.setMonth(newEndDate.getMonth() + parseInt(months));
+        }
+        
+        // Update subscription end date
+        await db.query('UPDATE companies SET subscription_end_date = ? WHERE id = ?', [newEndDate, companyId]);
+        
+        res.json({ 
+            success: true, 
+            message: 'تم تجديد الاشتراك بنجاح',
+            new_end_date: moment(newEndDate).format('YYYY-MM-DD')
+        });
+    } catch (error) {
+        console.error('Renew subscription error:', error);
+        res.status(500).json({ error: 'خطأ في تجديد الاشتراك' });
+    }
+});
+
 // Get all employees across all companies (Owner only)
 app.get('/api/owner/employees', authenticate, async (req, res) => {
     try {

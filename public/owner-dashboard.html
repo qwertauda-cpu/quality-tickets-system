@@ -229,7 +229,7 @@
                                         <th>عدد الموظفين</th>
                                         <th>السعر/موظف</th>
                                         <th>الحالة</th>
-                                        <th>الإجراءات</th>
+                                        <th style="min-width: 200px;">الإجراءات</th>
                                     </tr>
                                 </thead>
                                 <tbody id="companiesTableBody">
@@ -536,76 +536,137 @@
 
     <!-- Add Company Modal -->
     <div id="addCompanyModal" class="modal-overlay" style="display: none;">
-        <div class="modal">
+        <div class="modal" style="max-width: 800px;">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h2>إضافة شركة جديدة</h2>
-                    <button type="button" class="modal-close" onclick="closeAddCompanyModal()" aria-label="إغلاق">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; border-radius: 12px 12px 0 0;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="font-size: 32px;">🏢</div>
+                        <div>
+                            <h2 style="margin: 0; color: white; font-size: 24px;">إضافة شركة جديدة</h2>
+                            <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">إنشاء حساب شركة جديدة مع مديرها</p>
+                        </div>
+                    </div>
+                    <button type="button" class="modal-close" onclick="closeAddCompanyModal()" aria-label="إغلاق" style="color: white;">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body" style="padding: 24px; max-height: 80vh; overflow-y: auto;">
                     <form id="addCompanyForm">
-                        <div class="form-section">
-                            <h3 class="form-section-title">معلومات الشركة الأساسية</h3>
-                            <div class="form-group">
-                                <label for="company_name">اسم الشركة <span class="required">*</span></label>
-                                <input type="text" id="company_name" required placeholder="أدخل اسم الشركة">
-                            </div>
-                            <div class="form-group">
-                                <label for="company_domain">المجال (Domain) <span class="required">*</span></label>
-                                <input type="text" id="company_domain" required placeholder="tec" pattern="[a-z0-9]+">
-                                <small class="form-hint">مثال: tec (بدون مسافات أو أحرف كبيرة)</small>
-                            </div>
-                        </div>
-
-                        <div class="form-section">
-                            <h3 class="form-section-title">معلومات المسؤول</h3>
-                            <div class="form-group">
-                                <label for="company_contact_name">اسم المسؤول <span class="required">*</span></label>
-                                <input type="text" id="company_contact_name" required placeholder="أدخل اسم المسؤول">
-                            </div>
-                            <div class="form-group">
-                                <label for="company_contact_email">البريد الإلكتروني <span class="required">*</span></label>
-                                <input type="email" id="company_contact_email" required placeholder="example@email.com">
-                            </div>
-                            <div class="form-group">
-                                <label for="company_contact_phone">رقم الهاتف</label>
-                                <input type="tel" id="company_contact_phone" placeholder="07XX XXX XXXX">
-                            </div>
-                            <div class="form-group">
-                                <label for="company_address">العنوان</label>
-                                <textarea id="company_address" rows="3" placeholder="أدخل عنوان الشركة"></textarea>
+                        <!-- معلومات الشركة الأساسية -->
+                        <div class="form-section" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(79, 70, 229, 0.05) 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                            <h3 class="form-section-title" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--primary-color);">
+                                <span style="font-size: 24px;">📋</span>
+                                <span>معلومات الشركة الأساسية</span>
+                            </h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label for="company_name" style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                                        <span>اسم الشركة</span>
+                                        <span class="required">*</span>
+                                    </label>
+                                    <input type="text" id="company_name" required placeholder="مثال: شركة التقنية المتقدمة" style="padding: 12px; border-radius: 8px;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company_domain" style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                                        <span>المجال (Domain)</span>
+                                        <span class="required">*</span>
+                                    </label>
+                                    <div style="position: relative;">
+                                        <input type="text" id="company_domain" required placeholder="tec" pattern="[a-z0-9]+" style="padding: 12px 40px 12px 12px; border-radius: 8px;">
+                                        <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px;">admin@</span>
+                                    </div>
+                                    <small class="form-hint" style="margin-top: 6px; display: block;">مثال: tec (بدون مسافات أو أحرف كبيرة)</small>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-section">
-                            <h3 class="form-section-title">الإعدادات المالية</h3>
-                            <div class="form-group">
-                                <label for="company_max_employees">الحد الأقصى للموظفين</label>
-                                <input type="number" id="company_max_employees" min="0" value="0" placeholder="0">
-                            </div>
-                            <div class="form-group">
-                                <label for="company_price_per_employee">السعر لكل موظف (دينار عراقي) <span class="required">*</span></label>
-                                <input type="number" id="company_price_per_employee" step="1000" min="0" required placeholder="0">
-                                <small class="form-hint">استخدم الأسهم للزيادة/النقصان بمقدار 1000 دينار</small>
+                        <!-- معلومات المسؤول -->
+                        <div class="form-section" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                            <h3 class="form-section-title" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--secondary-color);">
+                                <span style="font-size: 24px;">👤</span>
+                                <span>معلومات المسؤول</span>
+                            </h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label for="company_contact_name" style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                                        <span>اسم المسؤول</span>
+                                        <span class="required">*</span>
+                                    </label>
+                                    <input type="text" id="company_contact_name" required placeholder="مثال: أحمد محمد" style="padding: 12px; border-radius: 8px;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company_contact_email" style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                                        <span>البريد الإلكتروني</span>
+                                        <span class="required">*</span>
+                                    </label>
+                                    <input type="email" id="company_contact_email" required placeholder="example@email.com" style="padding: 12px; border-radius: 8px;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company_contact_phone" style="font-weight: 600;">رقم الهاتف</label>
+                                    <input type="tel" id="company_contact_phone" placeholder="07XX XXX XXXX" style="padding: 12px; border-radius: 8px;">
+                                </div>
+                                <div class="form-group">
+                                    <label for="company_address" style="font-weight: 600;">العنوان</label>
+                                    <textarea id="company_address" rows="2" placeholder="أدخل عنوان الشركة" style="padding: 12px; border-radius: 8px; resize: vertical;"></textarea>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-section">
-                            <h3 class="form-section-title">حساب المدير</h3>
-                            <div class="form-group">
-                                <label for="company_admin_password">كلمة مرور المدير <span class="required">*</span></label>
-                                <input type="password" id="company_admin_password" required placeholder="أدخل كلمة المرور">
-                                <small class="form-hint">سيتم إنشاء حساب المدير تلقائياً: admin@domain</small>
+                        <!-- الإعدادات المالية -->
+                        <div class="form-section" style="background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(251, 191, 36, 0.2);">
+                            <h3 class="form-section-title" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--warning-color);">
+                                <span style="font-size: 24px;">💰</span>
+                                <span>الإعدادات المالية</span>
+                            </h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <div class="form-group">
+                                    <label for="company_max_employees" style="font-weight: 600;">الحد الأقصى للموظفين</label>
+                                    <input type="number" id="company_max_employees" min="0" value="0" placeholder="0" style="padding: 12px; border-radius: 8px;">
+                                    <small class="form-hint" style="margin-top: 6px; display: block;">اتركه 0 للحد غير المحدود</small>
+                                </div>
+                                <div class="form-group">
+                                    <label for="company_price_per_employee" style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                                        <span>السعر لكل موظف (دينار عراقي)</span>
+                                        <span class="required">*</span>
+                                    </label>
+                                    <input type="number" id="company_price_per_employee" step="1000" min="0" required placeholder="0" style="padding: 12px; border-radius: 8px;">
+                                    <small class="form-hint" style="margin-top: 6px; display: block;">استخدم الأسهم للزيادة/النقصان بمقدار 1000 دينار</small>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" onclick="closeAddCompanyModal()">إلغاء</button>
-                            <button type="submit" class="btn btn-primary">إنشاء الشركة</button>
+                        <!-- حساب المدير -->
+                        <div class="form-section" style="background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.05) 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                            <h3 class="form-section-title" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: #8b5cf6;">
+                                <span style="font-size: 24px;">🔐</span>
+                                <span>حساب المدير</span>
+                            </h3>
+                            <div class="form-group">
+                                <label for="company_admin_password" style="display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                                    <span>كلمة مرور المدير</span>
+                                    <span class="required">*</span>
+                                </label>
+                                <div style="position: relative;">
+                                    <input type="password" id="company_admin_password" required placeholder="أدخل كلمة المرور" style="padding: 12px 40px 12px 12px; border-radius: 8px; width: 100%;">
+                                    <button type="button" onclick="togglePasswordVisibility('company_admin_password', this)" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 18px; padding: 4px;">👁️</button>
+                                </div>
+                                <div style="margin-top: 10px; padding: 12px; background: rgba(139, 92, 246, 0.1); border-radius: 8px; border-right: 3px solid #8b5cf6;">
+                                    <small style="color: var(--text-secondary); display: flex; align-items: center; gap: 6px;">
+                                        <span>💡</span>
+                                        <span>سيتم إنشاء حساب المدير تلقائياً: <strong>admin@domain</strong></span>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions" style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid var(--border-color); margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" onclick="closeAddCompanyModal()" style="padding: 12px 24px;">إلغاء</button>
+                            <button type="submit" class="btn btn-primary" style="padding: 12px 24px; display: flex; align-items: center; gap: 8px;">
+                                <span>✅</span>
+                                <span>إنشاء الشركة</span>
+                            </button>
                         </div>
                     </form>
                 </div>

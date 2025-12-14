@@ -454,15 +454,24 @@ window.applyCompanySort = function() {
             }
         }
         
+        const statusBadge = company.is_active 
+            ? '<span class="badge badge-success">نشط</span>' 
+            : '<span class="badge badge-danger">مجمد</span>';
+        
         row.innerHTML = `
             <td>${company.name || '-'}${subscriptionInfo}</td>
             <td><strong>@${company.domain || '-'}</strong></td>
             <td>${company.admin_name || company.admin_username || '-'}</td>
             <td>${company.current_employees || 0} / ${company.max_employees || '∞'}</td>
             <td>${formatCurrency(company.price_per_employee || 0)}</td>
-            <td><span class="badge ${company.is_active ? 'badge-success' : 'badge-danger'}">${company.is_active ? 'نشطة' : 'غير نشطة'}</span></td>
-            <td>
-                <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})">تعديل</button>
+            <td>${statusBadge}</td>
+            <td style="white-space: nowrap;">
+                <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تعديل الشركة">✏️ تعديل</button>
+                ${company.is_active 
+                    ? `<button class="btn btn-sm btn-warning" onclick="freezeCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تجميد الشركة">❄️ تجميد</button>`
+                    : `<button class="btn btn-sm btn-success" onclick="unfreezeCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="إلغاء تجميد الشركة">✅ إلغاء التجميد</button>`
+                }
+                <button class="btn btn-sm btn-info" onclick="renewCompanySubscription(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تجديد الاشتراك">🔄 تجديد</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -516,6 +525,97 @@ function setupThousandsInput(inputId) {
         }
     });
 }
+
+// Toggle password visibility
+window.togglePasswordVisibility = function(inputId, button) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        button.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        button.textContent = '👁️';
+    }
+};
+
+// Freeze/Unfreeze Company functions
+window.freezeCompany = async function(companyId) {
+    if (!confirm('هل أنت متأكد من تجميد هذه الشركة؟\n\nسيتم تعطيل جميع حسابات الشركة ولن يتمكنوا من تسجيل الدخول حتى تقوم بإلغاء التجميد.')) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.freezeCompany(companyId, true);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم تجميد الشركة بنجاح');
+            loadCompanies();
+        } else {
+            showAlertModal('خطأ', 'خطأ في تجميد الشركة: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        console.error('Error freezing company:', error);
+        showAlertModal('خطأ', 'خطأ في تجميد الشركة: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
+
+window.unfreezeCompany = async function(companyId) {
+    if (!confirm('هل أنت متأكد من إلغاء تجميد هذه الشركة؟\n\nسيتم تفعيل جميع حسابات الشركة ويمكن للمستخدمين تسجيل الدخول مرة أخرى.')) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.freezeCompany(companyId, false);
+        if (data && data.success) {
+            showAlertModal('نجح', 'تم إلغاء تجميد الشركة بنجاح');
+            loadCompanies();
+        } else {
+            showAlertModal('خطأ', 'خطأ في إلغاء تجميد الشركة: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        console.error('Error unfreezing company:', error);
+        showAlertModal('خطأ', 'خطأ في إلغاء تجميد الشركة: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
+
+// Renew Company Subscription
+window.renewCompanySubscription = async function(companyId) {
+    const months = prompt('أدخل عدد الأشهر لتجديد الاشتراك:', '1');
+    if (!months || isNaN(months) || parseInt(months) <= 0) {
+        return;
+    }
+    
+    if (!confirm(`هل أنت متأكد من تجديد الاشتراك لمدة ${months} شهر؟`)) {
+        return;
+    }
+    
+    try {
+        if (!window.api) {
+            showAlertModal('خطأ', 'API غير متاح');
+            return;
+        }
+        
+        const data = await window.api.renewCompanySubscription(companyId, parseInt(months));
+        if (data && data.success) {
+            showAlertModal('نجح', `تم تجديد الاشتراك بنجاح!\nتاريخ الانتهاء الجديد: ${data.new_end_date || 'غير محدد'}`);
+            loadCompanies();
+        } else {
+            showAlertModal('خطأ', 'خطأ في تجديد الاشتراك: ' + (data?.error || 'خطأ غير معروف'));
+        }
+    } catch (error) {
+        console.error('Error renewing subscription:', error);
+        showAlertModal('خطأ', 'خطأ في تجديد الاشتراك: ' + (error.message || 'خطأ غير معروف'));
+    }
+};
 
 // Make functions globally available
 window.openAddCompanyModal = function() {
