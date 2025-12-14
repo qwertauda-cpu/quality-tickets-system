@@ -267,16 +267,18 @@
 
             <!-- Employees Management Page -->
             <div id="employees-page" class="page-content" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
+                <!-- Employees Management Section - Full Width Design -->
+                <div class="companies-management-section">
+                    <div class="companies-header">
                         <h2>إدارة الموظفين</h2>
-                        <div style="display: flex; gap: 10px;">
-                            <select id="filterCompanyEmployees" class="form-control" style="width: 200px;" onchange="loadEmployees()">
+                        <div class="companies-controls">
+                            <label for="filterCompanyEmployees" class="sort-label">تصفية حسب الشركة:</label>
+                            <select id="filterCompanyEmployees" class="form-control sort-select" onchange="loadEmployees()">
                                 <option value="">جميع الشركات</option>
                             </select>
                         </div>
                     </div>
-                    <div class="card-body">
+                    <div class="companies-table-wrapper">
                         <div class="table-container">
                             <table id="employeesTable">
                                 <thead>

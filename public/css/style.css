@@ -3265,6 +3265,17 @@ select.is-valid {
     border-bottom: 2px solid var(--border-color);
 }
 
+/* Reuse companies-management-section styles for employees page */
+#employees-page .companies-management-section {
+    width: 100%;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    margin: 0;
+    box-shadow: none;
+    border: none;
+}
+
 @media (max-width: 768px) {
     .companies-header {
         flex-direction: column;
