@@ -529,12 +529,17 @@ function setupThousandsInput(inputId) {
 // Toggle password visibility
 window.togglePasswordVisibility = function(inputId, button) {
     const input = document.getElementById(inputId);
+    const svg = button.querySelector('svg');
     if (input.type === 'password') {
         input.type = 'text';
-        button.textContent = '🙈';
+        if (svg) {
+            svg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+        }
     } else {
         input.type = 'password';
-        button.textContent = '👁️';
+        if (svg) {
+            svg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
     }
 };
 
@@ -922,14 +927,14 @@ window.permanentlyDeleteEmployee = async function(employeeId) {
         if (employeesData && employeesData.success) {
             const emp = employeesData.employees.find(e => e.id == employeeId);
             if (emp) {
-                const confirmMessage = `⚠️ تحذير: حذف نهائي ⚠️\n\nهل أنت متأكد تماماً من حذف الحساب نهائياً؟\n\nاسم المستخدم: ${emp.username}\nالاسم الكامل: ${emp.full_name}\n\n⚠️ هذا الإجراء لا يمكن التراجع عنه!\nسيتم حذف الحساب نهائياً من قاعدة البيانات.`;
+                const confirmMessage = `تحذير: حذف نهائي\n\nهل أنت متأكد تماماً من حذف الحساب نهائياً؟\n\nاسم المستخدم: ${emp.username}\nالاسم الكامل: ${emp.full_name}\n\nهذا الإجراء لا يمكن التراجع عنه!\nسيتم حذف الحساب نهائياً من قاعدة البيانات.`;
                 
                 if (!confirm(confirmMessage)) {
                     return;
                 }
                 
                 // Double confirmation
-                if (!confirm('⚠️ تأكيد نهائي ⚠️\n\nأنت على وشك حذف الحساب نهائياً من قاعدة البيانات.\nهذا الإجراء لا يمكن التراجع عنه.\n\nهل أنت متأكد تماماً؟')) {
+                if (!confirm('تأكيد نهائي\n\nأنت على وشك حذف الحساب نهائياً من قاعدة البيانات.\nهذا الإجراء لا يمكن التراجع عنه.\n\nهل أنت متأكد تماماً؟')) {
                     return;
                 }
             }
@@ -2672,7 +2677,7 @@ async function loadOwnerTemplates() {
                         <td style="padding: 12px;">${template.template_type || 'custom'}</td>
                         <td style="padding: 12px; text-align: center;">
                             <button onclick="editOwnerTemplate(${template.id})" class="btn btn-sm btn-primary">تعديل</button>
-                            <button onclick="deleteOwnerTemplate(${template.id})" class="btn btn-sm btn-danger">🗑️ حذف</button>
+                            <button onclick="deleteOwnerTemplate(${template.id})" class="btn btn-sm btn-danger">حذف</button>
                         </td>
                     </tr>
                 `;
