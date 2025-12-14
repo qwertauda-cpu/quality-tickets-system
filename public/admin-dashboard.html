@@ -15,17 +15,7 @@
                 <h2>⚙️ لوحة الإدارة</h2>
                 <p id="userName"></p>
             </div>
-            <ul class="sidebar-menu">
-                <li><a href="#" class="active" data-page="dashboard"><i>📊</i> لوحة التحكم</a></li>
-                <li><a href="#" data-page="add-ticket"><i>➕</i> إضافة تذكرة</a></li>
-                <li><a href="#" data-page="users"><i>👤</i> إدارة المستخدمين</a></li>
-                <li><a href="#" data-page="teams"><i>👥</i> الفرق</a></li>
-                <li><a href="#" data-page="tickets"><i>🎫</i> التذاكر</a></li>
-                <li><a href="#" data-page="scoring-rules"><i>⚙️</i> قواعد النقاط</a></li>
-                <li><a href="#" data-page="reports"><i>📄</i> التقارير</a></li>
-                <li><a href="#" data-page="notifications"><i>🔔</i> الاشعارات</a></li>
-                <li><a href="#" onclick="logout(); return false;"><i>🚪</i> تسجيل الخروج</a></li>
-            </ul>
+            <ul class="sidebar-menu" id="sidebarMenu"></ul>
         </aside>
 
         <main class="main-content">
@@ -893,14 +883,17 @@
         </div>
     </div>
 
-    <!-- Notifications Page -->
-    <div id="notifications-page" class="page-content" style="display: none;">
+    <!-- Settings Page -->
+    <div id="settings-page" class="page-content" style="display: none;">
         <div class="card">
             <div class="card-header">
-                <h2>🔔 الاشعارات</h2>
-                <p style="color: var(--text-muted); margin-top: 10px;">إعدادات الواتساب والإشعارات</p>
+                <h2>⚙️ الإعدادات</h2>
+                <p style="color: var(--text-muted); margin-top: 10px;">إعدادات النظام والإشعارات</p>
             </div>
             <div class="card-body">
+                <!-- Notifications Settings (shared UI injected by /js/settings-notifications.js) -->
+                <div id="settingsNotificationsMount"></div>
+                
                 <div class="form-section">
                     <button type="button" class="accordion-header" onclick="toggleAdminWhatsAppAccordion()" style="width: 100%; text-align: right; padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0;">
                         <h3 class="form-section-title" style="margin: 0; display: flex; align-items: center; gap: 10px;">
@@ -1197,6 +1190,9 @@
     <script src="/js/auth.js"></script>
     <script src="/js/api.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/menu-config.js"></script>
+    <script src="/js/settings-notifications.js"></script>
+    <script src="/js/dashboard-nav.js"></script>
     <script src="/js/datetime-picker.js"></script>
     <script src="/js/time-picker.js"></script>
     <script src="/js/admin-dashboard.js"></script>

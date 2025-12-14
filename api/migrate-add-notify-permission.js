@@ -60,3 +60,4 @@ addNotifyPermission()
         process.exit(1);
     });
 
+

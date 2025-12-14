@@ -108,21 +108,11 @@ function showPage(pageName) {
         }
     });
     
-    // Update page title
-    const titles = {
-        'dashboard': 'لوحة التحكم',
-        'add-ticket': 'إضافة تذكرة',
-        'users': 'إدارة المستخدمين',
-        'teams': 'الفرق',
-        'tickets': 'التذاكر',
-        'scoring-rules': 'قواعد النقاط',
-        'points-management': 'قواعد النقاط',
-        'reports': 'التقارير',
-        'notifications': 'الاشعارات'
-    };
+    // Update page title (centralized in /js/menu-config.js)
     const titleEl = document.getElementById('pageTitle');
     if (titleEl) {
-        titleEl.textContent = titles[pageName] || 'لوحة التحكم';
+        const centralizedTitle = window.MenuConfig?.titles?.[pageName];
+        titleEl.textContent = centralizedTitle || 'لوحة التحكم';
     }
     
     // Load page data
@@ -145,8 +135,8 @@ function showPage(pageName) {
         return;
     } else if (pageName === 'reports') {
         loadReports();
-    } else if (pageName === 'notifications') {
-        loadNotifications();
+    } else if (pageName === 'settings') {
+        loadSettings();
     }
 }
 
@@ -2844,10 +2834,38 @@ function closePointsManagementModal() {
 // ==================== Notifications Page Functions ====================
 
 // Load notifications page
-async function loadNotifications() {
-    await loadAdminWhatsAppSettings();
-    checkAdminWhatsAppStatus();
-    await loadUsersPermissions();
+async function loadSettings() {
+    try {
+        await loadAdminWhatsAppSettings();
+    } catch (error) {
+        console.error('Error loading admin WhatsApp settings:', error);
+    }
+    
+    try {
+        checkAdminWhatsAppStatus();
+    } catch (error) {
+        console.error('Error checking admin WhatsApp status:', error);
+    }
+    
+    try {
+        await loadUsersPermissions();
+    } catch (error) {
+        console.error('Error loading users permissions:', error);
+    }
+    
+    try {
+        setupNotificationsSettingsForm();
+        await loadNotificationsSettings();
+        // Open notifications accordion by default
+        const notificationsContent = document.getElementById('notificationsAccordionContent');
+        const notificationsIcon = document.getElementById('notificationsAccordionIcon');
+        if (notificationsContent && notificationsIcon) {
+            notificationsContent.style.display = 'block';
+            notificationsIcon.style.transform = 'rotate(180deg)';
+        }
+    } catch (error) {
+        console.error('Error loading notifications settings:', error);
+    }
 }
 
 // Toggle Quality Staff Permissions accordion (updated to use loadUsersPermissions)
@@ -2964,24 +2982,228 @@ function toggleAdminWhatsAppAccordion() {
     }
 }
 
+function toggleNotificationsAccordion() {
+    const content = document.getElementById('notificationsAccordionContent');
+    const icon = document.getElementById('notificationsAccordionIcon');
+    if (content && icon) {
+        const isOpen = content.style.display !== 'none' && content.style.display !== '';
+        content.style.display = isOpen ? 'none' : 'block';
+        icon.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        if (!isOpen) {
+            loadNotificationsSettings();
+        }
+    }
+}
+
+// Load notifications settings
+async function loadNotificationsSettings() {
+    try {
+        // Load from localStorage or API
+        const savedSettings = localStorage.getItem('admin_notifications_settings');
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            
+            // Apply settings to form
+            const enabledEl = document.getElementById('notifications_enabled');
+            if (enabledEl) enabledEl.checked = settings.enabled !== false;
+            
+            const newTicketsEl = document.getElementById('notify_new_tickets');
+            if (newTicketsEl) newTicketsEl.checked = settings.notify_new_tickets !== false;
+            
+            const completedTicketsEl = document.getElementById('notify_completed_tickets');
+            if (completedTicketsEl) completedTicketsEl.checked = settings.notify_completed_tickets !== false;
+            
+            const pendingTicketsEl = document.getElementById('notify_pending_tickets');
+            if (pendingTicketsEl) pendingTicketsEl.checked = settings.notify_pending_tickets !== false;
+            
+            const teamUpdatesEl = document.getElementById('notify_team_updates');
+            if (teamUpdatesEl) teamUpdatesEl.checked = settings.notify_team_updates !== false;
+            
+            const userActivitiesEl = document.getElementById('notify_user_activities');
+            if (userActivitiesEl) userActivitiesEl.checked = settings.notify_user_activities !== false;
+            
+            const systemAlertsEl = document.getElementById('notify_system_alerts');
+            if (systemAlertsEl) systemAlertsEl.checked = settings.notify_system_alerts !== false;
+            
+            const soundEl = document.getElementById('notification_sound');
+            if (soundEl) soundEl.value = settings.sound || 'default';
+            
+            const durationEl = document.getElementById('notification_duration');
+            if (durationEl) durationEl.value = settings.duration || 5;
+            
+            const autoCloseEl = document.getElementById('notification_auto_close');
+            if (autoCloseEl) autoCloseEl.checked = settings.auto_close !== false;
+        }
+    } catch (error) {
+        console.error('Error loading notifications settings:', error);
+    }
+}
+
+// Setup notifications settings form
+function setupNotificationsSettingsForm() {
+    const form = document.getElementById('notificationsSettingsForm');
+    if (!form) return;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const settings = {
+            enabled: document.getElementById('notifications_enabled').checked,
+            notify_new_tickets: document.getElementById('notify_new_tickets').checked,
+            notify_completed_tickets: document.getElementById('notify_completed_tickets').checked,
+            notify_pending_tickets: document.getElementById('notify_pending_tickets').checked,
+            notify_team_updates: document.getElementById('notify_team_updates').checked,
+            notify_user_activities: document.getElementById('notify_user_activities').checked,
+            notify_system_alerts: document.getElementById('notify_system_alerts').checked,
+            sound: document.getElementById('notification_sound').value,
+            duration: parseInt(document.getElementById('notification_duration').value) || 5,
+            auto_close: document.getElementById('notification_auto_close').checked
+        };
+        
+        try {
+            // Save to localStorage
+            localStorage.setItem('admin_notifications_settings', JSON.stringify(settings));
+            
+            // If API is available, save to server
+            if (window.api && window.api.saveAdminSettings) {
+                try {
+                    await window.api.saveAdminSettings({ notifications: settings });
+                } catch (apiError) {
+                    console.warn('Could not save to server, saved locally only:', apiError);
+                }
+            }
+            
+            showAlertModal('نجح', 'تم حفظ إعدادات الإشعارات بنجاح', 'success');
+        } catch (error) {
+            console.error('Error saving notifications settings:', error);
+            showAlertModal('خطأ', 'حدث خطأ أثناء حفظ الإعدادات', 'error');
+        }
+    });
+}
+
+// Test notification
+function testNotification() {
+    const settings = {
+        enabled: document.getElementById('notifications_enabled').checked,
+        sound: document.getElementById('notification_sound').value,
+        duration: parseInt(document.getElementById('notification_duration').value) || 5,
+        auto_close: document.getElementById('notification_auto_close').checked
+    };
+    
+    if (!settings.enabled) {
+        showAlertModal('تنبيه', 'يرجى تفعيل الإشعارات أولاً', 'warning');
+        return;
+    }
+    
+    // Create a test notification
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: var(--card-bg);
+        padding: 16px 20px;
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
+        z-index: 10000;
+        min-width: 300px;
+        max-width: 400px;
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="font-size: 24px;">🔔</div>
+            <div style="flex: 1;">
+                <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">إشعار تجريبي</div>
+                <div style="font-size: 14px; color: var(--text-secondary);">هذا إشعار تجريبي للتحقق من الإعدادات</div>
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-secondary); padding: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;">×</button>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Play sound if enabled
+    if (settings.sound !== 'none') {
+        // You can add sound playing logic here
+        console.log('Playing notification sound:', settings.sound);
+    }
+    
+    // Auto close if enabled
+    if (settings.auto_close) {
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, settings.duration * 1000);
+    }
+    
+    showAlertModal('نجح', 'تم إرسال إشعار تجريبي', 'success');
+}
+
+// Add CSS for notification animations
+if (!document.getElementById('notification-styles')) {
+    const style = document.createElement('style');
+    style.id = 'notification-styles';
+    style.textContent = `
+        @keyframes slideIn {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
+
 // Load admin WhatsApp settings
 async function loadAdminWhatsAppSettings() {
     try {
         if (!window.api) {
             console.error('API not available');
+            const phoneEl = document.getElementById('admin_whatsapp_phone');
+            const enabledEl = document.getElementById('admin_whatsapp_enabled');
+            if (phoneEl) phoneEl.value = '';
+            if (enabledEl) enabledEl.checked = false;
             return;
         }
         
         const data = await window.api.getAdminSettings();
-        if (data && data.success) {
+        if (data && data.success && data.settings) {
             const phoneEl = document.getElementById('admin_whatsapp_phone');
             const enabledEl = document.getElementById('admin_whatsapp_enabled');
             
             if (phoneEl) phoneEl.value = data.settings.whatsapp_phone || '';
             if (enabledEl) enabledEl.checked = data.settings.whatsapp_enabled === '1' || data.settings.whatsapp_enabled === 1;
+        } else {
+            const phoneEl = document.getElementById('admin_whatsapp_phone');
+            const enabledEl = document.getElementById('admin_whatsapp_enabled');
+            if (phoneEl) phoneEl.value = '';
+            if (enabledEl) enabledEl.checked = false;
         }
     } catch (error) {
         console.error('Error loading admin WhatsApp settings:', error);
+        const phoneEl = document.getElementById('admin_whatsapp_phone');
+        const enabledEl = document.getElementById('admin_whatsapp_enabled');
+        if (phoneEl) phoneEl.value = '';
+        if (enabledEl) enabledEl.checked = false;
     }
 }
 
@@ -3129,14 +3351,18 @@ async function checkAdminQRCode() {
 // Check admin WhatsApp status
 async function checkAdminWhatsAppStatus() {
     try {
-        if (!window.api) return;
+        if (!window.api) {
+            return;
+        }
         
         const data = await window.api.getAdminWhatsAppQR();
         const statusIndicator = document.getElementById('adminWhatsappStatusIndicator');
         const statusIcon = document.getElementById('adminWhatsappStatusIcon');
         const statusText = document.getElementById('adminWhatsappStatusText');
         
-        if (!statusIndicator || !statusIcon || !statusText) return;
+        if (!statusIndicator || !statusIcon || !statusText) {
+            return;
+        }
         
         if (data && data.success) {
             if (data.connected) {
@@ -3189,6 +3415,8 @@ async function logoutAdminWhatsApp() {
 window.saveTicketOnly = saveTicketOnly;
 window.saveTicketAndNotify = saveTicketAndNotify;
 window.toggleAdminWhatsAppAccordion = toggleAdminWhatsAppAccordion;
+window.toggleNotificationsAccordion = toggleNotificationsAccordion;
+window.testNotification = testNotification;
 window.generateAdminWhatsAppQR = generateAdminWhatsAppQR;
 window.logoutAdminWhatsApp = logoutAdminWhatsApp;
 
@@ -3437,6 +3665,10 @@ async function loadUsersPermissions() {
             };
             
             tbody.innerHTML = data.users.map(user => {
+                const canNotifyTechnicians = user.can_notify_technicians === 1 || user.can_notify_technicians === true || user.can_notify_technicians === '1';
+                const canNotifySubscribers = user.can_notify_subscribers === 1 || user.can_notify_subscribers === true || user.can_notify_subscribers === '1';
+                const canSendMessages = user.can_send_messages === 1 || user.can_send_messages === true || user.can_send_messages === '1';
+                
                 return `
                     <tr>
                         <td style="padding: 12px;">${user.full_name || '-'}</td>
@@ -3447,7 +3679,7 @@ async function loadUsersPermissions() {
                                        class="permission-checkbox" 
                                        data-user-id="${user.id}" 
                                        data-permission="can_notify_technicians"
-                                       ${user.can_notify_technicians ? 'checked' : ''}
+                                       ${canNotifyTechnicians ? 'checked' : ''}
                                        onchange="updateUserPermission(${user.id}, 'can_notify_technicians', this.checked)">
                             </label>
                         </td>
@@ -3457,7 +3689,7 @@ async function loadUsersPermissions() {
                                        class="permission-checkbox" 
                                        data-user-id="${user.id}" 
                                        data-permission="can_notify_subscribers"
-                                       ${user.can_notify_subscribers ? 'checked' : ''}
+                                       ${canNotifySubscribers ? 'checked' : ''}
                                        onchange="updateUserPermission(${user.id}, 'can_notify_subscribers', this.checked)">
                             </label>
                         </td>
@@ -3467,7 +3699,7 @@ async function loadUsersPermissions() {
                                        class="permission-checkbox" 
                                        data-user-id="${user.id}" 
                                        data-permission="can_send_messages"
-                                       ${user.can_send_messages ? 'checked' : ''}
+                                       ${canSendMessages ? 'checked' : ''}
                                        onchange="updateUserPermission(${user.id}, 'can_send_messages', this.checked)">
                             </label>
                         </td>

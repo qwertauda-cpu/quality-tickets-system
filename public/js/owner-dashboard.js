@@ -1,5 +1,8 @@
 // Owner Dashboard JavaScript
 
+// Global variable for QR code refresh timer
+let qrCodeRefreshTimer = null;
+
 // Wait for scripts to load
 function initOwnerDashboard() {
     // Check if required functions are available
@@ -70,17 +73,12 @@ function showPage(pageName) {
         targetPage.style.display = 'block';
     }
     
-    // Update page title
-    const titles = {
-        'dashboard': 'لوحة التحكم',
-        'companies': 'إدارة الشركات',
-        'employees': 'إدارة الموظفين',
-        'invoices': 'إدارة الفواتير',
-        'purchase-requests': 'استلام الطلبات',
-        'database': 'قاعدة البيانات',
-        'settings': 'الاشعارات'
-    };
-    document.getElementById('pageTitle').textContent = titles[pageName] || 'لوحة التحكم';
+    // Update page title (centralized in /js/menu-config.js)
+    const titleEl = document.getElementById('pageTitle');
+    if (titleEl) {
+        const centralizedTitle = window.MenuConfig?.titles?.[pageName];
+        titleEl.textContent = centralizedTitle || 'لوحة التحكم';
+    }
     
     // Load page data
     switch(pageName) {
@@ -1483,12 +1481,30 @@ window.toggleWhatsAppAccordion = toggleWhatsAppAccordion;
 
 // Display QR Code
 function displayQRCode(qrCodeString) {
+    console.log('displayQRCode called with:', qrCodeString ? 'QR code string provided' : 'no QR code');
+    
     const qrContainer = document.getElementById('whatsappQRContainer');
     const qrCodeDiv = document.getElementById('whatsappQRCode');
     
-    if (!qrContainer || !qrCodeDiv) {
-        console.error('QR Code container or div not found');
+    if (!qrContainer) {
+        console.error('QR Code container not found (whatsappQRContainer)');
         return;
+    }
+    
+    if (!qrCodeDiv) {
+        console.error('QR Code div not found (whatsappQRCode)');
+        return;
+    }
+    
+    if (!qrCodeString || !qrCodeString.trim()) {
+        console.error('QR Code string is empty');
+        return;
+    }
+    
+    // Clear any existing refresh timer
+    if (qrCodeRefreshTimer) {
+        clearInterval(qrCodeRefreshTimer);
+        qrCodeRefreshTimer = null;
     }
     
     // Clear previous QR Code
@@ -1500,12 +1516,46 @@ function displayQRCode(qrCodeString) {
     
     // Show container
     qrContainer.style.display = 'block';
+    console.log('✅ QR Code container displayed');
     
     // Open accordion if closed
     const accordionSection = document.querySelector('.accordion-section');
     if (accordionSection && !accordionSection.classList.contains('active')) {
         accordionSection.classList.add('active');
     }
+    
+    // Set up auto-refresh every 30 seconds
+    qrCodeRefreshTimer = setInterval(async () => {
+        try {
+            if (!window.api) {
+                return;
+            }
+            
+            const data = await window.api.getWhatsAppQR();
+            if (data && data.success) {
+                if (data.qr_code) {
+                    // Update QR code if it changed
+                    const currentQR = qrCodeDiv.querySelector('img');
+                    const newQRUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(data.qr_code)}`;
+                    if (!currentQR || currentQR.src !== newQRUrl) {
+                        console.log('🔄 تحديث الباركود...');
+                        generateQRCodeImage(data.qr_code, qrCodeDiv);
+                    }
+                } else if (data.connected) {
+                    // Connected - stop refresh and hide QR
+                    if (qrCodeRefreshTimer) {
+                        clearInterval(qrCodeRefreshTimer);
+                        qrCodeRefreshTimer = null;
+                    }
+                    hideQRCode();
+                    showConnectionStatus();
+                    updateWhatsAppStatusIndicator();
+                }
+            }
+        } catch (error) {
+            console.error('Error refreshing QR Code:', error);
+        }
+    }, 30000); // 30 seconds
 }
 
 // Generate QR Code using Canvas
@@ -1557,6 +1607,12 @@ function generateQRCodeImage(qrCodeString, qrCodeDiv) {
 
 // Hide QR Code
 function hideQRCode() {
+    // Clear refresh timer
+    if (qrCodeRefreshTimer) {
+        clearInterval(qrCodeRefreshTimer);
+        qrCodeRefreshTimer = null;
+    }
+    
     const qrContainer = document.getElementById('whatsappQRContainer');
     if (qrContainer) {
         qrContainer.style.display = 'none';
@@ -2536,14 +2592,9 @@ async function loadOwnerTemplates() {
 // Open create template modal
 function openCreateOwnerTemplateModal() {
     try {
-        console.log('openCreateOwnerTemplateModal called');
         const modal = document.getElementById('owner-template-modal');
         const title = document.getElementById('owner-template-modal-title');
         const form = document.getElementById('ownerTemplateForm');
-        
-        console.log('Modal:', modal);
-        console.log('Title:', title);
-        console.log('Form:', form);
         
         if (!modal) {
             console.error('Modal not found!');
@@ -2564,71 +2615,12 @@ function openCreateOwnerTemplateModal() {
             templateIdInput.value = '';
         }
         
-        // Show modal - Force ALL styles inline to ensure visibility
-        // Remove any conflicting styles first
-        modal.removeAttribute('style');
-        
-        // Set ALL required styles directly
-        modal.style.cssText = `
-            display: flex !important;
-            opacity: 1 !important;
-            z-index: 99999 !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 0 !important;
-            width: 100% !important;
-            height: 100% !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 20px !important;
-            overflow-y: auto !important;
-            pointer-events: auto !important;
-            background: rgba(0, 0, 0, 0.75) !important;
-            visibility: visible !important;
-        `;
-        
-        // Add active class for CSS transitions
+        // Show modal using CSS class (simpler and more reliable)
+        modal.style.display = 'flex';
         modal.classList.add('active');
-        
-        // Force the modal content to be visible
-        const modalContent = modal.querySelector('.modal');
-        if (modalContent) {
-            modalContent.style.cssText += `
-                transform: scale(1) !important;
-                opacity: 1 !important;
-                z-index: 100000 !important;
-                position: relative !important;
-                visibility: visible !important;
-            `;
-        }
         
         // Ensure body doesn't scroll when modal is open
         document.body.style.overflow = 'hidden';
-        
-        console.log('✅ Modal should be visible now');
-        console.log('Modal element:', modal);
-        console.log('Modal computed styles:', {
-            display: window.getComputedStyle(modal).display,
-            opacity: window.getComputedStyle(modal).opacity,
-            zIndex: window.getComputedStyle(modal).zIndex,
-            position: window.getComputedStyle(modal).position,
-            visibility: window.getComputedStyle(modal).visibility,
-            top: window.getComputedStyle(modal).top,
-            left: window.getComputedStyle(modal).left,
-            width: window.getComputedStyle(modal).width,
-            height: window.getComputedStyle(modal).height
-        });
-        
-        // Final check: if still not visible, force it one more time
-        setTimeout(() => {
-            const computedDisplay = window.getComputedStyle(modal).display;
-            if (computedDisplay !== 'flex') {
-                console.warn('⚠️ Modal still not visible, forcing display again...');
-                modal.style.display = 'flex !important';
-            }
-        }, 100);
     } catch (error) {
         console.error('Error in openCreateOwnerTemplateModal:', error);
         alert('خطأ: ' + error.message);
@@ -2670,8 +2662,9 @@ async function editOwnerTemplate(templateId) {
                 document.getElementById('owner_template_description').value = template.description || '';
                 document.getElementById('owner_template_text').value = template.template_text || '';
                 
+                // Show modal using CSS class
                 modal.style.display = 'flex';
-                setTimeout(() => modal.classList.add('active'), 10);
+                modal.classList.add('active');
             }
         } else {
             showAlertModal('خطأ', data.error || 'فشل جلب القالب');

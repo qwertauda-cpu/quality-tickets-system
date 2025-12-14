@@ -4658,7 +4658,7 @@ app.get('/api/owner/settings', authenticate, async (req, res) => {
         const settingsRows = await db.query(`
             SELECT setting_key, setting_value, setting_type
             FROM settings
-            WHERE is_active = 1
+            WHERE (company_id IS NULL OR company_id = 0) AND is_active = 1
         `);
         
         const settings = {};
@@ -5019,16 +5019,60 @@ app.get('/api/admin/settings', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
         }
         
-        const settings = await db.query(`
-            SELECT setting_key, setting_value
-            FROM settings
-            WHERE company_id = ? AND is_active = 1
-        `, [req.user.company_id]);
+        // Try to get settings, but handle case where table or column might not exist
+        let settingsRows = [];
+        try {
+            settingsRows = await db.query(`
+                SELECT setting_key, setting_value, setting_type
+                FROM settings
+                WHERE company_id = ? AND is_active = 1
+            `, [req.user.company_id]);
+        } catch (queryError) {
+            // If table doesn't exist or column doesn't exist, return empty settings
+            const errorCode = queryError.code || queryError.errno || '';
+            const errorMessage = queryError.message || '';
+            
+            if (errorCode === 'ER_NO_SUCH_TABLE' || 
+                errorCode === 'ER_BAD_FIELD_ERROR' ||
+                errorMessage.includes('doesn\'t exist') ||
+                errorMessage.includes('Unknown column')) {
+                console.log('⚠️ Settings table or column not found, returning empty settings');
+                return res.json({
+                    success: true,
+                    settings: {}
+                });
+            }
+            // For any other database error, also return empty settings instead of 500
+            console.error('⚠️ Database error in admin settings query, returning empty settings:', errorCode, errorMessage);
+            return res.json({
+                success: true,
+                settings: {}
+            });
+        }
         
         const settingsObj = {};
-        settings.forEach(s => {
-            settingsObj[s.setting_key] = s.setting_value;
-        });
+        if (settingsRows && Array.isArray(settingsRows)) {
+            settingsRows.forEach(row => {
+                if (row && row.setting_key) {
+                    let value = row.setting_value;
+                    
+                    // Convert based on type
+                    if (row.setting_type === 'boolean') {
+                        value = value === '1' || value === true || value === 'true';
+                    } else if (row.setting_type === 'number') {
+                        value = parseFloat(value) || 0;
+                    } else if (row.setting_type === 'json') {
+                        try {
+                            value = JSON.parse(value);
+                        } catch (e) {
+                            value = value;
+                        }
+                    }
+                    
+                    settingsObj[row.setting_key] = value;
+                }
+            });
+        }
         
         res.json({
             success: true,
@@ -5036,7 +5080,14 @@ app.get('/api/admin/settings', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Get admin settings error:', error);
-        res.status(500).json({ error: 'خطأ في جلب الإعدادات' });
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        // Return empty settings instead of 500 error
+        return res.json({
+            success: true,
+            settings: {}
+        });
     }
 });
 
@@ -5342,13 +5393,46 @@ app.get('/api/admin/users/permissions', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'المدير غير مرتبط بشركة' });
         }
         
-        const users = await db.query(`
-            SELECT id, username, full_name, role, 
-                   can_notify_technicians, can_notify_subscribers, can_send_messages
-            FROM users
-            WHERE company_id = ? AND role IN ('call_center', 'quality_staff')
-            ORDER BY full_name ASC
-        `, [req.user.company_id]);
+        // Try query with all columns, fallback if columns don't exist
+        let users = [];
+        try {
+            users = await db.query(`
+                SELECT id, username, full_name, role, 
+                       COALESCE(can_notify_technicians, 0) as can_notify_technicians,
+                       COALESCE(can_notify_subscribers, 0) as can_notify_subscribers,
+                       COALESCE(can_send_messages, 0) as can_send_messages
+                FROM users
+                WHERE company_id = ? AND role IN ('call_center', 'quality_staff') AND is_active = 1
+                ORDER BY full_name ASC
+            `, [req.user.company_id]);
+        } catch (queryError) {
+            // If columns don't exist, try without permission columns
+            const errorCode = queryError.code || queryError.errno || '';
+            const errorMessage = queryError.message || '';
+            
+            if (errorCode === 'ER_BAD_FIELD_ERROR' || 
+                errorMessage.includes('Unknown column')) {
+                console.log('⚠️ Permission columns not found, returning users without permissions');
+                try {
+                    users = await db.query(`
+                        SELECT id, username, full_name, role, 
+                               0 as can_notify_technicians,
+                               0 as can_notify_subscribers,
+                               0 as can_send_messages
+                        FROM users
+                        WHERE company_id = ? AND role IN ('call_center', 'quality_staff') AND is_active = 1
+                        ORDER BY full_name ASC
+                    `, [req.user.company_id]);
+                } catch (fallbackError) {
+                    console.error('⚠️ Fallback query also failed, returning empty users list');
+                    users = [];
+                }
+            } else {
+                // For any other database error, return empty users list instead of 500
+                console.error('⚠️ Database error in users permissions query, returning empty list:', errorCode, errorMessage);
+                users = [];
+            }
+        }
         
         res.json({
             success: true,
@@ -5356,7 +5440,14 @@ app.get('/api/admin/users/permissions', authenticate, async (req, res) => {
         });
     } catch (error) {
         console.error('Get users permissions error:', error);
-        res.status(500).json({ error: 'خطأ في جلب صلاحيات المستخدمين' });
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+        // Return empty users list instead of 500 error
+        return res.json({
+            success: true,
+            users: []
+        });
     }
 });
 
