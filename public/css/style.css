@@ -3265,8 +3265,9 @@ select.is-valid {
     border-bottom: 2px solid var(--border-color);
 }
 
-/* Reuse companies-management-section styles for employees page */
-#employees-page .companies-management-section {
+/* Reuse companies-management-section styles for employees and invoices pages */
+#employees-page .companies-management-section,
+#invoices-page .companies-management-section {
     width: 100%;
     background: transparent;
     border-radius: 0;
