@@ -1106,6 +1106,8 @@ window.selectRoleType = function(roleType) {
         }
         document.querySelector('[data-role="quality_staff"]').style.borderColor = 'var(--success-color)';
         document.querySelector('[data-role="quality_staff"]').style.background = 'rgba(5, 150, 105, 0.05)';
+        // Ensure team select is loaded
+        loadTeamsForUserForm();
     } else if (roleType === 'technician') {
         roleInput.value = 'technician';
         document.getElementById('perm_execute_tickets').checked = true;
@@ -1118,13 +1120,18 @@ window.selectRoleType = function(roleType) {
         }
         document.querySelector('[data-role="technician"]').style.borderColor = 'var(--primary-color)';
         document.querySelector('[data-role="technician"]').style.background = 'rgba(37, 99, 235, 0.05)';
+        // Ensure team select is loaded
+        loadTeamsForUserForm();
     } else if (roleType === 'custom') {
         roleInput.value = '';
         customSection.style.display = 'block';
-        teamGroup.style.display = 'none';
+        // Don't hide team group for custom, let updatePermissions() handle it
+        teamGroup.style.display = 'block';
         teamSelect.required = false;
         document.querySelector('[data-role="custom"]').style.borderColor = 'var(--primary-color)';
         document.querySelector('[data-role="custom"]').style.background = 'rgba(37, 99, 235, 0.05)';
+        // Ensure team select is loaded
+        loadTeamsForUserForm();
     }
 };
 
