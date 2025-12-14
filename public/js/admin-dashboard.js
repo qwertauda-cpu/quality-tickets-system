@@ -118,8 +118,6 @@ function showPage(pageName) {
     // Load page data
     if (pageName === 'dashboard') {
         loadDashboard();
-    } else if (pageName === 'add-ticket') {
-        loadAddTicketPage();
     } else if (pageName === 'users') {
         loadUsers();
     } else if (pageName === 'teams') {
@@ -1543,7 +1541,6 @@ function setupMobileMenuClose() {
 window.removeAdminPhoto = removeAdminPhoto;
 window.generateAdminMessage = generateAdminMessage;
 window.copyAdminMessage = copyAdminMessage;
-window.resetAdminTicketForm = resetAdminTicketForm;
 window.showAddUserForm = showAddUserForm;
 window.editUser = editUser;
 // Keep deleteUser for backward compatibility (now it freezes the account)

@@ -10,7 +10,6 @@
     settings: 'الإعدادات',
 
     // Admin
-    'add-ticket': 'إضافة تذكرة',
     users: 'إدارة المستخدمين',
     teams: 'الفرق',
     'scoring-rules': 'قواعد النقاط',
@@ -53,7 +52,6 @@
     reports: { icon: '', label: titles.reports },
     settings: { icon: '', label: titles.settings },
 
-    'add-ticket': { icon: '', label: titles['add-ticket'] },
     users: { icon: '', label: titles.users },
     teams: { icon: '', label: titles.teams },
     'scoring-rules': { icon: '', label: titles['scoring-rules'] },
@@ -89,7 +87,7 @@
   // Role extras (can expand in future for owner/admin)
   const roleExtras = {
     owner: ['companies', 'employees', 'invoices', 'purchase-requests'],
-    admin: ['add-ticket', 'users', 'teams', 'scoring-rules'],
+    admin: ['users', 'teams', 'scoring-rules'],
     quality_staff: ['tickets-management', 'tickets-management-new', 'tickets-list', 'followup', 'daily-report'],
     call_center: ['tickets', 'followup'],
     technician: ['active-tickets', 'completed-tickets', 'dashboard', 'rankings', 'my-team'],
