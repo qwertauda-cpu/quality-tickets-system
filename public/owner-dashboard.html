@@ -225,14 +225,13 @@
                     </button>
                 </div>
                 
-                <div class="card">
-                    <div class="card-header">
+                <!-- Companies Management Section - Full Width Design -->
+                <div class="companies-management-section">
+                    <div class="companies-header">
                         <h2>إدارة الشركات</h2>
-                    </div>
-                    <div class="card-body">
-                        <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                            <label for="sortCompanies" style="font-weight: 600; color: var(--text-primary); font-size: 14px;">ترتيب حسب:</label>
-                            <select id="sortCompanies" class="form-control" style="min-width: 220px; padding: 10px 14px; font-size: 14px;" onchange="applyCompanySort()">
+                        <div class="companies-controls">
+                            <label for="sortCompanies" class="sort-label">ترتيب حسب:</label>
+                            <select id="sortCompanies" class="form-control sort-select" onchange="applyCompanySort()">
                                 <option value="default">الترتيب الافتراضي</option>
                                 <option value="employees_asc">عدد الموظفين (تصاعدي)</option>
                                 <option value="employees_desc">عدد الموظفين (تنازلي)</option>
@@ -240,6 +239,8 @@
                                 <option value="expiring_later">البعيدة على الاشتراك</option>
                             </select>
                         </div>
+                    </div>
+                    <div class="companies-table-wrapper">
                         <div class="table-container">
                             <table id="companiesTable">
                                 <thead>
