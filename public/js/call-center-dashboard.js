@@ -254,7 +254,7 @@ function displayTickets(tickets) {
     const container = document.getElementById('ticketsList');
     
     if (tickets.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>📭 لا توجد تذكرةات</p></div>';
+        container.innerHTML = '<div class="empty-state" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</div>';
         return;
     }
     

@@ -174,7 +174,7 @@ function loadRecentInvoices(invoices) {
     if (!tbody) return;
     
     if (!invoices || invoices.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">لا توجد فواتير</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
         return;
     }
     
@@ -200,7 +200,7 @@ function loadActiveCompanies(companies) {
     if (!tbody) return;
     
     if (!companies || companies.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد شركات نشطة</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
         return;
     }
     
@@ -224,7 +224,7 @@ function loadInactiveCompanies(companies) {
     if (!tbody) return;
     
     if (!companies || companies.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد شركات غير نشطة</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
         return;
     }
     
@@ -253,7 +253,7 @@ function loadExpiringCompanies(companies) {
     }
     
     if (!companies || companies.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد اشتراكات قريبة على الانتهاء</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
         return;
     }
     
@@ -322,14 +322,14 @@ async function loadCompanies() {
         } else {
             const tbody = document.getElementById('companiesTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error loading companies:', error);
         const tbody = document.getElementById('companiesTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
@@ -347,7 +347,7 @@ window.applyCompanySort = function() {
     tbody.innerHTML = '';
     
     if (!allCompaniesData || allCompaniesData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا توجد شركات</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
         return;
     }
     
@@ -684,7 +684,7 @@ async function loadEmployees() {
             tbody.innerHTML = '';
             
             if (!data.employees || data.employees.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center">لا يوجد موظفين</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
                 // Load companies for filter even if no employees
                 await loadCompaniesForFilter('filterCompanyEmployees');
                 return;
@@ -719,7 +719,7 @@ async function loadEmployees() {
         } else {
             const tbody = document.getElementById('employeesTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
             }
         }
         
@@ -729,7 +729,7 @@ async function loadEmployees() {
         console.error('Error loading employees:', error);
         const tbody = document.getElementById('employeesTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
@@ -1008,7 +1008,7 @@ async function loadInvoices() {
             tbody.innerHTML = '';
             
             if (!data.invoices || data.invoices.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center">لا توجد فواتير</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
                 // Load companies for filter even if no invoices
                 await loadCompaniesForFilter('filterCompanyInvoices');
                 return;
@@ -1034,7 +1034,7 @@ async function loadInvoices() {
         } else {
             const tbody = document.getElementById('invoicesTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
             }
         }
         
@@ -1044,7 +1044,7 @@ async function loadInvoices() {
         console.error('Error loading invoices:', error);
         const tbody = document.getElementById('invoicesTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
@@ -1167,7 +1167,7 @@ async function loadPurchaseRequests() {
             tbody.innerHTML = '';
             
             if (!data.requests || data.requests.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center">لا توجد طلبات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
                 return;
             }
             
@@ -1190,14 +1190,14 @@ async function loadPurchaseRequests() {
         } else {
             const tbody = document.getElementById('purchaseRequestsTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error loading purchase requests:', error);
         const tbody = document.getElementById('purchaseRequestsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }

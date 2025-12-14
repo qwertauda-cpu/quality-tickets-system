@@ -1359,6 +1359,11 @@ async function loadTicketsManagement(filterStatus = 'NEW') {
                 }
             });
             
+            if (filteredTickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
+                return;
+            }
+            
             if (filteredTickets.length > 0) {
                 filteredTickets.forEach(ticket => {
                     const statusBadge = {
@@ -1452,6 +1457,11 @@ async function loadTicketsManagementNew(filterStatus = 'NEW') {
                 });
             }
             
+            if (filteredTickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
+                return;
+            }
+            
             if (filteredTickets.length > 0) {
                 filteredTickets.forEach(ticket => {
                     const statusBadge = {
@@ -1519,6 +1529,11 @@ async function loadTicketsList() {
         if (data && data.success) {
             const tbody = document.getElementById('ticketsTableBody');
             tbody.innerHTML = '';
+            
+            if (!data.tickets || data.tickets.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
+                return;
+            }
             
             if (data.tickets && data.tickets.length > 0) {
                 data.tickets.forEach(ticket => {

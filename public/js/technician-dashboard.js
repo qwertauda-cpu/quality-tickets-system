@@ -159,7 +159,7 @@ async function loadRankings() {
                     tbody.appendChild(row);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد بيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
             }
         }
     } catch (error) {
@@ -248,7 +248,7 @@ async function loadActiveTickets() {
         const tbody = document.getElementById('activeTicketsTableBody');
         
         if (!data || !data.success || !data.tickets || data.tickets.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تذكرةات مخصصة لك</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
             return;
         }
         
@@ -279,7 +279,7 @@ async function loadActiveTickets() {
     } catch (error) {
         console.error('Error loading active tickets:', error);
         const tbody = document.getElementById('activeTicketsTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التذاكر</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل التذاكر</td></tr>';
     }
 }
 
@@ -295,7 +295,7 @@ async function loadCompletedTickets() {
         const tbody = document.getElementById('completedTicketsTableBody');
         
         if (!data || !data.success || !data.tickets || data.tickets.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تذكرةات منجزة</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
             return;
         }
         
@@ -341,7 +341,7 @@ async function loadCompletedTickets() {
     } catch (error) {
         console.error('Error loading completed tickets:', error);
         const tbody = document.getElementById('completedTicketsTableBody');
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">خطأ في تحميل التذاكر</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل التذاكر</td></tr>';
     }
 }
 

@@ -174,19 +174,19 @@ async function loadTeams() {
                     tbody.appendChild(row);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="6" class="loading">لا توجد فرق</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
             }
         } else {
             const tbody = document.getElementById('teamsTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="6" class="error">خطأ في تحميل البيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error loading teams:', error);
         const tbody = document.getElementById('teamsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" class="error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
@@ -209,18 +209,25 @@ async function loadTickets() {
         const data = await window.api.getTickets({ limit: 1000 });
         if (data && data.success) {
             allTickets = data.tickets || [];
-            filterTickets();
+            if (allTickets.length === 0) {
+                const tbody = document.getElementById('ticketsTableBody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
+                }
+            } else {
+                filterTickets();
+            }
         } else {
             const tbody = document.getElementById('ticketsTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذاكر</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل التذاكر</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error loading tickets:', error);
         const tbody = document.getElementById('ticketsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل التذاكر</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل التذاكر</td></tr>';
         }
     }
 }
@@ -330,7 +337,7 @@ function displayTickets(tickets) {
     }
     
     if (!tickets || tickets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="loading">لا توجد تذكرةات</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
         return;
     }
     
@@ -967,19 +974,19 @@ async function loadUsers() {
                     tbody.appendChild(row);
                 });
             } else {
-                tbody.innerHTML = '<tr><td colspan="7" class="loading">لا يوجد مستخدمين</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
             }
         } else {
             const tbody = document.getElementById('usersTableBody');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل البيانات</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error loading users:', error);
         const tbody = document.getElementById('usersTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" class="error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
@@ -1856,7 +1863,7 @@ async function loadDashboard() {
                         tbody.appendChild(row);
                     });
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="loading">لا توجد بيانات</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
                 }
             }
         } else {
@@ -1874,7 +1881,7 @@ async function loadDashboard() {
         
         const tbody = document.getElementById('rankingsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="5" class="error">خطأ في تحميل البيانات</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--danger-color); font-size: 15px; font-weight: 500;">خطأ في تحميل البيانات</td></tr>';
         }
     }
 }
@@ -2479,7 +2486,7 @@ function displayPointsTickets(tickets) {
     if (!tbody) return;
     
     if (!tickets || tickets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty">لا توجد تذكرةات</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
         return;
     }
     
@@ -3554,7 +3561,7 @@ async function loadTemplates() {
         const data = await window.api.getAdminTemplates();
         if (data && data.success && data.templates) {
             if (data.templates.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="padding: 20px; text-align: center; color: var(--text-muted);">لا توجد قوالب. اضغط "إضافة قالب جديد" لإنشاء قالب</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
                 return;
             }
             
@@ -3753,11 +3760,11 @@ async function loadUsersPermissions() {
         if (!tbody) return;
         
         tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">جاري التحميل...</td></tr>';
-        
+
         const data = await window.api.getUsersPermissions();
         if (data && data.success && data.users) {
             if (data.users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="padding: 20px; text-align: center; color: var(--text-muted);">لا توجد موظفين</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 15px; font-weight: 500;">لا يوجد بيانات</td></tr>';
                 return;
             }
             
