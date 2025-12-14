@@ -78,6 +78,8 @@
     const push = (k) => {
       if (!k) return;
       if (result.includes(k)) return;
+      // Hide tickets from owner role
+      if (role === 'owner' && k === 'tickets') return;
       result.push(k);
     };
 
