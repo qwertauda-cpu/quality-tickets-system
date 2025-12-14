@@ -427,12 +427,21 @@
 
             <!-- Users Management Page -->
             <div id="users-page" class="page-content" style="display: none;">
-                <div class="card">
-                    <div class="card-header">
+                <!-- Users Management Section - Full Width Design -->
+                <div class="companies-management-section">
+                    <div class="companies-header">
                         <h2>إدارة المستخدمين</h2>
-                        <button class="btn btn-primary" onclick="showAddUserForm()">➕ إضافة موظف جديد</button>
+                        <div class="companies-controls">
+                            <button class="btn btn-primary" onclick="showAddUserForm()" style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: all var(--transition-base);">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                إضافة موظف جديد
+                            </button>
+                        </div>
                     </div>
-                    <div class="card-body">
+                    <div class="companies-table-wrapper">
                         <div class="table-container">
                             <table id="usersTable">
                                 <thead>
