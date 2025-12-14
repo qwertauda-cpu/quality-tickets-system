@@ -766,18 +766,22 @@ table th,
 table td {
     padding: 16px 20px;
     text-align: right;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-light);
     font-size: 15px;
     line-height: 1.7;
 }
 
+table td {
+    color: var(--text-secondary);
+}
+
 table th {
-    font-weight: 600;
+    font-weight: 700;
     color: var(--text-primary);
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 16px;
+    padding: 18px 20px;
 }
 
 table tbody tr {
@@ -792,12 +796,12 @@ table tbody tr:hover {
 }
 
 table tbody tr.postponed {
-    background: rgba(239, 68, 68, 0.15);
-    border-right: 3px solid rgba(239, 68, 68, 0.5);
+    background: rgba(220, 38, 38, 0.08);
+    border-right: 4px solid var(--danger-color);
 }
 
 table tbody tr.postponed:hover {
-    background: rgba(239, 68, 68, 0.25);
+    background: rgba(220, 38, 38, 0.12);
 }
 
 table tbody tr:last-child td {
@@ -2509,13 +2513,15 @@ select:disabled {
 }
 
 .notification-item:hover {
-    background: var(--card-hover);
+    background: var(--bg-secondary);
     padding-right: 24px;
+    transform: translateX(-2px);
 }
 
 .notification-item.unread {
-    background: linear-gradient(90deg, rgba(79, 70, 229, 0.15), var(--card-bg));
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), var(--card-bg));
     border-right: 4px solid var(--primary-color);
+    font-weight: 500;
 }
 
 .notification-item.unread::before {
@@ -3032,15 +3038,15 @@ select:disabled {
     background: var(--card-bg);
     color: var(--text-primary);
     padding: 12px 16px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border-radius: 10px;
+    box-shadow: var(--shadow-lg);
     white-space: nowrap;
     z-index: 1000;
     margin-bottom: 8px;
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     display: none;
     font-size: 14px;
-    font-weight: normal;
+    font-weight: 500;
     min-width: 200px;
     text-align: right;
 }
@@ -3067,7 +3073,7 @@ select:disabled {
 
 /* Database Tables Styles */
 .category-header {
-    background: var(--bg-tertiary) !important;
+    background: var(--bg-secondary) !important;
 }
 
 .category-title {
@@ -3087,13 +3093,14 @@ select:disabled {
 }
 
 code {
-    background: var(--bg-tertiary);
-    padding: 4px 8px;
-    border-radius: 4px;
+    background: var(--bg-secondary);
+    padding: 4px 10px;
+    border-radius: 6px;
     font-family: 'Courier New', monospace;
     font-size: 13px;
-    color: var(--primary-light);
+    color: var(--primary-color);
     border: 1px solid var(--border-color);
+    font-weight: 600;
 }
 
 /* ==================== Additional Select Enhancements ==================== */
@@ -3135,13 +3142,13 @@ select:focus-visible {
 select.error,
 select.is-invalid {
     border-color: var(--danger-color);
-    background-color: rgba(239, 68, 68, 0.1);
+    background-color: rgba(220, 38, 38, 0.05);
 }
 
 select.error:focus,
 select.is-invalid:focus {
     border-color: var(--danger-color);
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.15);
+    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
 }
 
 /* Select with success state */
