@@ -1105,6 +1105,9 @@ window.selectRoleType = function(roleType) {
         roleInput.value = 'quality_staff';
         document.getElementById('perm_review_quality').checked = true;
         qualitySection.style.display = 'block';
+        // Hide custom section when quality_staff is selected
+        customSection.style.display = 'none';
+        technicianSection.style.display = 'none';
         teamGroup.style.display = 'block';
         teamSelect.required = false;
         const smallText = document.getElementById('user_team_hint');
@@ -1119,6 +1122,9 @@ window.selectRoleType = function(roleType) {
         roleInput.value = 'technician';
         document.getElementById('perm_execute_tickets').checked = true;
         technicianSection.style.display = 'block';
+        // Hide custom section when technician is selected
+        customSection.style.display = 'none';
+        qualitySection.style.display = 'none';
         teamGroup.style.display = 'block';
         teamSelect.required = true;
         const smallText = document.getElementById('user_team_hint');
@@ -1132,6 +1138,9 @@ window.selectRoleType = function(roleType) {
     } else if (roleType === 'custom') {
         roleInput.value = '';
         customSection.style.display = 'block';
+        // Hide quality and technician sections when custom is selected
+        qualitySection.style.display = 'none';
+        technicianSection.style.display = 'none';
         // Don't hide team group for custom, let updatePermissions() handle it
         teamGroup.style.display = 'block';
         teamSelect.required = false;
