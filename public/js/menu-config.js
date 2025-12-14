@@ -47,42 +47,42 @@
     calculate: 'حساب المكافآت'
   };
 
-  // Menu item definitions (icon kept simple + consistent)
+  // Menu item definitions - Professional without emojis
   const items = {
-    dashboard: { icon: '📊', label: titles.dashboard },
-    tickets: { icon: '🎫', label: titles.tickets },
-    reports: { icon: '📄', label: titles.reports },
-    settings: { icon: '⚙️', label: titles.settings },
+    dashboard: { icon: '', label: titles.dashboard },
+    tickets: { icon: '', label: titles.tickets },
+    reports: { icon: '', label: titles.reports },
+    settings: { icon: '', label: titles.settings },
 
-    'add-ticket': { icon: '➕', label: titles['add-ticket'] },
-    users: { icon: '👤', label: titles.users },
-    teams: { icon: '👥', label: titles.teams },
-    'scoring-rules': { icon: '⚙️', label: titles['scoring-rules'] },
+    'add-ticket': { icon: '', label: titles['add-ticket'] },
+    users: { icon: '', label: titles.users },
+    teams: { icon: '', label: titles.teams },
+    'scoring-rules': { icon: '', label: titles['scoring-rules'] },
 
-    companies: { icon: '🏢', label: titles.companies },
-    employees: { icon: '👥', label: titles.employees },
-    invoices: { icon: '💰', label: titles.invoices },
-    'purchase-requests': { icon: '📥', label: titles['purchase-requests'] },
-    database: { icon: '🗄️', label: titles.database },
+    companies: { icon: '', label: titles.companies },
+    employees: { icon: '', label: titles.employees },
+    invoices: { icon: '', label: titles.invoices },
+    'purchase-requests': { icon: '', label: titles['purchase-requests'] },
+    database: { icon: '', label: titles.database },
 
-    followup: { icon: '📋', label: titles.followup },
+    followup: { icon: '', label: titles.followup },
 
-    'tickets-management': { icon: '📝', label: titles['tickets-management'] },
-    'tickets-management-new': { icon: '📋', label: titles['tickets-management-new'] },
-    'tickets-list': { icon: '✅', label: titles['tickets-list'] },
-    'daily-report': { icon: '📄', label: titles['daily-report'] },
+    'tickets-management': { icon: '', label: titles['tickets-management'] },
+    'tickets-management-new': { icon: '', label: titles['tickets-management-new'] },
+    'tickets-list': { icon: '', label: titles['tickets-list'] },
+    'daily-report': { icon: '', label: titles['daily-report'] },
 
-    'active-tickets': { icon: '📋', label: titles['active-tickets'] },
-    'completed-tickets': { icon: '✅', label: titles['completed-tickets'] },
-    rankings: { icon: '🏆', label: titles.rankings },
-    'my-team': { icon: '👥', label: titles['my-team'] },
+    'active-tickets': { icon: '', label: titles['active-tickets'] },
+    'completed-tickets': { icon: '', label: titles['completed-tickets'] },
+    rankings: { icon: '', label: titles.rankings },
+    'my-team': { icon: '', label: titles['my-team'] },
 
-    'my-scores': { icon: '📊', label: titles['my-scores'] },
-    'all-teams': { icon: '🏆', label: titles['all-teams'] },
-    'my-tickets': { icon: '🎫', label: titles['my-tickets'] },
+    'my-scores': { icon: '', label: titles['my-scores'] },
+    'all-teams': { icon: '', label: titles['all-teams'] },
+    'my-tickets': { icon: '', label: titles['my-tickets'] },
 
-    rewards: { icon: '💰', label: titles.rewards },
-    calculate: { icon: '🧮', label: titles.calculate }
+    rewards: { icon: '', label: titles.rewards },
+    calculate: { icon: '', label: titles.calculate }
   };
 
   // Base sections shown across all roles (if they exist on the page)

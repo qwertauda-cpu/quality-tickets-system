@@ -466,12 +466,12 @@ window.applyCompanySort = function() {
             <td>${formatCurrency(company.price_per_employee || 0)}</td>
             <td>${statusBadge}</td>
             <td style="white-space: nowrap;">
-                <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تعديل الشركة">✏️ تعديل</button>
+                <button class="btn btn-sm btn-primary" onclick="editCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تعديل الشركة">تعديل</button>
                 ${company.is_active 
-                    ? `<button class="btn btn-sm btn-warning" onclick="freezeCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تجميد الشركة">❄️ تجميد</button>`
-                    : `<button class="btn btn-sm btn-success" onclick="unfreezeCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="إلغاء تجميد الشركة">✅ إلغاء التجميد</button>`
+                    ? `<button class="btn btn-sm btn-warning" onclick="freezeCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تجميد الشركة">تجميد</button>`
+                    : `<button class="btn btn-sm btn-success" onclick="unfreezeCompany(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="إلغاء تجميد الشركة">إلغاء التجميد</button>`
                 }
-                <button class="btn btn-sm btn-info" onclick="renewCompanySubscription(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تجديد الاشتراك">🔄 تجديد</button>
+                <button class="btn btn-sm btn-info" onclick="renewCompanySubscription(${company.id})" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;" title="تجديد الاشتراك">تجديد</button>
             </td>
         `;
         tbody.appendChild(row);
@@ -1519,7 +1519,7 @@ async function loadDatabaseTables() {
                     <td><span class="badge badge-info">${table.category || '-'}</span></td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="exportTable('${table.name || ''}')" title="تصدير الجدول">
-                            📥 تصدير
+                            تصدير
                         </button>
                     </td>
                 `;

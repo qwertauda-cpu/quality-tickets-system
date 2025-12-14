@@ -113,7 +113,7 @@
     };
 
     keys.forEach((key) => {
-      const item = cfg?.items?.[key] || { icon: '•', label: cfg?.titles?.[key] || key };
+      const item = cfg?.items?.[key] || { icon: '', label: cfg?.titles?.[key] || key };
       const exists = elementExistsForPageKey(key) || key === 'settings';
 
       // If the page doesn't exist (except settings we can inject), show disabled item
@@ -121,7 +121,7 @@
       const a = document.createElement('a');
       a.href = '#';
       a.setAttribute('data-page', key);
-      a.innerHTML = `<i>${item.icon}</i> ${item.label}`;
+      a.innerHTML = item.icon ? `<i>${item.icon}</i> ${item.label}` : item.label;
 
       if (!exists) {
         a.style.opacity = '0.5';
@@ -144,7 +144,9 @@
     const liLogout = document.createElement('li');
     const aLogout = document.createElement('a');
     aLogout.href = '#';
-    aLogout.innerHTML = '<i>🚪</i> تسجيل الخروج';
+    aLogout.innerHTML = 'تسجيل الخروج';
+    aLogout.style.color = 'var(--danger-color)';
+    aLogout.style.fontWeight = '600';
     aLogout.addEventListener('click', (e) => {
       e.preventDefault();
       if (typeof window.logout === 'function') window.logout();

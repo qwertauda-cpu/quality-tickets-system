@@ -61,7 +61,7 @@
     wrapper.className = 'card';
     wrapper.innerHTML = `
       <div class="card-header">
-        <h2>🔔 إعدادات الإشعارات</h2>
+        <h2>إعدادات الإشعارات</h2>
         <p style="color: var(--text-muted); margin-top: 10px;">تحكم بشكل الإشعارات والتنبيهات</p>
       </div>
       <div class="card-body">
@@ -126,7 +126,7 @@
 
           <div class="btn-group" style="margin-top: 18px;">
             <button type="submit" class="btn btn-primary">💾 حفظ</button>
-            <button type="button" class="btn btn-secondary" id="testNotificationBtn">🔔 اختبار</button>
+            <button type="button" class="btn btn-secondary" id="testNotificationBtn">اختبار الإشعار</button>
           </div>
         </form>
       </div>
@@ -213,7 +213,7 @@
 
     toast.innerHTML = `
       <div style="display:flex; gap:12px; align-items:flex-start;">
-        <div style="font-size:22px;">🔔</div>
+        <div style="width: 40px; height: 40px; background: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px;">!</div>
         <div style="flex:1;">
           <div style="font-weight:600; color: var(--text-primary);">إشعار تجريبي</div>
           <div style="font-size:13px; color: var(--text-secondary); margin-top: 2px;">هذا اختبار لإعدادات الإشعارات</div>
