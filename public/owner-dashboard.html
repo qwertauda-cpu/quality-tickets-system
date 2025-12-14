@@ -386,8 +386,8 @@
                     <div class="card-header">
                         <h2>إدارة قاعدة البيانات</h2>
                         <div style="display: flex; gap: 10px;">
-                            <button class="btn btn-primary" onclick="loadDatabaseTables()">🔄 تحديث القائمة</button>
-                            <button class="btn btn-success" onclick="exportAllDatabase()">📥 تصدير قاعدة البيانات كاملة</button>
+                            <button class="btn btn-primary" onclick="loadDatabaseTables()">تحديث القائمة</button>
+                            <button class="btn btn-success" onclick="exportAllDatabase()">تصدير قاعدة البيانات كاملة</button>
                         </div>
                     </div>
                     <div class="card-body">
@@ -448,19 +448,23 @@
                                     </div>
                                     
                                     <div class="form-actions" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                        <button type="submit" class="btn btn-primary">💾 حفظ الإعدادات</button>
-                                        <button type="button" onclick="generateWhatsAppQR()" class="btn btn-success">📱 توليد QR واتساب</button>
+                                        <button type="submit" class="btn btn-primary">حفظ الإعدادات</button>
+                                        <button type="button" onclick="generateWhatsAppQR()" class="btn btn-success">توليد QR واتساب</button>
                                     </div>
                                 </form>
                                 
                                 <!-- Connection Status -->
                                 <div id="whatsappConnectionStatus" style="display: none; margin-top: 24px; padding: 20px; background: linear-gradient(135deg, #25D366 0%, #128C7E 100%); border-radius: 8px; color: white; text-align: center;">
-                                    <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+                                    <div style="width: 64px; height: 64px; background: rgba(5, 150, 105, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; border: 3px solid var(--success-color);">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="color: var(--success-color);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                    </div>
                                     <h4 style="margin-bottom: 8px; color: white; font-weight: 600;">تم الاتصال بـ WhatsApp بنجاح!</h4>
                                     <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-bottom: 16px;">النظام جاهز الآن لإرسال الرسائل تلقائياً</p>
                                     <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                                        <button onclick="checkWhatsAppStatus()" class="btn btn-sm" style="background: white; color: #25D366; border: none;">🔄 تحديث الحالة</button>
-                                        <button onclick="logoutWhatsApp()" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;">🚪 تسجيل الخروج</button>
+                                        <button onclick="checkWhatsAppStatus()" class="btn btn-sm" style="background: white; color: #25D366; border: none;">تحديث الحالة</button>
+                                        <button onclick="logoutWhatsApp()" class="btn btn-sm" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid white;">تسجيل الخروج</button>
                                     </div>
                                 </div>
                                 
@@ -470,7 +474,7 @@
                                     <div id="whatsappQRCode" style="display: inline-block; padding: 16px; background: white; border-radius: 8px; margin-bottom: 16px;"></div>
                                     <p style="color: var(--text-secondary); font-size: 14px; margin-top: 16px;">افتح WhatsApp على هاتفك وامسح الباركود أعلاه</p>
                                     <div style="display: flex; gap: 10px; margin-top: 12px; justify-content: center; flex-wrap: wrap;">
-                                        <button onclick="checkWhatsAppStatus()" class="btn btn-sm btn-secondary">🔄 التحقق من حالة الاتصال</button>
+                                        <button onclick="checkWhatsAppStatus()" class="btn btn-sm btn-secondary">التحقق من حالة الاتصال</button>
                                         <button onclick="logoutWhatsApp()" class="btn btn-sm btn-danger">🚪 تسجيل الخروج من WhatsApp</button>
                                     </div>
                                 </div>
@@ -607,7 +611,12 @@
                         <!-- معلومات المسؤول -->
                         <div class="form-section" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(16, 185, 129, 0.2);">
                             <h3 class="form-section-title" style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--secondary-color);">
-                                <span style="font-size: 24px;">👤</span>
+                                <div style="width: 32px; height: 32px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--secondary-color);">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </div>
                                 <span>معلومات المسؤول</span>
                             </h3>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -978,20 +987,20 @@
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
                             <label style="font-weight: 600; color: var(--text-primary); font-size: 15px;">اختر من القائمة:</label>
                             <div style="display: flex; gap: 8px;">
-                                <button type="button" onclick="selectAllManagersInModal()" class="btn btn-sm" style="padding: 8px 16px; font-size: 13px;">✅ تحديد الكل</button>
-                                <button type="button" onclick="deselectAllManagersInModal()" class="btn btn-sm btn-secondary" style="padding: 8px 16px; font-size: 13px;">❌ إلغاء الكل</button>
+                                <button type="button" onclick="selectAllManagersInModal()" class="btn btn-sm" style="padding: 8px 16px; font-size: 13px;">تحديد الكل</button>
+                                <button type="button" onclick="deselectAllManagersInModal()" class="btn btn-sm btn-secondary" style="padding: 8px 16px; font-size: 13px;">إلغاء الكل</button>
                             </div>
                         </div>
                         <select id="managersSelectModal" multiple size="10" style="width: 100%; padding: 12px 16px; padding-left: 44px; background: var(--bg-tertiary); border: 2px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: 'Cairo', sans-serif; color: var(--text-primary); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-sizing: border-box; min-height: 350px; line-height: 1.8; cursor: pointer;">
                             <option value="" disabled style="color: var(--text-muted); font-style: italic; padding: 12px;">جاري تحميل قائمة المدراء...</option>
                         </select>
-                        <small class="form-hint" style="margin-top: 8px; display: block;">💡 اضغط Ctrl (أو Cmd على Mac) للاختيار المتعدد</small>
+                        <small class="form-hint" style="margin-top: 8px; display: block; padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; border-right: 3px solid var(--primary-color);">اضغط Ctrl (أو Cmd على Mac) للاختيار المتعدد</small>
                     </div>
                     
                     <div id="selectedManagersPreviewModal" style="display: none; margin-bottom: 20px; padding: 20px; background: linear-gradient(135deg, rgba(37, 211, 102, 0.15) 0%, rgba(37, 211, 102, 0.08) 100%); border-radius: 12px; border-right: 3px solid #25D366; border: 1px solid rgba(37, 211, 102, 0.3);">
                         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                             <p style="color: var(--text-primary); font-size: 16px; margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                                <span>✅</span>
+                                <span style="color: var(--success-color); font-weight: bold; font-size: 18px;">✓</span>
                                 <span id="selectedCountModal">0</span>
                                 <span>مدراء مختارون</span>
                             </p>
@@ -1086,7 +1095,7 @@
                         
                         <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color); display: flex; gap: 10px; justify-content: flex-end;">
                             <button type="button" class="btn btn-secondary" onclick="closeOwnerTemplateModal()">إلغاء</button>
-                            <button type="submit" class="btn btn-primary">💾 حفظ القالب</button>
+                            <button type="submit" class="btn btn-primary">حفظ القالب</button>
                         </div>
                     </form>
                 </div>

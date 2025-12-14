@@ -1782,7 +1782,7 @@ async function checkWhatsAppStatus() {
                 hideQRCode();
                 showConnectionStatus();
                 updateWhatsAppStatusIndicator();
-                showAlertModal('نجح', '✅ تم الاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً للمشتركين.');
+                showAlertModal('نجح', 'تم الاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً للمشتركين.');
             } else {
                 showAlertModal('معلومات', 'لم يتم الاتصال بعد، يرجى المحاولة لاحقاً');
             }
@@ -1827,7 +1827,7 @@ async function generateWhatsAppQR() {
                 hideQRCode();
                 showConnectionStatus();
                 updateWhatsAppStatusIndicator();
-                showAlertModal('نجح', '✅ أنت متصل بالفعل بـ WhatsApp!\n\nالنظام جاهز لإرسال الرسائل.');
+                showAlertModal('نجح', 'أنت متصل بالفعل بـ WhatsApp!\n\nالنظام جاهز لإرسال الرسائل.');
             } else {
                 // إذا لم يكن هناك QR Code، نحاول تهيئة WhatsApp Client
                 showAlertModal('معلومات', 'جاري تهيئة WhatsApp... يرجى الانتظار قليلاً ثم اضغط الزر مرة أخرى');
@@ -1917,10 +1917,10 @@ async function loadManagersForManualMessage() {
                 // نص الخيار: اسم الشركة - اسم المدير - رقم الهاتف
                 let optionText = `${company.company_name || 'غير محدد'}`;
                 if (company.admin_name || company.admin_username) {
-                    optionText += ` | 👤 ${company.admin_name || company.admin_username}`;
+                    optionText += ` | ${company.admin_name || company.admin_username}`;
                 }
                 if (company.contact_phone) {
-                    optionText += ` | 📱 ${company.contact_phone}`;
+                    optionText += ` | ${company.contact_phone}`;
                 }
                 
                 option.textContent = optionText;
@@ -1977,8 +1977,8 @@ function updateSelectedManagersPreview() {
             <div style="flex: 1;">
                 <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; margin-bottom: 4px;">${option.dataset.companyName}</div>
                 <div style="font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap;">
-                    <span>👤 ${option.dataset.adminName}</span>
-                    ${option.dataset.contactPhone ? `<span>📱 ${option.dataset.contactPhone}</span>` : '<span style="color: var(--warning-color);">⚠️ لا يوجد رقم</span>'}
+                    <span>${option.dataset.adminName}</span>
+                    ${option.dataset.contactPhone ? `<span>${option.dataset.contactPhone}</span>` : '<span style="color: var(--warning-color);">لا يوجد رقم</span>'}
                 </div>
             </div>
             <button type="button" onclick="removeManagerFromSelection('${option.value}')" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; transition: all 0.2s; margin-right: 8px;" onmouseover="this.style.background='rgba(239, 68, 68, 0.25)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.15)'; this.style.transform='scale(1)'">✕</button>
@@ -2048,10 +2048,10 @@ async function loadManagersForModal() {
                 // نص الخيار: اسم الشركة - اسم المدير - رقم الهاتف
                 let optionText = `${company.company_name || 'غير محدد'}`;
                 if (company.admin_name || company.admin_username) {
-                    optionText += ` | 👤 ${company.admin_name || company.admin_username}`;
+                    optionText += ` | ${company.admin_name || company.admin_username}`;
                 }
                 if (company.contact_phone) {
-                    optionText += ` | 📱 ${company.contact_phone}`;
+                    optionText += ` | ${company.contact_phone}`;
                 }
                 
                 option.textContent = optionText;
@@ -2170,8 +2170,8 @@ function updateSelectedManagersPreviewModal() {
             <div style="flex: 1;">
                 <div style="font-weight: 600; color: var(--text-primary); font-size: 14px; margin-bottom: 4px;">${option.dataset.companyName}</div>
                 <div style="font-size: 12px; color: var(--text-secondary); display: flex; gap: 12px; flex-wrap: wrap;">
-                    <span>👤 ${option.dataset.adminName}</span>
-                    ${option.dataset.contactPhone ? `<span>📱 ${option.dataset.contactPhone}</span>` : '<span style="color: var(--warning-color);">⚠️ لا يوجد رقم</span>'}
+                    <span>${option.dataset.adminName}</span>
+                    ${option.dataset.contactPhone ? `<span>${option.dataset.contactPhone}</span>` : '<span style="color: var(--warning-color);">لا يوجد رقم</span>'}
                 </div>
             </div>
         `;
@@ -2251,7 +2251,7 @@ async function sendManualWhatsAppMessagesWithIds(messageText, companyIds) {
         if (data && data.success) {
             // عرض النتائج
             let statusHTML = `<div style="padding: 16px; background: rgba(37, 211, 102, 0.1); border-radius: 6px; border-right: 3px solid #25D366; margin-bottom: 12px;">
-                <p style="color: var(--text-primary); font-weight: 600; margin: 0 0 8px 0;">✅ ${data.message}</p>
+                <p style="color: var(--text-primary); font-weight: 600; margin: 0 0 8px 0;">${data.message}</p>
                 <p style="color: var(--text-secondary); font-size: 13px; margin: 0;">إجمالي: ${data.summary.total} | نجح: ${data.summary.success} | فشل: ${data.summary.failed}</p>
             </div>`;
             
@@ -2260,11 +2260,11 @@ async function sendManualWhatsAppMessagesWithIds(messageText, companyIds) {
                 data.results.forEach(result => {
                     const bgColor = result.success ? 'rgba(37, 211, 102, 0.1)' : 'rgba(255, 0, 0, 0.1)';
                     const borderColor = result.success ? '#25D366' : '#ff0000';
-                    const icon = result.success ? '✅' : '❌';
+                    const icon = result.success ? '<span style="color: var(--success-color); font-weight: bold;">✓</span>' : '<span style="color: var(--danger-color); font-weight: bold;">✗</span>';
                     statusHTML += `
                         <div style="padding: 10px; margin-bottom: 8px; background: ${bgColor}; border-radius: 4px; border-right: 2px solid ${borderColor};">
                             <div style="font-weight: 600; color: var(--text-primary);">${icon} ${result.company_name}</div>
-                            ${result.phone ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">📱 ${result.phone}</div>` : ''}
+                            ${result.phone ? `<div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">${result.phone}</div>` : ''}
                             ${result.error ? `<div style="font-size: 12px; color: var(--error-color); margin-top: 4px;">⚠️ ${result.error}</div>` : ''}
                         </div>
                     `;
@@ -2279,7 +2279,7 @@ async function sendManualWhatsAppMessagesWithIds(messageText, companyIds) {
             showAlertModal('نجح', data.message);
         } else {
             if (statusDiv) {
-                statusDiv.innerHTML = `<div style="padding: 12px; background: rgba(255, 0, 0, 0.1); border-radius: 6px; color: var(--error-color);">❌ ${data.error || 'حدث خطأ في إرسال الرسائل'}</div>`;
+                statusDiv.innerHTML = `<div style="padding: 12px; background: rgba(220, 38, 38, 0.1); border-radius: 6px; color: var(--danger-color); border-right: 3px solid var(--danger-color);">${data.error || 'حدث خطأ في إرسال الرسائل'}</div>`;
             }
             showAlertModal('خطأ', data.error || 'حدث خطأ في إرسال الرسائل');
         }
@@ -2299,7 +2299,7 @@ async function sendManualWhatsAppMessagesWithIds(messageText, companyIds) {
         }
         
         if (statusDiv) {
-            statusDiv.innerHTML = `<div style="padding: 12px; background: rgba(255, 0, 0, 0.1); border-radius: 6px; color: var(--error-color);">❌ حدث خطأ: ${error.message || 'خطأ غير معروف'}</div>`;
+            statusDiv.innerHTML = `<div style="padding: 12px; background: rgba(220, 38, 38, 0.1); border-radius: 6px; color: var(--danger-color); border-right: 3px solid var(--danger-color);">حدث خطأ: ${error.message || 'خطأ غير معروف'}</div>`;
         }
         
         showAlertModal('خطأ', 'حدث خطأ في إرسال الرسائل');
@@ -2362,7 +2362,7 @@ async function updateWhatsAppStatusIndicator() {
         const data = await window.api.getWhatsAppQR();
         if (data && data.success) {
             if (data.connected) {
-                statusIcon.textContent = '✅';
+                statusIcon.innerHTML = '<span style="color: var(--success-color); font-weight: bold;">✓</span>';
                 statusTextEl.textContent = 'واتساب مربوط';
                 statusContainer.style.background = 'rgba(37, 211, 102, 0.2)';
                 statusContainer.style.border = '1px solid rgba(37, 211, 102, 0.3)';
@@ -2450,7 +2450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         hideQRCode();
                         showConnectionStatus();
                         updateWhatsAppStatusIndicator();
-                        showAlertModal('نجح', '✅ تم حفظ الإعدادات والاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً.');
+                        showAlertModal('نجح', 'تم حفظ الإعدادات والاتصال بـ WhatsApp بنجاح!\n\nالنظام جاهز الآن لإرسال الرسائل تلقائياً.');
                     } else if (data.needs_qr) {
                         // إذا كان يحتاج QR Code، نبدأ بالتحقق بشكل دوري
                         showAlertModal('معلومات', 'تم حفظ الإعدادات. جاري تحميل QR Code...');
@@ -2671,7 +2671,7 @@ async function loadOwnerTemplates() {
                         <td style="padding: 12px;">${categoryNames[template.template_category] || template.template_category}</td>
                         <td style="padding: 12px;">${template.template_type || 'custom'}</td>
                         <td style="padding: 12px; text-align: center;">
-                            <button onclick="editOwnerTemplate(${template.id})" class="btn btn-sm btn-primary">✏️ تعديل</button>
+                            <button onclick="editOwnerTemplate(${template.id})" class="btn btn-sm btn-primary">تعديل</button>
                             <button onclick="deleteOwnerTemplate(${template.id})" class="btn btn-sm btn-danger">🗑️ حذف</button>
                         </td>
                     </tr>
