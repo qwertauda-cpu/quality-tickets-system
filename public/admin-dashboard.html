@@ -1206,6 +1206,23 @@
     <script src="/js/time-picker.js"></script>
     <script src="/js/admin-dashboard.js"></script>
     <script src="/js/quality-staff.js"></script>
+    <script>
+        // Remove empty label elements from tickets page card-header
+        document.addEventListener('DOMContentLoaded', function() {
+            const ticketsPage = document.getElementById('tickets-page');
+            if (ticketsPage) {
+                const cardHeader = ticketsPage.querySelector('.card-header > div');
+                if (cardHeader) {
+                    const emptyLabels = cardHeader.querySelectorAll('label');
+                    emptyLabels.forEach(label => {
+                        if (!label.textContent.trim() && !label.querySelector('input, select, textarea')) {
+                            label.remove();
+                        }
+                    });
+                }
+            }
+        });
+    </script>
 </body>
 </html>
 
