@@ -1538,9 +1538,6 @@ function setupMobileMenuClose() {
 }
 
 // Make functions available globally
-window.removeAdminPhoto = removeAdminPhoto;
-window.generateAdminMessage = generateAdminMessage;
-window.copyAdminMessage = copyAdminMessage;
 window.showAddUserForm = showAddUserForm;
 window.editUser = editUser;
 // Keep deleteUser for backward compatibility (now it freezes the account)
