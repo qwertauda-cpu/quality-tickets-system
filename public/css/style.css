@@ -3310,6 +3310,40 @@ select.is-valid {
     font-weight: 700;
 }
 
+/* Permission Checkbox Items */
+.permission-checkbox-item {
+    position: relative;
+}
+
+.permission-checkbox-item:hover {
+    border-color: var(--primary-color) !important;
+    background: var(--bg-secondary) !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+    transform: translateY(-1px);
+}
+
+.permission-checkbox-item input[type="checkbox"]:checked ~ span {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.permission-checkbox-item input[type="checkbox"]:checked {
+    border-color: var(--primary-color);
+}
+
+.permission-checkbox-item:has(input[type="checkbox"]:checked) {
+    border-color: var(--primary-color) !important;
+    background: rgba(37, 99, 235, 0.05) !important;
+    border-right: 4px solid var(--primary-color);
+}
+
+@media (max-width: 768px) {
+    .permission-checkbox-item {
+        min-width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+}
+
 select.success:focus,
 select.is-valid:focus {
     border-color: var(--success-color);
