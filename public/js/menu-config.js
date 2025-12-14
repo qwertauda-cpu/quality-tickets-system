@@ -20,7 +20,6 @@
     employees: 'إدارة الموظفين',
     invoices: 'إدارة الفواتير',
     'purchase-requests': 'استلام الطلبات',
-    database: 'قاعدة البيانات',
 
     // Call center
     followup: 'المتابعة اليومية',
@@ -63,7 +62,6 @@
     employees: { icon: '', label: titles.employees },
     invoices: { icon: '', label: titles.invoices },
     'purchase-requests': { icon: '', label: titles['purchase-requests'] },
-    database: { icon: '', label: titles.database },
 
     followup: { icon: '', label: titles.followup },
 
@@ -90,7 +88,7 @@
 
   // Role extras (can expand in future for owner/admin)
   const roleExtras = {
-    owner: ['companies', 'employees', 'invoices', 'purchase-requests', 'database'],
+    owner: ['companies', 'employees', 'invoices', 'purchase-requests'],
     admin: ['add-ticket', 'users', 'teams', 'scoring-rules'],
     quality_staff: ['tickets-management', 'tickets-management-new', 'tickets-list', 'followup', 'daily-report'],
     call_center: ['tickets', 'followup'],

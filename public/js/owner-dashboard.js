@@ -97,9 +97,6 @@ function showPage(pageName) {
         case 'purchase-requests':
             loadPurchaseRequests();
             break;
-        case 'database':
-            loadDatabaseTables();
-            break;
         case 'settings':
             loadSettings();
             // Check WhatsApp connection status when settings page loads

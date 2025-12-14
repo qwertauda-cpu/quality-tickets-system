@@ -4727,36 +4727,79 @@ app.get('/api/owner/settings', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'غير مصرح - فقط مالك الموقع' });
         }
         
+        // Check if settings table exists
+        try {
+            const tableExists = await db.queryOne(`
+                SELECT COUNT(*) as count 
+                FROM information_schema.tables 
+                WHERE table_schema = DATABASE() 
+                AND table_name = 'settings'
+            `);
+            
+            if (!tableExists || tableExists.count === 0) {
+                // Table doesn't exist, return default settings
+                return res.json({ 
+                    success: true, 
+                    settings: {
+                        whatsapp_phone: '',
+                        whatsapp_enabled: false
+                    } 
+                });
+            }
+        } catch (tableCheckError) {
+            // If we can't check the table, assume it doesn't exist
+            return res.json({ 
+                success: true, 
+                settings: {
+                    whatsapp_phone: '',
+                    whatsapp_enabled: false
+                } 
+            });
+        }
+        
         const settingsRows = await db.query(`
             SELECT setting_key, setting_value, setting_type
             FROM settings
             WHERE (company_id IS NULL OR company_id = 0) AND is_active = 1
         `);
         
-        const settings = {};
-        settingsRows.forEach(row => {
-            let value = row.setting_value;
-            
-            // Convert based on type
-            if (row.setting_type === 'boolean') {
-                value = value === '1' || value === true || value === 'true';
-            } else if (row.setting_type === 'number') {
-                value = parseFloat(value) || 0;
-            } else if (row.setting_type === 'json') {
-                try {
-                    value = JSON.parse(value);
-                } catch (e) {
-                    value = value;
+        const settings = {
+            whatsapp_phone: '',
+            whatsapp_enabled: false
+        };
+        
+        if (settingsRows && settingsRows.length > 0) {
+            settingsRows.forEach(row => {
+                let value = row.setting_value;
+                
+                // Convert based on type
+                if (row.setting_type === 'boolean') {
+                    value = value === '1' || value === true || value === 'true';
+                } else if (row.setting_type === 'number') {
+                    value = parseFloat(value) || 0;
+                } else if (row.setting_type === 'json') {
+                    try {
+                        value = JSON.parse(value);
+                    } catch (e) {
+                        value = value;
+                    }
                 }
-            }
-            
-            settings[row.setting_key] = value;
-        });
+                
+                settings[row.setting_key] = value;
+            });
+        }
         
         res.json({ success: true, settings });
     } catch (error) {
         console.error('Get settings error:', error);
-        res.status(500).json({ error: 'خطأ في جلب الإعدادات' });
+        // Return default settings instead of error
+        res.json({ 
+            success: true, 
+            settings: {
+                whatsapp_phone: '',
+                whatsapp_enabled: false
+            } 
+        });
     }
 });
 
