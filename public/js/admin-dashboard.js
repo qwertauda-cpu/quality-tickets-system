@@ -991,6 +991,11 @@ async function showAddUserForm() {
     document.getElementById('user_password').required = true;
     document.getElementById('user_password_label').innerHTML = 'كلمة المرور *';
     document.getElementById('user_is_active').checked = true;
+
+    // Reset role type selection
+    document.querySelectorAll('input[name="role_type"]').forEach(radio => {
+        radio.checked = false;
+    });
     
     // Reset permissions
     document.getElementById('perm_create_tickets').checked = false;
@@ -999,7 +1004,18 @@ async function showAddUserForm() {
     document.getElementById('perm_execute_tickets').checked = false;
     document.getElementById('perm_manage_teams').checked = false;
     document.getElementById('perm_view_reports').checked = false;
+
+    // Reset sections
+    document.getElementById('permissions_custom_section').style.display = 'none';
+    document.getElementById('permissions_quality_section').style.display = 'none';
+    document.getElementById('permissions_technician_section').style.display = 'none';
     
+    // Reset role option styles
+    document.querySelectorAll('.role-option').forEach(opt => {
+        opt.style.borderColor = 'var(--border-color)';
+        opt.style.background = 'var(--card-bg)';
+    });
+
     document.getElementById('user_role').value = '';
     document.getElementById('user_team_group').style.display = 'none';
     document.getElementById('user_team_id').required = false;
@@ -1050,7 +1066,69 @@ function setPermissionsFromRole(role) {
     }
 }
 
-// Convert permissions to role
+// Select role type (quality_staff, technician, or custom)
+window.selectRoleType = function(roleType) {
+    const roleInput = document.getElementById('user_role');
+    const teamGroup = document.getElementById('user_team_group');
+    const teamSelect = document.getElementById('user_team_id');
+    const customSection = document.getElementById('permissions_custom_section');
+    const qualitySection = document.getElementById('permissions_quality_section');
+    const technicianSection = document.getElementById('permissions_technician_section');
+    
+    // Reset all checkboxes
+    document.getElementById('perm_create_tickets').checked = false;
+    document.getElementById('perm_manage_tickets').checked = false;
+    document.getElementById('perm_review_quality').checked = false;
+    document.getElementById('perm_execute_tickets').checked = false;
+    document.getElementById('perm_manage_teams').checked = false;
+    document.getElementById('perm_view_reports').checked = false;
+    
+    // Hide all sections
+    customSection.style.display = 'none';
+    qualitySection.style.display = 'none';
+    technicianSection.style.display = 'none';
+    
+    // Update role option styles
+    document.querySelectorAll('.role-option').forEach(opt => {
+        opt.style.borderColor = 'var(--border-color)';
+        opt.style.background = 'var(--card-bg)';
+    });
+    
+    if (roleType === 'quality_staff') {
+        roleInput.value = 'quality_staff';
+        document.getElementById('perm_review_quality').checked = true;
+        qualitySection.style.display = 'block';
+        teamGroup.style.display = 'block';
+        teamSelect.required = false;
+        const smallText = document.getElementById('user_team_hint');
+        if (smallText) {
+            smallText.textContent = 'اختياري - يمكن تعيين موظف الجودة لفريق معين';
+        }
+        document.querySelector('[data-role="quality_staff"]').style.borderColor = 'var(--success-color)';
+        document.querySelector('[data-role="quality_staff"]').style.background = 'rgba(5, 150, 105, 0.05)';
+    } else if (roleType === 'technician') {
+        roleInput.value = 'technician';
+        document.getElementById('perm_execute_tickets').checked = true;
+        technicianSection.style.display = 'block';
+        teamGroup.style.display = 'block';
+        teamSelect.required = true;
+        const smallText = document.getElementById('user_team_hint');
+        if (smallText) {
+            smallText.textContent = 'مطلوب - يجب اختيار الفريق للفني';
+        }
+        document.querySelector('[data-role="technician"]').style.borderColor = 'var(--primary-color)';
+        document.querySelector('[data-role="technician"]').style.background = 'rgba(37, 99, 235, 0.05)';
+    } else if (roleType === 'custom') {
+        roleInput.value = '';
+        customSection.style.display = 'block';
+        teamGroup.style.display = 'none';
+        teamSelect.required = false;
+        document.querySelector('[data-role="custom"]').style.borderColor = 'var(--primary-color)';
+        document.querySelector('[data-role="custom"]').style.background = 'rgba(37, 99, 235, 0.05)';
+    }
+};
+
+// Convert permissions to role (for custom permissions)
 function updatePermissions() {
     const createTickets = document.getElementById('perm_create_tickets').checked;
     const manageTickets = document.getElementById('perm_manage_tickets').checked;
@@ -1062,6 +1140,12 @@ function updatePermissions() {
     const teamGroup = document.getElementById('user_team_group');
     const teamSelect = document.getElementById('user_team_id');
     const roleInput = document.getElementById('user_role');
+    
+    // Only update if custom role is selected
+    const customRole = document.getElementById('role_custom');
+    if (!customRole || !customRole.checked) {
+        return; // Don't override selected role type
+    }
     
     // Determine role based on permissions
     let role = '';
@@ -1245,8 +1329,19 @@ async function editUser(userId) {
                 document.getElementById('user_role').value = user.role;
                 document.getElementById('user_is_active').checked = user.is_active == 1;
                 
-                // Set permissions based on role
-                setPermissionsFromRole(user.role);
+                // Set role type based on role
+                if (user.role === 'quality_staff') {
+                    document.getElementById('role_quality_staff').checked = true;
+                    selectRoleType('quality_staff');
+                } else if (user.role === 'technician') {
+                    document.getElementById('role_technician').checked = true;
+                    selectRoleType('technician');
+                } else {
+                    document.getElementById('role_custom').checked = true;
+                    selectRoleType('custom');
+                    // Set permissions based on role
+                    setPermissionsFromRole(user.role);
+                }
                 
                 await loadTeamsForUserForm();
                 if (user.team_id) {

@@ -3298,6 +3298,18 @@ select.is-valid {
     }
 }
 
+/* Role Option Styles */
+.role-option:hover {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+    transform: translateY(-2px);
+}
+
+.role-option input[type="radio"]:checked + label {
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
 select.success:focus,
 select.is-valid:focus {
     border-color: var(--success-color);

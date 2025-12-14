@@ -476,7 +476,33 @@
                                 <input type="text" id="user_full_name" required>
                             </div>
                             <div class="form-group">
-                                <label style="margin-bottom: 15px; display: block; font-weight: 600; font-size: 16px;">الصلاحيات *</label>
+                                <label style="margin-bottom: 15px; display: block; font-weight: 600; font-size: 16px;">نوع الموظف *</label>
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                                    <div class="role-option" style="padding: 20px; background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all var(--transition-base);" onclick="selectRoleType('quality_staff')" data-role="quality_staff">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                                            <input type="radio" name="role_type" id="role_quality_staff" value="quality_staff" onchange="selectRoleType('quality_staff')" style="width: 20px; height: 20px; cursor: pointer;">
+                                            <label for="role_quality_staff" style="margin: 0; cursor: pointer; font-weight: 600; font-size: 16px; flex: 1;">موظف الجودة</label>
+                                        </div>
+                                        <p style="margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.6;">مراجعة وتقييم جودة التذاكر المكتملة</p>
+                                    </div>
+                                    <div class="role-option" style="padding: 20px; background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all var(--transition-base);" onclick="selectRoleType('technician')" data-role="technician">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                                            <input type="radio" name="role_type" id="role_technician" value="technician" onchange="selectRoleType('technician')" style="width: 20px; height: 20px; cursor: pointer;">
+                                            <label for="role_technician" style="margin: 0; cursor: pointer; font-weight: 600; font-size: 16px; flex: 1;">فني</label>
+                                        </div>
+                                        <p style="margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.6;">تنفيذ وإكمال التذاكر المخصصة له</p>
+                                    </div>
+                                    <div class="role-option" style="padding: 20px; background: var(--card-bg); border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; transition: all var(--transition-base);" onclick="selectRoleType('custom')" data-role="custom">
+                                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                                            <input type="radio" name="role_type" id="role_custom" value="custom" onchange="selectRoleType('custom')" style="width: 20px; height: 20px; cursor: pointer;">
+                                            <label for="role_custom" style="margin: 0; cursor: pointer; font-weight: 600; font-size: 16px; flex: 1;">صلاحيات مخصصة</label>
+                                        </div>
+                                        <p style="margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.6;">اختر الصلاحيات يدوياً</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" id="permissions_custom_section" style="display: none;">
+                                <label style="margin-bottom: 15px; display: block; font-weight: 600; font-size: 16px;">الصلاحيات المخصصة</label>
                                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; padding: 20px; background: var(--bg-secondary); border-radius: 8px;">
                                     <div class="checkbox-group" style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--card-bg); border-radius: 6px;">
                                         <input type="checkbox" id="perm_create_tickets" onchange="updatePermissions()">
@@ -503,7 +529,52 @@
                                         <label for="perm_view_reports" style="margin: 0; cursor: pointer; flex: 1;">عرض التقارير</label>
                                     </div>
                                 </div>
-                                <small style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 10px;">اختر الصلاحيات المناسبة للموظف</small>
+                            </div>
+                            <div class="form-group" id="permissions_quality_section" style="display: none;">
+                                <label style="margin-bottom: 15px; display: block; font-weight: 600; font-size: 16px;">صلاحيات موظف الجودة</label>
+                                <div style="padding: 20px; background: var(--bg-secondary); border-radius: 8px; border-right: 4px solid var(--success-color);">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--success-color);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span style="font-weight: 600;">مراجعة وتقييم جودة التذاكر المكتملة</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--success-color);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>عرض جميع التذاكر المكتملة</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--success-color);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>إضافة تقييمات ونقاط للجودة</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" id="permissions_technician_section" style="display: none;">
+                                <label style="margin-bottom: 15px; display: block; font-weight: 600; font-size: 16px;">صلاحيات الفني</label>
+                                <div style="padding: 20px; background: var(--bg-secondary); border-radius: 8px; border-right: 4px solid var(--primary-color);">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span style="font-weight: 600;">تنفيذ وإكمال التذاكر المخصصة له</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>عرض التذاكر المخصصة لفريقه</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);">
+                                            <polyline points="20 6 9 17 4 12"></polyline>
+                                        </svg>
+                                        <span>رفع الصور وإكمال Checklist</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-group" id="user_team_group" style="display: none;">
                                 <label for="user_team_id">الفريق</label>
